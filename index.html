@@ -19,7 +19,8 @@
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;margin:0;height:100%;background:var(--fondo);color:var(--texto);font:15px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none}
-body{position:fixed;inset:0}
+body{position:fixed;left:0;right:0;top:0;bottom:0}
+html.app body{bottom:auto;height:var(--alto)}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;touch-action:manipulation}
 .pantalla{position:absolute;inset:0;display:none;flex-direction:column;padding:var(--sa-t) var(--sa-r) 0 var(--sa-l)}
 .pantalla.activa{display:flex}
@@ -183,6 +184,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .fila2{display:flex;gap:8px}.fila2 button{flex:1;padding:12px;border-radius:12px;background:var(--panel2)}
 .aviso{position:fixed;left:50%;bottom:calc(24px + var(--sa-b));transform:translate(-50%,20px);background:#2a3038;color:var(--texto);padding:11px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:all .25s;z-index:40;max-width:90vw;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.4)}
 .aviso.ver{opacity:1;transform:translate(-50%,0)}
+
+/* como app de pantalla de inicio: iOS difumina la franja de la hora; la cabecera baja un poco para quedar nítida */
+@media (display-mode: standalone){ .pantalla{padding-top:calc(var(--sa-t) + 12px)} }
+html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 </style>
 </head>
 <body>
@@ -1172,7 +1177,7 @@ const Nube = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.0.1';
+const VERSION = '0.0.2';
 const $ = s => document.querySelector(s);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const fmtT = s => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), x = Math.floor(s % 60); return m + ':' + String(x).padStart(2, '0'); };
@@ -1946,6 +1951,17 @@ $('#menuSalir').onclick = () => { if (!confirm('¿Cerrar sesión de Microsoft en
 
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 ['gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+// como app de pantalla de inicio, iOS a veces informa una altura más corta que la pantalla (quedaba una franja vacía abajo)
+function ajustarAlto() {
+  const app = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  document.documentElement.classList.toggle('app', app);
+  if (!app) return;
+  const horiz = matchMedia('(orientation: landscape)').matches;
+  const pantallaAlto = horiz ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+  document.documentElement.style.setProperty('--alto', Math.max(innerHeight, pantallaAlto) + 'px');
+  if (Rep.cancion) requestAnimationFrame(() => Rep.medir());
+}
+ajustarAlto(); addEventListener('resize', ajustarAlto); addEventListener('orientationchange', () => setTimeout(ajustarAlto, 250));
 try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
 arrancar();
 </script>
