@@ -1,0 +1,1891 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="YouSTEM">
+<meta name="theme-color" content="#14171b">
+<title>YouSTEM</title>
+<link rel="apple-touch-icon" href="icono.png">
+<link rel="icon" href="icono.png">
+<style>:root{
+  --fondo:#14171b; --panel:#1b1f24; --panel2:#232830; --linea:rgba(255,255,255,.08);
+  --texto:#e9edf2; --gris:#8a94a3; --tenue:#5d6673; --acento:#5a8fb5; --verde:#4cd97b; --oro:#ffd76a; --acorde:#7cc4ff;
+  --sa-t:env(safe-area-inset-top); --sa-b:env(safe-area-inset-bottom); --sa-l:env(safe-area-inset-left); --sa-r:env(safe-area-inset-right);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--fondo);color:var(--texto);font:15px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none}
+body{position:fixed;inset:0}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;touch-action:manipulation}
+.pantalla{position:absolute;inset:0;display:none;flex-direction:column;padding:var(--sa-t) var(--sa-r) 0 var(--sa-l)}
+.pantalla.activa{display:flex}
+.gris{color:var(--gris)}
+.icono{width:40px;height:40px;border-radius:12px;font-size:24px;line-height:40px;color:var(--texto);flex:none}
+.icono:active{background:var(--panel2)}
+
+/* ── login ── */
+#pLogin{align-items:center;justify-content:center;padding:24px}
+.loginCaja{max-width:340px;text-align:center}
+.logo{width:96px;height:96px;border-radius:22px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.loginCaja h1{margin:16px 0 4px;font-size:30px;letter-spacing:.3px}
+.lema{color:var(--gris);margin:0 0 28px;font-size:16px}
+.grande{width:100%;padding:15px 18px;border-radius:14px;background:#fff;color:#111;font-weight:650;font-size:17px}
+.grande:active{transform:scale(.98)}
+.nota{color:var(--gris);font-size:13px;margin:18px 4px 0}
+.nota.chica{font-size:11px;color:var(--tenue)}
+
+/* ── biblioteca ── */
+.cab{display:flex;align-items:center;gap:10px;padding:8px 12px 6px 14px;flex:none}
+.logoChico{width:28px;height:28px;border-radius:7px}
+.marca{font-weight:700;font-size:20px;letter-spacing:.2px}
+.cuentaBib{margin-left:auto;color:var(--tenue);font-size:12px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 14px 8px;flex:none;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{padding:7px 14px;border-radius:999px;background:var(--panel2);color:var(--gris);font-weight:600;white-space:nowrap;font-size:14px}
+.chip.on{background:var(--texto);color:#111}
+.buscar{padding:0 14px 8px;flex:none}
+.buscar input{width:100%;padding:11px 14px;border-radius:12px;border:0;background:var(--panel2);color:var(--texto);font:inherit;font-size:16px;outline:none}
+.estado{padding:28px 24px;color:var(--gris);text-align:center}
+.lista{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 6px calc(12px + var(--sa-b))}
+.grupoArt{position:sticky;top:0;z-index:1;background:var(--fondo);color:var(--gris);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:12px 10px 5px}
+.tema{display:flex;align-items:center;gap:12px;width:100%;padding:8px 8px;border-radius:12px;text-align:left}
+.tema:active{background:var(--panel)}
+.mini{width:48px;height:48px;border-radius:9px;background:var(--panel2) url("icono.png") center/26px no-repeat;flex:none;overflow:hidden}
+.mini img{width:100%;height:100%;object-fit:cover;display:block}
+.tema .tx{flex:1;min-width:0}
+.tit{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{color:var(--gris);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iconos{display:flex;gap:6px;align-items:center;flex:none;font-size:12px}
+.ic.guard{color:var(--verde);font-size:10px}
+
+/* ── reproducción: TODO entra en una pantalla ── */
+#pRep{padding-bottom:var(--sa-b)}
+.rcab{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 4px;flex:none;height:52px}
+#btnVolver{font-size:34px;font-weight:300}
+.rtit{flex:1;min-width:0;line-height:1.15}
+#rTit{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:16px}
+#rArt{color:var(--gris);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tono{display:flex;align-items:center;background:var(--panel2);border-radius:12px;flex:none}
+.tono button{width:38px;height:38px;font-size:22px;border-radius:12px}
+.tono button:active{background:#333a44}
+.tonoCaja{min-width:30px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums;cursor:pointer}
+
+.rcuerpo{flex:1;min-height:0;display:flex;flex-direction:column}
+.izq{flex:1;min-height:0;display:flex;flex-direction:column}
+.der{flex:none;display:flex;flex-direction:column}
+
+.ahora{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:2px 14px 6px;flex:none;gap:8px}
+.secPul{display:flex;flex-direction:column;gap:4px;min-width:0}
+#seccion{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--gris);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pulsos{display:flex;gap:5px}
+.pulsos i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.14);transition:background .06s}
+.pulsos i:first-child{width:11px;height:11px;margin-top:-1px}
+.pulsos i.on{background:var(--verde)}
+.pulsos i.on:first-child{background:#fff}
+.acs2{display:flex;align-items:baseline;gap:10px;justify-content:center}
+.acAhora{font-size:34px;font-weight:800;color:var(--verde);letter-spacing:-.5px;min-width:1ch;text-align:center}
+.acProx{font-size:17px;color:var(--gris);font-weight:600;white-space:nowrap}
+.key{text-align:right;color:var(--tenue);font-size:12px;font-weight:600}
+.key span:not(:empty)::before{content:"Tono ";font-weight:500}
+
+.tele{flex:1;min-height:0;overflow:hidden;position:relative;padding:0 16px;font-size:clamp(19px,5.6vw,38px);
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 84%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 84%,transparent 100%)}
+.rio{transition:transform .45s cubic-bezier(.25,.8,.3,1);will-change:transform;padding-bottom:60vh}
+.fila{margin:0 0 .5em;color:var(--tenue);transition:color .25s,opacity .25s;line-height:1.12}
+.fila.pasada{opacity:.45}
+.fila.actual{color:var(--texto)}
+.fila.letra{font-weight:650}
+.w{display:inline-flex;flex-direction:column;vertical-align:bottom;margin-right:.08em}
+.w.solo{margin-right:.35em}
+.acs{display:flex;gap:.35em;min-height:1.12em;font-size:.6em;line-height:1.5}
+.ac{font-weight:800;color:var(--acorde);white-space:nowrap;font-style:normal}
+.fila:not(.actual) .ac{color:#4f7fa3}
+.ac.suena{color:var(--verde)!important}
+.tx.oida{color:var(--oro)}
+.fila:not(.actual) .tx.oida{color:inherit}
+.fila.sec{display:inline-block;font-size:.5em;font-weight:800;letter-spacing:1.2px;padding:.25em .8em;border-radius:999px;background:var(--panel2);color:var(--gris);margin-bottom:.7em}
+.fila.sec.actual{background:#2c3440;color:var(--texto)}
+.fila.compases{display:flex;gap:0;margin-bottom:.45em}
+.cmp{flex:1 1 0;min-width:0;border-left:2px solid rgba(255,255,255,.14);padding:.08em .35em;display:flex;gap:.4em;align-items:baseline}
+.cmp:last-child{border-right:2px solid rgba(255,255,255,.14)}
+.cmp .ac{font-size:.82em}
+.ac.repite{opacity:.35}
+.fila.vacio{color:var(--gris);font-size:.6em;padding-top:2em;text-align:center}
+
+.barra{display:block;width:calc(100% - 28px);height:30px;margin:2px 14px 0;touch-action:none;cursor:pointer}
+.transporte{display:flex;align-items:center;justify-content:center;gap:14px;padding:6px 12px;flex:none;position:relative}
+.tbot{width:44px;height:44px;border-radius:50%;font-size:22px;color:var(--gris);background:var(--panel)}
+#btnCuenta{font-size:9px;font-weight:800;letter-spacing:.2px}
+.tbot.on{color:#111;background:var(--texto)}
+#btnLoop.on{background:var(--acento);color:#fff}
+#btnLoop.apagado{opacity:.4}
+.play{width:58px;height:58px;border-radius:50%;background:var(--texto);position:relative;flex:none}
+.play:active{transform:scale(.95)}
+.play .tri{position:absolute;left:23px;top:17px;border-left:18px solid #111;border-top:12px solid transparent;border-bottom:12px solid transparent}
+.play .bars{display:none;position:absolute;left:20px;top:19px;width:18px;height:20px;border-left:6px solid #111;border-right:6px solid #111}
+.play.sonando .tri{display:none}
+.play.sonando .bars{display:block}
+.tiempo{position:absolute;right:14px;bottom:2px;font-size:11px;color:var(--tenue);font-variant-numeric:tabular-nums}
+
+.mezcla{display:flex;gap:3px;padding:4px 8px 8px;height:clamp(150px,29dvh,250px);flex:none}
+.canal{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;background:var(--panel);border-radius:10px;padding:5px 2px 4px;transition:opacity .2s}
+.canal.master{flex:.9 1 0;margin-left:4px;background:#20252c}
+.canal.fueraSolo{opacity:.42}
+.nom{font-size:10.5px;font-weight:700;color:var(--c);width:100%;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px}
+.fader{flex:1;width:100%;position:relative;touch-action:none;margin:4px 0}
+.riel{position:absolute;left:50%;top:7px;bottom:7px;width:6px;margin-left:-3px;border-radius:3px;background:rgba(255,255,255,.1)}
+.rell{position:absolute;left:0;right:0;bottom:0;border-radius:3px;background:var(--c);opacity:.9}
+.canal.callada .rell{opacity:.25}
+.cero{position:absolute;left:-7px;right:-7px;height:1px;background:rgba(255,255,255,.35)}
+.per{position:absolute;left:50%;width:30px;height:14px;margin-left:-15px;border-radius:5px;background:#e9edf2;box-shadow:0 1px 4px rgba(0,0,0,.6)}
+.per::after{content:"";position:absolute;left:5px;right:5px;top:6px;height:2px;background:var(--c);border-radius:1px}
+.db{font-size:9.5px;color:var(--gris);font-variant-numeric:tabular-nums;height:13px}
+.bots{display:flex;gap:3px;width:100%;padding:0 2px;margin-top:3px}
+.bots button{flex:1;height:24px;border-radius:6px;background:var(--panel2);font-size:11px;font-weight:800;color:var(--gris);min-width:0}
+.bots .m.on{background:#e05a5a;color:#fff}
+.bots .s.on{background:#e8c547;color:#111}
+
+/* horizontal: letra a la izquierda, mezcla a la derecha */
+@media (orientation:landscape){
+  .rcuerpo{flex-direction:row}
+  .izq{flex:1.35;min-width:0}
+  .der{flex:1;min-width:0;padding-bottom:4px}
+  .mezcla{flex:1;height:auto;min-height:0}
+  .tele{font-size:clamp(18px,3.1vw,36px)}
+  .acAhora{font-size:28px}
+}
+
+/* ── capas ── */
+.cargando{position:fixed;inset:0;background:rgba(10,12,14,.72);display:none;align-items:center;justify-content:center;z-index:20;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.cargando.ver{display:flex}
+.cargCaja{width:min(300px,80vw);text-align:center;color:var(--texto)}
+.giro{width:34px;height:34px;margin:0 auto 14px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:#fff;animation:gira .8s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+.cargRiel{height:5px;border-radius:3px;background:rgba(255,255,255,.12);margin-top:12px;overflow:hidden}
+#cargBarra{height:100%;width:0;background:var(--texto);transition:width .2s}
+.hoja{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:30}
+.hoja.ver{display:flex}
+.hojaCaja{width:min(520px,100%);background:var(--panel);border-radius:18px 18px 0 0;padding:14px 14px calc(14px + var(--sa-b));display:flex;flex-direction:column;gap:6px;max-height:85dvh}
+.hojaTit{display:flex;flex-direction:column;padding:4px 6px 8px;font-weight:700}
+.hojaTit .gris{font-weight:400;font-size:13px}
+.hojaCaja>button{text-align:left;padding:13px 14px;border-radius:12px;background:var(--panel2);display:flex;flex-direction:column}
+.hojaCaja>button .gris{font-size:12px;margin-top:2px}
+.hojaCaja .rojo{color:#ff7a7a}
+.hojaCaja .cerrar{text-align:center;align-items:center;background:none;color:var(--gris)}
+.reg pre{flex:1;overflow:auto;font-size:11px;white-space:pre-wrap;background:#0e1013;padding:10px;border-radius:10px;margin:0;min-height:40dvh}
+.fila2{display:flex;gap:8px}.fila2 button{flex:1;padding:12px;border-radius:12px;background:var(--panel2)}
+.aviso{position:fixed;left:50%;bottom:calc(24px + var(--sa-b));transform:translate(-50%,20px);background:#2a3038;color:var(--texto);padding:11px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:all .25s;z-index:40;max-width:90vw;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+.aviso.ver{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+
+<section id="pLogin" class="pantalla activa">
+  <div class="loginCaja">
+    <img class="logo" src="icono.png" alt="">
+    <h1>YouSTEM</h1>
+    <p class="lema">Tus stems, tu letra y tus acordes,<br>en el bolsillo.</p>
+    <button id="btnEntrar" class="grande">Entrar con Microsoft</button>
+    <p class="nota">Usá la misma cuenta de OneDrive donde YouSTEM guarda tu biblioteca. Solo lee: nunca cambia nada de tu nube.</p>
+    <p class="nota chica" id="version"></p>
+  </div>
+</section>
+
+<section id="pBib" class="pantalla">
+  <header class="cab">
+    <img class="logoChico" src="icono.png" alt="">
+    <div class="marca">YouSTEM</div>
+    <div class="cuentaBib" id="cuenta"></div>
+    <button id="btnMenu" class="icono" aria-label="Menú">⋯</button>
+  </header>
+  <nav id="libs" class="chips"></nav>
+  <div class="buscar"><input id="q" type="search" placeholder="Buscar canción o artista" autocomplete="off" autocorrect="off" spellcheck="false"></div>
+  <div id="estadoBib" class="estado" style="display:none"></div>
+  <div id="lista" class="lista"></div>
+</section>
+
+<section id="pRep" class="pantalla">
+  <header class="rcab">
+    <button id="btnVolver" class="icono" aria-label="Biblioteca">‹</button>
+    <div class="rtit"><div id="rTit"></div><div id="rArt"></div></div>
+    <div class="tono">
+      <button id="tonoMenos" aria-label="Bajar tono">−</button>
+      <div class="tonoCaja" id="tonoVal" title="Tocar = tono de la Mac">0</div>
+      <button id="tonoMas" aria-label="Subir tono">+</button>
+    </div>
+    <button id="btnMenu2" class="icono" aria-label="Menú">⋯</button>
+  </header>
+  <div class="rcuerpo">
+    <div class="izq">
+      <div class="ahora">
+        <div class="secPul"><span id="seccion"></span><span id="pulsos" class="pulsos"></span></div>
+        <div class="acs2"><span id="acAhora" class="acAhora"></span><span id="acProx" class="acProx"></span></div>
+        <div class="key"><span id="tonoKey"></span></div>
+      </div>
+      <div id="tele" class="tele"><div id="rio" class="rio"></div></div>
+    </div>
+    <div class="der">
+      <canvas id="barra" class="barra"></canvas>
+      <div class="transporte">
+        <button id="btnCuenta" class="tbot" aria-label="Cuenta">1·2·3·4</button>
+        <button id="btnInicio" class="tbot" aria-label="Al inicio">⏮</button>
+        <button id="btnPlay" class="play" aria-label="Reproducir"><span class="tri"></span><span class="bars"></span></button>
+        <button id="btnLoop" class="tbot" aria-label="Repetir">⟲</button>
+        <div id="tiempo" class="tiempo">0:00 / 0:00</div>
+      </div>
+      <div id="mezcla" class="mezcla"></div>
+    </div>
+  </div>
+</section>
+
+<div id="cargando" class="cargando"><div class="cargCaja"><div class="giro"></div><div id="cargTxt"></div><div class="cargRiel"><div id="cargBarra"></div></div></div></div>
+
+<div id="menu" class="hoja">
+  <div class="hojaCaja">
+    <div class="hojaTit"><span id="menuVersion"></span><span id="menuUsuario" class="gris"></span></div>
+    <button id="menuMac">Volver a la mezcla y el tono de la Mac</button>
+    <button id="menuCuenta">Cuenta: 1 compás</button>
+    <button id="menuRecargar">Recargar la biblioteca</button>
+    <button id="menuBorrar">Borrar canciones guardadas en el iPhone<span id="menuEspacio" class="gris"></span></button>
+    <button id="menuRegistro">Ver registro</button>
+    <button id="menuSalir" class="rojo">Cerrar sesión</button>
+    <button id="menuCerrar" class="cerrar">Cerrar</button>
+  </div>
+</div>
+<div id="panelReg" class="hoja reg"><div class="hojaCaja"><pre id="registro"></pre><div class="fila2"><button id="regCopiar">Copiar</button><button id="regCerrar">Cerrar</button></div></div></div>
+<div id="aviso" class="aviso"></div>
+
+<script type="text/plain" id="codigoWorklet">// YouSTEM web — motor de audio (AudioWorklet).
+// Mezcla las pistas (Int16 en memoria, para que entren en el iPhone), suma el click y la cuenta,
+// y aplica el TONO una sola vez sobre la mezcla (remuestreo + WSOLA), como Rubber Band en la Mac.
+
+const W = 2048, HS = W >> 1, D = 512;          // ventana, salto de síntesis, búsqueda ±D
+const VENTANA = (() => { const w = new Float32Array(W); for (let i = 0; i < W; i++) w[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / W); return w; })();
+
+class Fifo {            // estéreo, crece si hace falta
+  constructor(cap) { this.L = new Float32Array(cap); this.R = new Float32Array(cap); this.n = 0; }
+  reservar(extra) {
+    if (this.n + extra <= this.L.length) return;
+    let cap = this.L.length * 2; while (cap < this.n + extra) cap *= 2;
+    const L = new Float32Array(cap), R = new Float32Array(cap);
+    L.set(this.L.subarray(0, this.n)); R.set(this.R.subarray(0, this.n));
+    this.L = L; this.R = R;
+  }
+  descartar(k) {        // saca k del principio
+    if (k <= 0) return; if (k >= this.n) { this.n = 0; return; }
+    this.L.copyWithin(0, k, this.n); this.R.copyWithin(0, k, this.n); this.n -= k;
+  }
+}
+
+function sintetizarBeep(sr, dur, f, amp, madera) {
+  const n = Math.round(sr * dur), b = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const t = i / sr;
+    if (madera) {   // cuenta: bloque de madera grave (mismo timbre que la Mac)
+      const f2 = f * 2.76;
+      b[i] = (Math.sin(2 * Math.PI * f * t) * 0.75 + Math.sin(2 * Math.PI * f2 * t) * 0.25) * Math.exp(-t * 26) * amp
+             + Math.exp(-t * 260) * 0.35 * (amp > 1 ? 1 : 0.7);
+    } else {        // click: seno con caída exponencial
+      b[i] = Math.sin(2 * Math.PI * f * i / sr) * amp * Math.exp(-6 * i / n);
+    }
+  }
+  return b;
+}
+
+class YouStem extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this.pistas = [];              // {L,R:Int16Array, len, ctl, reg:[[a,b,ctl]], g}
+    this.ctl = new Float32Array(64); // ganancia efectiva por control (mute/solo ya aplicados)
+    this.largo = 0; this.pos = 0; this.sonando = false;
+    this.loopOn = false; this.loopA = 0; this.loopB = 0;
+    this.master = 1; this.gMaster = 1;
+    this.ratio = 1;
+    this.click = { on: false, g: 1, beats: [], fuerte: [], desde: 0, suaveHasta: 0, i: 0 };
+    this.cuenta = { desde: 0, hasta: -1, pos: [], fuerte: [] };
+    this.bClickF = sintetizarBeep(sampleRate, 0.05, 1568, 0.8, false);
+    this.bClickD = sintetizarBeep(sampleRate, 0.05, 1046.5, 0.55, false);
+    this.bCuentaF = sintetizarBeep(sampleRate, 0.085, 660, 1.15, true);
+    this.bCuentaD = sintetizarBeep(sampleRate, 0.085, 495, 0.85, true);
+    this.tmpL = new Float32Array(4096); this.tmpR = new Float32Array(4096);
+    this.avisoCada = 1024; this.contAviso = 0;
+    this.reiniciarTono();
+    this.port.onmessage = (e) => this.mensaje(e.data);
+  }
+
+  reiniciarTono() {
+    this.S = new Fifo(16384); this.sFase = 0;       // fuente para el remuestreo
+    this.X = new Fifo(65536); this.xOff = 0;        // remuestreada (entrada del WSOLA)
+    this.olaL = new Float32Array(W); this.olaR = new Float32Array(W);
+    this.O = new Fifo(8192); this.oLeido = 0;       // salida lista
+    this.aIdeal = 0; this.prev = -1;
+  }
+
+  mensaje(m) {
+    switch (m.t) {
+      case 'vaciar': this.pistas = []; this.largo = 0; this.pos = 0; this.sonando = false; this.reiniciarTono(); break;
+      case 'pista': this.pistas[m.i] = { L: m.L, R: m.R, len: m.len, ctl: m.i, reg: [], g: 0 };
+                    this.largo = Math.max(this.largo, m.len); break;
+      case 'regiones': if (this.pistas[m.i]) this.pistas[m.i].reg = m.reg; break;
+      case 'ctl': this.ctl.set(m.g); break;
+      case 'master': this.master = m.v; break;
+      case 'play': this.sonando = true; break;
+      case 'pausa': this.sonando = false; this.reiniciarTono(); this.avisar(); break;
+      case 'ir': this.pos = Math.max(0, Math.min(this.largo, Math.round(m.pos))); this.reiniciarTono(); this.click.i = 0; this.avisar(); break;
+      case 'loop': this.loopOn = m.on; this.loopA = Math.round(m.a); this.loopB = Math.round(m.b); break;
+      case 'tono': if (Math.abs(m.r - this.ratio) > 1e-6) { this.ratio = m.r; this.reiniciarTono(); } break;
+      case 'click': Object.assign(this.click, m.c); this.click.i = 0; break;
+      case 'cuenta': this.cuenta = { desde: Math.round(m.desde), hasta: Math.round(m.hasta), pos: m.pos, fuerte: m.fuerte }; break;
+    }
+  }
+
+  // posición que se está ESCUCHANDO (descuenta lo que el tono tiene en vuelo)
+  posOida() {
+    if (this.ratio === 1) return this.pos;
+    const r = this.ratio;
+    const enS = this.S.n - this.sFase;
+    const oidaX = this.aIdeal - (this.O.n - this.oLeido + HS) / r;
+    const enX = (this.xOff + this.X.n) - oidaX;
+    return Math.max(0, this.pos - enS - enX * r);
+  }
+  avisar() { this.port.postMessage({ t: 'pos', pos: this.posOida(), sonando: this.sonando, ct: currentTime }); }
+
+  // n muestras de la mezcla desde this.pos (avanza, hace loop, para al final)
+  mezclar(L, R, n) {
+    L.fill(0, 0, n); R.fill(0, 0, n);
+    let hecho = 0;
+    while (hecho < n) {
+      if (this.loopOn && this.loopB > this.loopA && this.pos >= this.loopB && this.pos < this.loopB + 4096 && !(this.cuenta.hasta > 0 && this.pos < this.cuenta.hasta)) {
+        this.pos = this.loopA; this.click.i = 0;
+      }
+      if (this.pos >= this.largo) {
+        if (this.loopOn && this.loopB > this.loopA) { this.pos = this.loopA; this.click.i = 0; continue; }
+        this.sonando = false; this.port.postMessage({ t: 'fin' }); return hecho;
+      }
+      let lim = this.largo;
+      if (this.loopOn && this.loopB > this.loopA && this.pos < this.loopB) lim = Math.min(lim, this.loopB);
+      if (this.cuenta.hasta > 0 && this.pos < this.cuenta.hasta) lim = Math.min(lim, this.cuenta.hasta);
+      const k = Math.min(n - hecho, lim - this.pos);
+      this.mezclarTramo(L, R, hecho, k, this.pos);
+      this.pos += k; hecho += k;
+      if (this.cuenta.hasta > 0 && this.pos >= this.cuenta.hasta) this.cuenta = { desde: 0, hasta: -1, pos: [], fuerte: [] };
+    }
+    return n;
+  }
+
+  mezclarTramo(L, R, off, k, p0) {
+    const ctl = this.ctl;
+    for (const p of this.pistas) {
+      if (!p) continue;
+      let cur = p0; const fin = p0 + k;
+      while (cur < fin) {
+        let c = p.ctl, segFin = fin;
+        for (const r of p.reg) {
+          if (cur >= r[0] && cur < r[1]) { c = r[2]; segFin = Math.min(segFin, r[1]); break; }
+          if (r[0] > cur) segFin = Math.min(segFin, r[0]);
+        }
+        const objetivo = c < 0 ? 0 : ctl[c];
+        let g = p.g;
+        const disp = Math.min(segFin, p.len);
+        if (objetivo < 1e-5 && g < 1e-5) { p.g = 0; cur = segFin; continue; }
+        const PL = p.L, PR = p.R, k32 = 1 / 32768;
+        for (let s = cur; s < disp; s++) {
+          g += (objetivo - g) * 0.004;
+          const j = off + (s - p0);
+          L[j] += PL[s] * k32 * g; R[j] += PR[s] * k32 * g;
+        }
+        if (disp < segFin) g = objetivo;
+        p.g = g; cur = segFin;
+      }
+    }
+    // click (se calla durante la cuenta)
+    const cl = this.click, enCuenta = this.cuenta.hasta > 0 && p0 < this.cuenta.hasta && p0 + k > this.cuenta.desde;
+    if (cl.on && !enCuenta && cl.beats.length) this.sumarBeeps(L, R, off, k, p0, cl.beats, cl.fuerte, this.bClickF, this.bClickD, cl.g, cl);
+    if (enCuenta) this.sumarBeeps(L, R, off, k, p0, this.cuenta.pos, this.cuenta.fuerte, this.bCuentaF, this.bCuentaD, 1.0, null);
+  }
+
+  sumarBeeps(L, R, off, k, p0, beats, fuerte, bF, bD, gan, cl) {
+    const largoMax = Math.max(bF.length, bD.length);
+    let i = cl ? cl.i : 0;
+    while (i > 0 && beats[i - 1] + largoMax > p0) i--;
+    while (i < beats.length && beats[i] + largoMax <= p0) i++;
+    if (cl) cl.i = i;
+    for (let b = i; b < beats.length && beats[b] < p0 + k; b++) {
+      const t = beats[b];
+      if (cl && t < cl.desde) continue;
+      const suave = cl && t < cl.suaveHasta ? 0.5 : 1;
+      const buf = fuerte[b] ? bF : bD;
+      const a = Math.max(p0, t), z = Math.min(p0 + k, t + buf.length);
+      for (let s = a; s < z; s++) { const v = buf[s - t] * gan * suave; L[off + s - p0] += v; R[off + s - p0] += v; }
+    }
+  }
+
+  // ── tono: remuestreo (cúbico) a velocidad r → WSOLA estira r → mismo largo, otra altura ──
+  llenarX(hasta) {           // asegura X hasta la posición absoluta `hasta`
+    const r = this.ratio, S = this.S, X = this.X;
+    while (this.xOff + X.n < hasta) {
+      if (!this.sonando) { X.reservar(1); X.L[X.n] = 0; X.R[X.n] = 0; X.n++; continue; }
+      const i0 = Math.floor(this.sFase);
+      if (S.n < i0 + 4) {
+        S.reservar(2048);
+        const n = this.mezclar(this.tmpL, this.tmpR, 2048);
+        S.L.set(this.tmpL.subarray(0, 2048), S.n); S.R.set(this.tmpR.subarray(0, 2048), S.n);
+        S.n += 2048; if (n < 2048) { /* terminó: el resto queda en silencio */ }
+        continue;
+      }
+      const f = this.sFase - i0, a = Math.max(0, i0 - 1);
+      X.reservar(1);
+      X.L[X.n] = cubica(S.L[a], S.L[i0], S.L[i0 + 1], S.L[i0 + 2], f);
+      X.R[X.n] = cubica(S.R[a], S.R[i0], S.R[i0 + 1], S.R[i0 + 2], f);
+      X.n++;
+      this.sFase += r;
+      if (this.sFase > 8192) { const q = Math.floor(this.sFase) - 2; S.descartar(q); this.sFase -= q; }
+    }
+  }
+
+  unSalto() {
+    const r = this.ratio, X = this.X;
+    const ideal = Math.round(this.aIdeal);
+    let mejor = ideal;
+    if (this.prev >= 0) {
+      const nat = this.prev + HS;
+      this.llenarX(Math.max(ideal + D, nat) + W + 4);
+      const lo = Math.max(this.xOff, ideal - D), hi = ideal + D;
+      let mejorC = -Infinity;
+      const corr = (c, paso) => {
+        let s = 0, e = 1e-9;
+        for (let j = 0; j < HS; j += paso) {
+          const a = X.L[c - this.xOff + j] + X.R[c - this.xOff + j];
+          const b = X.L[nat - this.xOff + j] + X.R[nat - this.xOff + j];
+          s += a * b; e += a * a;
+        }
+        return s / Math.sqrt(e);
+      };
+      for (let c = lo; c <= hi; c += 4) { const v = corr(c, 4); if (v > mejorC) { mejorC = v; mejor = c; } }
+      const base = mejor; mejorC = -Infinity;
+      for (let c = Math.max(lo, base - 4); c <= Math.min(hi, base + 4); c++) { const v = corr(c, 2); if (v > mejorC) { mejorC = v; mejor = c; } }
+    } else this.llenarX(ideal + W + 4);
+    const o = mejor - this.xOff;
+    for (let j = 0; j < W; j++) { this.olaL[j] += X.L[o + j] * VENTANA[j]; this.olaR[j] += X.R[o + j] * VENTANA[j]; }
+    const O = this.O;
+    if (this.oLeido > 4096) { O.descartar(this.oLeido); this.oLeido = 0; }
+    O.reservar(HS);
+    O.L.set(this.olaL.subarray(0, HS), O.n); O.R.set(this.olaR.subarray(0, HS), O.n); O.n += HS;
+    this.olaL.copyWithin(0, HS); this.olaR.copyWithin(0, HS); this.olaL.fill(0, W - HS); this.olaR.fill(0, W - HS);
+    this.prev = mejor; this.aIdeal += HS / r;
+    const corte = Math.min(this.prev, Math.round(this.aIdeal)) - D - 8 - this.xOff;
+    if (corte > 16384) { X.descartar(corte); this.xOff += corte; }
+  }
+
+  process(_in, outputs) {
+    const out = outputs[0], L = out[0], R = out[1] || out[0], n = L.length;
+    const gm = this.master;
+    if (!this.sonando && (this.ratio === 1 || this.O.n - this.oLeido <= 0)) {
+      L.fill(0); R.fill(0);
+    } else if (this.ratio === 1) {
+      this.mezclar(L, R, n);
+    } else {
+      while (this.O.n - this.oLeido < n) this.unSalto();
+      L.set(this.O.L.subarray(this.oLeido, this.oLeido + n)); R.set(this.O.R.subarray(this.oLeido, this.oLeido + n));
+      this.oLeido += n;
+    }
+    for (let i = 0; i < n; i++) { this.gMaster += (gm - this.gMaster) * 0.003; L[i] *= this.gMaster; if (R !== L) R[i] *= this.gMaster; }
+    this.contAviso += n;
+    if (this.contAviso >= this.avisoCada) { this.contAviso = 0; this.avisar(); }
+    return true;
+  }
+}
+
+function cubica(y0, y1, y2, y3, t) {   // Catmull-Rom
+  const a0 = -0.5 * y0 + 1.5 * y1 - 1.5 * y2 + 0.5 * y3;
+  const a1 = y0 - 2.5 * y1 + 2 * y2 - 0.5 * y3;
+  const a2 = -0.5 * y0 + 0.5 * y2;
+  return ((a0 * t + a1) * t + a2) * t + y1;
+}
+
+registerProcessor('youstem', YouStem);
+</script>
+<script>// ── Modelo: port fiel de Modelo.h/Modelo.cpp de YouSTEM 1.4.0 ──────────────────
+// analisis.json (pulso, compases, acordes con tus correcciones, arreglos), letra.json y ajustes.json
+
+const Modelo = (() => {
+  const num = (v, d = 0) => (typeof v === 'number' && isFinite(v)) ? v : (v != null && v !== '' && isFinite(+v) ? +v : d);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const BORRADO = '∅';
+  const esSilencio = n => n === 'N.C.' || n === 'NC' || n === 'N';
+  const fmt3 = t => (Math.round(t * 1000) / 1000).toFixed(3);   // juce::String (t, 3)
+
+  function aplicarFactor(beats, factor) {
+    if (factor > 1.5) { const r = []; for (let i = 0; i < beats.length; i++) { r.push(beats[i]); if (i + 1 < beats.length) r.push((beats[i] + beats[i + 1]) * 0.5); } return r; }
+    if (factor < 0.75) { const r = []; for (let i = 0; i < beats.length; i += 2) r.push(beats[i]); return r; }
+    return beats.slice();
+  }
+  const mediana = a => { const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+  const lowerBound = (v, t) => { let lo = 0, hi = v.length; while (lo < hi) { const m = (lo + hi) >> 1; if (v[m] < t) lo = m + 1; else hi = m; } return lo; };
+
+  class Analisis {
+    constructor() {
+      this.valido = false; this.bpm = 0; this.inicioMusica = 0; this.grooveDesde = -1;
+      this.tonalidad = ''; this.tonoElegido = ''; this.tonalidadDetectada = '';
+      this.medioPulso = false; this.beatsCrudos = []; this.compasesCrudos = [];
+      this.afinacionHz = 0; this.beats = []; this.compases = []; this.acordes = [];
+      this.correr1 = 0; this.compasN = 4; this.cambiosCompas = []; this.cambiosTono = [];
+      this.arreglo = []; this.anclas = []; this.anclasParejas = []; this.rombo1 = -1; this.rombo2 = -1;
+      this.acordesNuevos = []; this.beatFactor = 1; this.acordesEditados = {}; this.tiemposEditados = {};
+    }
+    static deJson(o) {
+      const a = new Analisis();
+      if (!o || typeof o !== 'object') return a;
+      a.bpm = num(o.bpm); a.inicioMusica = num(o.inicioMusica);
+      if ('grooveDesde' in o) a.grooveDesde = num(o.grooveDesde, -1);
+      a.tonalidad = String(o.tonalidad || '');
+      if ('afinacionHz' in o) a.afinacionHz = num(o.afinacionHz);
+      if (Array.isArray(o.beats)) a.beats = o.beats.map(x => num(x));
+      if (Array.isArray(o.compases)) a.compases = o.compases.map(x => num(x));
+      if (Array.isArray(o.acordes)) for (const x of o.acordes) if (x && typeof x === 'object')
+        a.acordes.push({ t: num(x.t), fin: num(x.fin), nombre: String(x.acorde ?? ''), bajo: String(x.bajo ?? ''), tOrig: -1, tuyo: false, sigue: false });
+      const ed = o.ediciones;
+      if (ed && typeof ed === 'object') {
+        a.correr1 = Math.trunc(num(ed.correr1)); a.medioPulso = !!ed.medio;
+        if ('compas' in ed) a.compasN = clamp(Math.trunc(num(ed.compas, 4)), 2, 12);
+        if (Array.isArray(ed.cambiosCompas)) for (const p of ed.cambiosCompas) if (Array.isArray(p) && p.length >= 2) a.cambiosCompas.push([num(p[0]), clamp(Math.trunc(num(p[1])), 2, 12)]);
+        a.cambiosCompas.sort((x, y) => x[0] - y[0]);
+        a.tonalidadDetectada = a.tonalidad;
+        if (ed.tono) { a.tonoElegido = String(ed.tono); a.tonalidad = a.tonoElegido; }
+        if (Array.isArray(ed.cambiosTono)) for (const p of ed.cambiosTono) if (Array.isArray(p) && p.length >= 2) a.cambiosTono.push([num(p[0]), String(p[1])]);
+        a.cambiosTono.sort((x, y) => x[0] - y[0]);
+        if (Array.isArray(ed.arreglo)) for (const x of ed.arreglo) if (x && typeof x === 'object') {
+          const b = { t: num(x.t), fin: num(x.fin), nombre: String(x.nombre ?? ''), color: Math.trunc(num(x.color)), compas: Math.trunc(num(x.compas)), ok: !!x.ok };
+          if (b.fin > b.t) a.arreglo.push(b);
+        }
+        a.arreglo.sort((x, y) => x.t - y.t);
+        if (ed.acordes && typeof ed.acordes === 'object') for (const k in ed.acordes) a.acordesEditados[k] = String(ed.acordes[k]);
+        if (ed.tiempos && typeof ed.tiempos === 'object') for (const k in ed.tiempos) a.tiemposEditados[k] = num(ed.tiempos[k]);
+        if (Array.isArray(ed.nuevos)) for (const p of ed.nuevos) if (Array.isArray(p) && p.length >= 3) a.acordesNuevos.push({ t: num(p[0]), fin: num(p[1]), nombre: String(p[2]), bajo: '', tOrig: -1, tuyo: true, sigue: false });
+        if (Array.isArray(ed.anclas)) a.anclas = ed.anclas.map(x => num(x)).sort((x, y) => x - y);
+        if (Array.isArray(ed.anclasParejas)) a.anclasParejas = ed.anclasParejas.map(x => num(x));
+        if ('rombo1' in ed) a.rombo1 = num(ed.rombo1, -1);
+        if ('rombo2' in ed) a.rombo2 = num(ed.rombo2, -1);
+        if ('factor' in ed) a.beatFactor = clamp(num(ed.factor, 1), 0.25, 4);
+      }
+      a.beatsCrudos = a.beats.slice(); a.compasesCrudos = a.compases.slice();
+      a.aplicarMedio();
+      a.valido = a.beats.length > 0 || a.anclas.length > 0;
+      // (1.3.15) mayor o menor según los acordes de la tónica; lo elegido a mano manda
+      const crudo = a.tonalidadDetectada || a.tonalidad;
+      const porAcordes = modoPorAcordes(crudo, a.acordesEfectivos());
+      a.tonalidadDetectada = porAcordes;
+      if (!a.tonoElegido) a.tonalidad = porAcordes;
+      return a;
+    }
+    aplicarMedio() {
+      this.beats = this.beatsCrudos.slice(); this.compases = this.compasesCrudos.slice();
+      if (!this.medioPulso || this.beats.length < 2) return;
+      const b = this.beats, nb = [];
+      for (let i = 0; i < b.length; i++) { const sig = i + 1 < b.length ? b[i + 1] : b[i] + (b[i] - b[i - 1]); nb.push(0.5 * (b[i] + sig)); }
+      const nc = [];
+      for (const c of this.compases) {
+        let mejor = 0, d = 1e18;
+        for (let i = 0; i < b.length; i++) if (Math.abs(b[i] - c) < d) { d = Math.abs(b[i] - c); mejor = i; }
+        if (!nc.length || nb[mejor] > nc[nc.length - 1] + 0.02) nc.push(nb[mejor]);
+      }
+      this.beats = nb; this.compases = nc;
+    }
+    tonoEn(t) { let r = this.tonalidad; for (const c of this.cambiosTono) { if (c[0] <= t + 0.01) r = c[1]; else break; } return r; }
+    compasEn(t) {
+      let n = this.compasN;
+      for (const c of this.cambiosCompas) { if (c[0] <= t + 0.001) n = c[1]; else break; }
+      for (const b of this.arreglo) if (b.compas > 0 && t >= b.t - 0.001 && t < b.fin) { n = b.compas; break; }
+      return Math.max(2, n);
+    }
+    anclaEsPareja(t) { return this.anclasParejas.some(x => Math.abs(x - t) < 0.002); }
+    beatsLlave() { return this.beatsCrudos.length ? this.beatsCrudos : this.beats; }
+    posBeat(t) {
+      const b = this.beatsLlave();
+      if (!b.length) return t;
+      if (t <= b[0]) { const sp = b.length > 1 ? Math.max(0.05, b[1] - b[0]) : 0.5; return (t - b[0]) / sp; }
+      for (let k = 0; k + 1 < b.length; k++) if (t < b[k + 1]) return k + (t - b[k]) / Math.max(0.05, b[k + 1] - b[k]);
+      if (b.length < 2) return (t - b[0]) / 0.5;
+      const sp = Math.max(0.05, b[b.length - 1] - b[b.length - 2]);
+      return (b.length - 1) + (t - b[b.length - 1]) / sp;
+    }
+    claveDe(t) { if (!this.beats.length) return fmt3(t); const x = this.posBeat(t) * 4; return 'g' + (x < 0 ? -Math.round(-x) : Math.round(x)); }   // std::llround
+    claveBeat(t) {
+      const b = this.beatsLlave(); if (!b.length) return fmt3(t);
+      let mejor = 0, d = 1e18; for (let i = 0; i < b.length; i++) { const x = Math.abs(b[i] - t); if (x < d) { d = x; mejor = i; } }
+      return 'b' + mejor;
+    }
+    buscarEdicion(m, t) {
+      for (const k of [this.claveDe(t), this.claveBeat(t), fmt3(t)]) if (Object.prototype.hasOwnProperty.call(m, k)) return { k, v: m[k] };
+      return null;
+    }
+    anclasHonradas() {
+      if (!this.anclas.length || !this.compases.length) return false;
+      return this.anclas.every(a => this.compases.some(c => Math.abs(c - a) < 0.005));
+    }
+    compasesDetectados() {
+      const bf = aplicarFactor(this.beats, this.beatFactor);
+      if (bf.length < 2) return this.compases.slice();
+      let fase = 0;
+      if (this.compases.length) { let m = 1e9; for (let i = 0; i < bf.length; i++) { const d = Math.abs(bf[i] - this.compases[0]); if (d < m) { m = d; fase = i; } } }
+      const n = Math.max(2, this.compasN);
+      const inicio = (fase + ((this.correr1 % n) + n) % n) % n;
+      const res = [];
+      if (this.cambiosCompas.length) { for (let i = inicio; i < bf.length; i += Math.max(2, this.compasEn(bf[i]))) res.push(bf[i]); return res; }
+      for (let i = inicio; i < bf.length; i += n) res.push(bf[i]);
+      return res;
+    }
+    compasesEfectivos() {
+      if (this._ce) return this._ce;
+      return (this._ce = this._compasesEfectivos());
+    }
+    _compasesEfectivos() {
+      const nC = Math.max(2, this.compasN), anclas = this.anclas;
+      if (anclas.length && this.anclasHonradas()) return this.compases.slice();
+      if (!anclas.length) return this.compasesDetectados();
+      let res = [];
+      let mdDet = 0;
+      { const bf = aplicarFactor(this.beats, this.beatFactor);
+        if (bf.length >= 3) { const d = []; for (let i = 1; i < bf.length; i++) d.push(bf[i] - bf[i - 1]); mdDet = mediana(d) * nC; } }
+      let mdRef = anclas.length >= 2 ? anclas[1] - anclas[0] : (mdDet > 0.2 ? mdDet : 2.0);
+      if (anclas.length >= 2 && mdDet > 0.2) {
+        let k = Math.max(1, Math.round((anclas[1] - anclas[0]) / mdDet));
+        if ((anclas[1] - anclas[0]) < mdDet * 1.5) k = 1;
+        mdRef = (anclas[1] - anclas[0]) / k;
+      }
+      const bfD = aplicarFactor(this.beats, this.beatFactor);
+      const compD = this.compasesDetectados();
+      const cercaDe = (v, t, tol) => { const i = lowerBound(v, t - tol); return i < v.length && v[i] <= t + tol; };
+      if (bfD.length >= 3) {
+        const d = []; for (let i = 1; i < bfD.length; i++) d.push(bfD[i] - bfD[i - 1]);
+        const p = mediana(d);
+        const atras = bfD.filter(b => b > 0 && b < anclas[0] - 0.35 * p);
+        if (atras.length && p > 0.1) {
+          const tv = atras[atras.length - 1];
+          const m = Math.max(1, Math.round((anclas[0] - tv) / p));
+          for (let j = 1; j < m; j++) atras.push(tv + (anclas[0] - tv) * j / m);
+          const unos = []; let idx = atras.length;
+          while (true) {
+            idx -= Math.max(2, this.compasEn(idx > 0 && idx <= atras.length ? atras[idx - 1] : anclas[0]));
+            if (idx < 0) break;
+            unos.push(atras[idx]);
+          }
+          unos.reverse(); res = unos;
+        }
+      }
+      for (let i = 0; i < anclas.length; i++) {
+        const t0 = anclas[i];
+        if (i + 1 < anclas.length) {
+          const d = anclas[i + 1] - t0;
+          if (cercaDe(compD, t0, 0.005) && cercaDe(compD, anclas[i + 1], 0.005)) {
+            let kH = 0;
+            for (const c of compD) if (c > t0 - 0.005 && c < anclas[i + 1] - 0.005) { res.push(c > t0 + 0.005 ? c : t0); kH++; }
+            if (kH > 0) mdRef = d / kH;
+            continue;
+          }
+          const k = d < mdRef * 1.5 ? 1 : Math.max(1, Math.round(d / mdRef));
+          const md = d / k;
+          for (let j = 0; j < k; j++) res.push(t0 + md * j);
+          mdRef = md;
+        } else {
+          const bf = aplicarFactor(this.beats, this.beatFactor);
+          if (bf.length < 2 || this.anclaEsPareja(t0)) {
+            let finC = t0 + mdRef;
+            if (this.acordes.length) finC = Math.max(finC, this.acordes[this.acordes.length - 1].fin);
+            if (bf.length) finC = Math.max(finC, bf[bf.length - 1]);
+            for (let t = t0; t < finC + 0.01; t += mdRef) res.push(t);
+          } else {
+            let idx = 0, mejor = 1e9;
+            for (let k = 0; k < bf.length; k++) { const x = Math.abs(bf[k] - t0); if (x < mejor) { mejor = x; idx = k; } }
+            res.push(t0);
+            const paso = Math.max(2, this.compasN);
+            for (let k = idx + paso; k < bf.length; k += paso) res.push(bf[k]);
+          }
+        }
+      }
+      return res;
+    }
+    beatsEfectivos() {
+      if (this._be) return this._be;
+      return (this._be = this._beatsEfectivos());
+    }
+    _beatsEfectivos() {
+      if (!this.anclas.length || this.anclasHonradas()) return aplicarFactor(this.beats, this.beatFactor);
+      const comp = this.compasesEfectivos(), bf = aplicarFactor(this.beats, this.beatFactor), res = [];
+      if (comp.length) for (const x of bf) { if (x >= comp[0] - 0.02) break; res.push(x); }
+      const dc = this.duracionCompas();
+      for (let i = 0; i < comp.length; i++) {
+        const t0 = comp[i], t1 = i + 1 < comp.length ? comp[i + 1] : t0 + dc;
+        const nC = this.compasEn(t0), paso = (t1 - t0) / nC;
+        {
+          const adentro = []; let it = lowerBound(bf, t0 - 0.005);
+          const bordes = it < bf.length && bf[it] < t0 + 0.005;
+          let bordeFin = (i + 1 >= comp.length);
+          for (; it < bf.length && bf[it] < t1 + 0.005; it++) {
+            if (!bordeFin && Math.abs(bf[it] - t1) < 0.005) bordeFin = true;
+            if (bf[it] > t0 + 0.02 && bf[it] < t1 - 0.02) adentro.push(bf[it]);
+          }
+          if (bordes && bordeFin && adentro.length === nC - 1) {
+            if (!res.length || t0 > res[res.length - 1] + 0.02) res.push(t0);
+            for (const b of adentro) res.push(b);
+            continue;
+          }
+        }
+        for (let j = 0; j < nC; j++) { const b = t0 + paso * j; if (!res.length || b > res[res.length - 1] + 0.02) res.push(b); }
+      }
+      return res;
+    }
+    duracionCompas() {
+      const comp = this.compasesEfectivos();
+      if (comp.length >= 3) { const d = []; for (let i = 1; i < comp.length; i++) d.push(comp[i] - comp[i - 1]); return mediana(d); }
+      if (this.beats.length >= 2) return (this.beats[1] - this.beats[0]) * Math.max(2, this.compasN);
+      return 2.0;
+    }
+    acordesEfectivos() {
+      const res = this.acordes.map(a => ({ ...a }));
+      for (const a of res) {
+        a.tOrig = a.t;
+        const e = this.buscarEdicion(this.acordesEditados, a.t); if (e) { a.nombre = e.v; a.tuyo = true; }
+        const e2 = this.buscarEdicion(this.tiemposEditados, a.t); if (e2) a.t = e2.v;
+      }
+      this.acordesNuevos.forEach((x, i) => res.push({ ...x, tOrig: -(i + 2), tuyo: true }));
+      res.sort((x, y) => x.t - y.t);
+      for (let i = 0; i + 1 < res.length; i++) res[i].fin = Math.max(res[i].t + 0.05, res[i + 1].t);
+      const unidos = [];
+      for (const a of res) { if (a.nombre === BORRADO) { if (unidos.length) unidos[unidos.length - 1].fin = a.fin; continue; } unidos.push(a); }
+      return unidos;
+    }
+    acordesAlPulso() {
+      const res = this.acordesEfectivos();
+      if (!res.length) return res;
+      const compas = this.duracionCompas();
+      const largoDet = tO => { for (const d of this.acordes) if (Math.abs(d.t - tO) < 0.001) return d.fin - d.t; return 1e9; };
+      for (let i = 1; i < res.length; i++) {
+        const a = res[i];
+        if (esSilencio(a.nombre) && !a.tuyo && a.tOrig >= 0 && largoDet(a.tOrig) < compas * 0.98 && !esSilencio(res[i - 1].nombre)) {
+          a.nombre = res[i - 1].nombre; a.bajo = res[i - 1].bajo; a.sigue = true;
+        }
+      }
+      const b = this.beatsEfectivos();
+      if (b.length < 2) return res;
+      const alPulso = t => {
+        const it = lowerBound(b, t);
+        if (it === 0) { const paso = b[1] - b[0]; return (t >= b[0] - paso * 0.5) ? b[0] : t; }
+        if (it === b.length) { const paso = b[b.length - 1] - b[b.length - 2]; return (t <= b[b.length - 1] + paso * 0.5) ? b[b.length - 1] : t; }
+        const d1 = b[it] - t, d0 = t - b[it - 1];
+        return d1 < d0 ? b[it] : b[it - 1];
+      };
+      for (const a of res) a.t = alPulso(a.t);
+      for (let i = 1; i < res.length; i++) if (res[i].t < res[i - 1].t) res[i].t = res[i - 1].t;
+      for (let i = 0; i < res.length; i++) res[i].fin = i + 1 < res.length ? res[i + 1].t : Math.max(res[i].t, alPulso(res[i].fin));
+      return res;
+    }
+  }
+
+  function parsearTono(s) {
+    const t = (s || '').trim(), k = claseNota(t); if (!k) return null;
+    const resto = t.slice(k.largo).trim().toLowerCase();
+    return { pc: k.pc, menor: resto.startsWith('m') && !resto.startsWith('maj') };
+  }
+  function modoPorAcordes(tono, acordes) {
+    const k = parsearTono(tono); if (!k) return tono;
+    let may = 0, men = 0, total = 0;
+    for (const x of acordes) {
+      const c = claseNota(x.nombre); if (!c) continue;
+      const d = Math.max(0, x.fin - x.t); total += d;
+      if (c.pc !== k.pc) continue;
+      const tipo = x.nombre.slice(c.largo).split('/')[0];
+      const menor = (tipo.startsWith('m') && !tipo.startsWith('maj')) || tipo.startsWith('dim');
+      if (menor) men += d; else may += d;
+    }
+    if (total <= 0) return tono;
+    let menor = k.menor;
+    if (!k.menor && men > 1.5 * may && men >= 0.08 * total) menor = true;
+    else if (k.menor && may > 1.5 * men && may >= 0.08 * total) menor = false;
+    else return tono;
+    return ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'][k.pc] + (menor ? 'm' : '');
+  }
+  // tono transportado: ortografía de la armadura (F, B♭, E♭, A♭, D♭ y sus relativos con bemoles)
+  function tonoTranspuesto(tono, st) {
+    const k = parsearTono(tono); if (!k) return { nombre: tono || '', bemol: null };
+    const pc = ((k.pc + st) % 12 + 12) % 12, mayor = k.menor ? (pc + 3) % 12 : pc;
+    const bemol = [5, 10, 3, 8, 1].includes(mayor);
+    return { nombre: (bemol ? BEM : SOST)[pc] + (k.menor ? 'm' : ''), bemol };   // también sin transportar: B♭ en Dm, no A♯
+  }
+
+  // acorde dominante por compás (para las filas de acordes sin letra: intro, solos, temas instrumentales)
+  function acordesPorCompas(a, comp, beats) {
+    const r = [];
+    const simple = n => n.split('/')[0];
+    const dominanteEn = (d0, d1) => { let mejor = 0, n = ''; for (const x of a) { const s = Math.min(x.fin, d1) - Math.max(x.t, d0); if (s > mejor) { mejor = s; n = x.nombre; } } return n; };
+    for (let i = 0; i < comp.length; i++) {
+      const t0 = comp[i], t1 = i + 1 < comp.length ? comp[i + 1] : t0 + 2;
+      let b1 = t0 + (t1 - t0) * 0.25;
+      for (const b of beats) if (b > t0 + 0.05) { b1 = Math.min(Math.max(b, t0 + 0.1), t1); break; }
+      const n = dominanteEn(t0, b1);
+      const celda = { t: t0, fin: t1, acordes: [] };
+      if (n) {
+        const mitad = t0 + (t1 - t0) * 0.5, n2 = dominanteEn(mitad, t1);
+        let dos = n2 && simple(n2) !== simple(n);
+        if (dos) { let cob = 0; for (const x of a) if (x.nombre === n2) cob += Math.max(0, Math.min(x.fin, t1) - Math.max(x.t, mitad)); dos = cob >= (t1 - mitad) * 0.8; }
+        celda.acordes = dos ? [{ t: t0, nombre: n }, { t: mitad, nombre: n2 }] : [{ t: t0, nombre: n }];
+      }
+      r.push(celda);
+    }
+    return r;
+  }
+
+  // ── Letra ──
+  function letraDeJson(o) {
+    const l = { valida: false, lineas: [], palabras: [] };
+    if (!o || typeof o !== 'object' || o.error) return l;
+    if (Array.isArray(o.lineas)) for (const p of o.lineas) if (Array.isArray(p) && p.length >= 2)
+      l.lineas.push({ t: num(p[0], -1), texto: String(p[1] ?? ''), fin: p.length >= 3 ? num(p[2], -1) : -1 });
+    if (Array.isArray(o.palabras)) for (const fila of o.palabras) {
+      const f = []; if (Array.isArray(fila)) for (const w of fila) if (Array.isArray(w) && w.length >= 3) f.push({ t: num(w[0]), fin: num(w[1]), texto: String(w[2]) });
+      l.palabras.push(f);
+    }
+    while (l.palabras.length < l.lineas.length) l.palabras.push([]);
+    l.valida = l.lineas.length > 0;
+    return l;
+  }
+  const etiquetaSeccion = t => { t = (t || '').trim(); return (t.length >= 3 && t[0] === '[' && t[t.length - 1] === ']') ? t.slice(1, -1).trim().toUpperCase() : ''; };
+
+  // ── Ajustes (ajustes.json de la nube = {titulo, artista, album, ajustes:{…}}; formato viejo = solo ajustes) ──
+  function ajustesDeJson(v) {
+    const o = v && typeof v === 'object' && v.ajustes && typeof v.ajustes === 'object' ? v.ajustes : (v || {});
+    const a = {
+      ganancias: {}, mutes: new Set(), solos: new Set(), tono: num(o.tono), cents: num(o.cents),
+      referenciaHz: num(o.referenciaHz), tempo: 'tempo' in o ? num(o.tempo, 100) : 100,
+      marcaInicio: 'marcaInicio' in o ? num(o.marcaInicio, -1) : -1, marcaCuenta: 'marcaCuenta' in o ? num(o.marcaCuenta, -1) : -1,
+      cuenta: !!o.cuenta, clickEncendido: !!o.clickEncendido, cicloIni: num(o.cicloIni), cicloFin: num(o.cicloFin),
+      master: 'master' in o ? num(o.master, 1) : 1, loop: !!o.loop, nombresPistas: {}, grupos: [], ordenPistas: [], tramos: [], colores: {}
+    };
+    if (o.ganancias && typeof o.ganancias === 'object') for (const k in o.ganancias) a.ganancias[k] = num(o.ganancias[k], 1);
+    if (Array.isArray(o.mutes)) o.mutes.forEach(x => a.mutes.add(String(x)));
+    if (Array.isArray(o.solos)) o.solos.forEach(x => a.solos.add(String(x)));
+    if (o.nombresPistas && typeof o.nombresPistas === 'object') for (const k in o.nombresPistas) a.nombresPistas[k] = String(o.nombresPistas[k]);
+    if (Array.isArray(o.grupos)) for (const g of o.grupos) if (Array.isArray(g) && g.length >= 2) a.grupos.push(g.map(String));
+    if (Array.isArray(o.ordenPistas)) a.ordenPistas = o.ordenPistas.map(String);
+    if (Array.isArray(o.tramos)) for (const t of o.tramos) if (t && typeof t === 'object') {
+      const tr = { pista: String(t.p ?? ''), desde: num(t.a), hasta: num(t.b), destino: String(t.d ?? '') };
+      if (tr.pista && tr.hasta > tr.desde + 0.05 && tr.destino) a.tramos.push(tr);
+    }
+    if (o.colores && typeof o.colores === 'object') for (const k in o.colores) a.colores[k] = String(o.colores[k]);
+    return a;
+  }
+  const idGrupo = ids => 'grupo:' + ids.slice().sort().join('+');
+
+  // ── Acordes: transporte y notación ──
+  const SOST = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const BEM = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  function claseNota(s) {
+    const m = /^([A-G])([#b♯♭]?)/.exec(s || ''); if (!m) return null;
+    let pc = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1]];
+    if (m[2] === '#' || m[2] === '♯') pc++; else if (m[2] === 'b' || m[2] === '♭') pc--;
+    return { pc: (pc + 12) % 12, largo: m[0].length };
+  }
+  // ¿la tonalidad (ya transportada) se escribe con bemoles?
+  function usaBemoles(tono) {
+    if (!tono) return null;
+    const k = claseNota(tono); if (!k) return null;
+    const menor = /m(?!aj)/.test(tono.slice(k.largo)) || /min/i.test(tono);
+    const mayorEq = menor ? (k.pc + 3) % 12 : k.pc;      // relativo mayor
+    return [5, 10, 3, 8, 1].includes(mayorEq);            // F Bb Eb Ab Db (Gb: sostenidos F#)
+  }
+  function transponer(nombre, st, bemol) {
+    if (!nombre || esSilencio(nombre)) return nombre;
+    const parte = p => {
+      const k = claseNota(p); if (!k) return p;
+      const n = ((k.pc + st) % 12 + 12) % 12;
+      const usarB = bemol == null ? /^[A-G][b♭]/.test(p) : bemol;
+      return (usarB ? BEM : SOST)[n] + p.slice(k.largo);
+    };
+    const i = nombre.indexOf('/');
+    return i >= 0 ? parte(nombre.slice(0, i)) + '/' + parte(nombre.slice(i + 1)) : parte(nombre);
+  }
+  // escritura linda: ♯ ♭ reales
+  const lindo = n => (n || '').replace(/(^|\/)([A-G])#/g, '$1$2♯').replace(/(^|\/)([A-G])b/g, '$1$2♭');
+
+  return { tonoTranspuesto, Analisis, acordesPorCompas, letraDeJson, etiquetaSeccion, ajustesDeJson, idGrupo, transponer, usaBemoles, lindo, esSilencio, claseNota };
+})();
+
+// ── Nube: entrar con Microsoft (PKCE, sin librerías) y leer OneDrive con Graph ──
+
+const Nube = (() => {
+  const CLIENTE = 'd9be6058-d517-45c5-88e0-16d7d8ae2d0c';
+  const AUTORIDAD = 'https://login.microsoftonline.com/consumers/oauth2/v2.0';
+  const ALCANCES = 'openid profile offline_access User.Read Files.Read.All';
+  const GRAPH = 'https://graph.microsoft.com/v1.0';
+  const volver = () => location.origin + location.pathname.replace(/index\.html$/, '');
+  const LS = 'ys.sesion';
+
+  const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const azar = n => b64url(crypto.getRandomValues(new Uint8Array(n)));
+  const sesion = () => { try { return JSON.parse(localStorage.getItem(LS) || 'null'); } catch { return null; } };
+  const guardar = s => { try { localStorage.setItem(LS, JSON.stringify(s)); } catch {} };
+
+  async function entrar(silencioso) {
+    const verif = azar(48), estado = azar(16);
+    const reto = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verif)));
+    sessionStorage.setItem('ys.pkce', JSON.stringify({ verif, estado }));
+    const q = new URLSearchParams({ client_id: CLIENTE, response_type: 'code', redirect_uri: volver(), response_mode: 'query',
+      scope: ALCANCES, code_challenge: reto, code_challenge_method: 'S256', state: estado, prompt: silencioso ? 'none' : 'select_account' });
+    if (silencioso) sessionStorage.setItem('ys.silencioso', '1');
+    location.assign(AUTORIDAD + '/authorize?' + q);
+  }
+
+  async function pedirToken(campos) {
+    const r = await fetch(AUTORIDAD + '/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ client_id: CLIENTE, scope: ALCANCES, ...campos }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.access_token) throw new Error(j.error_description || j.error || ('token ' + r.status));
+    const s = { at: j.access_token, rt: j.refresh_token || (sesion() || {}).rt, vence: Date.now() + (j.expires_in - 120) * 1000 };
+    guardar(s); return s;
+  }
+
+  // al volver de Microsoft: ?code=…&state=…
+  async function atenderVuelta() {
+    const p = new URLSearchParams(location.search);
+    const silencioso = sessionStorage.getItem('ys.silencioso'); sessionStorage.removeItem('ys.silencioso');
+    if (p.get('error')) { history.replaceState(null, '', volver()); if (silencioso) { salir(); return false; } throw new Error(p.get('error_description') || p.get('error')); }
+    const code = p.get('code'); if (!code) return false;
+    const guardado = JSON.parse(sessionStorage.getItem('ys.pkce') || '{}');
+    history.replaceState(null, '', volver());
+    if (!guardado.verif || guardado.estado !== p.get('state')) throw new Error('La vuelta del inicio de sesión no coincide; probá de nuevo.');
+    sessionStorage.removeItem('ys.pkce');
+    await pedirToken({ grant_type: 'authorization_code', code, redirect_uri: volver(), code_verifier: guardado.verif });
+    return true;
+  }
+
+  let renovando = null;
+  async function token() {
+    const s = sesion();
+    if (!s) throw Object.assign(new Error('sin sesión'), { sinSesion: true });
+    if (Date.now() < s.vence) return s.at;
+    if (!s.rt) throw Object.assign(new Error('sesión vencida'), { sinSesion: true });
+    renovando = renovando || pedirToken({ grant_type: 'refresh_token', refresh_token: s.rt })
+      .catch(e => { throw Object.assign(e, { sinSesion: true }); }).finally(() => { renovando = null; });
+    return (await renovando).at;
+  }
+  const conectado = () => !!sesion();
+  function salir() { localStorage.removeItem(LS); }
+
+  async function g(ruta, opc = {}) {
+    for (let intento = 0; intento < 4; intento++) {
+      const r = await fetch(ruta.startsWith('http') ? ruta : GRAPH + ruta, { ...opc, headers: { Authorization: 'Bearer ' + await token(), ...(opc.headers || {}) } });
+      if (r.status === 401 && intento === 0) { const s = sesion(); if (s) { s.vence = 0; guardar(s); } continue; }
+      if (r.status === 429 || r.status >= 500) { await new Promise(res => setTimeout(res, 800 * (intento + 1))); continue; }
+      return r;
+    }
+    throw new Error('OneDrive no responde');
+  }
+  async function gj(ruta) { const r = await g(ruta); if (!r.ok) { const e = new Error(ruta + ' → ' + r.status); e.status = r.status; throw e; } return r.json(); }
+  async function hijos(ruta) {      // todas las páginas
+    let url = ruta + (ruta.includes('?') ? '&' : '?') + '$top=1000', items = [];
+    while (url) { const j = await gj(url); items = items.concat(j.value || []); url = j['@odata.nextLink'] || null; }
+    return items;
+  }
+  const enc = s => s.split('/').map(encodeURIComponent).join('/');
+  const rutaItem = (r, sub) => `/drives/${r.drive}/items/${r.id}` + (sub ? `:/${enc(sub)}:` : '');
+
+  async function yo() { return gj('/me?$select=displayName,userPrincipalName'); }
+
+  // ── bibliotecas: la tuya (YouSTEM-<usuario> + YouSTEM Privado) y las de la banda (accesos directos YouSTEM-<otro>) ──
+  async function bibliotecas() {
+    const raiz = await hijos('/me/drive/root/children?$select=id,name,folder,remoteItem,parentReference');
+    const carpeta = it => it.remoteItem ? { drive: it.remoteItem.parentReference.driveId, id: it.remoteItem.id }
+                                         : { drive: it.parentReference.driveId, id: it.id };
+    const priv = raiz.find(x => !x.remoteItem && x.name.toLowerCase() === 'youstem privado');
+    let marca = '';
+    if (priv) {
+      try { const r = await g(rutaItem(carpeta(priv), 'carpeta.txt') + '/content'); if (r.ok) marca = (await r.text()).split('\n')[0].trim(); } catch {}
+    }
+    const propias = raiz.filter(x => !x.remoteItem && x.folder && /^youstem(-.+)?$/i.test(x.name));
+    let mia = propias.find(x => marca && x.name.toLowerCase() === marca.toLowerCase())
+           || propias.find(x => /^youstem-/i.test(x.name)) || propias.find(x => /^youstem$/i.test(x.name));
+    const libs = [];
+    if (mia || priv) {
+      const raices = [];
+      if (mia) raices.push({ ...carpeta(mia), privada: false });
+      if (priv) raices.push({ ...carpeta(priv), privada: true });
+      libs.push({ clave: 'mia', nombre: 'Mías', carpeta: mia ? mia.name : 'YouSTEM Privado', raices, mia: true });
+    }
+    for (const x of raiz) {
+      if (!/^youstem-/i.test(x.name) || (mia && x.id === mia.id)) continue;
+      if (!x.remoteItem && !x.folder) continue;
+      if (!x.remoteItem && propias.includes(x) && x !== mia) continue;   // carpetas viejas tuyas: no
+      const c = carpeta(x);
+      libs.push({ clave: 'b:' + c.drive + ':' + c.id, nombre: x.name.replace(/^youstem-/i, ''), carpeta: x.name, raices: [{ ...c, privada: false }], mia: false });
+    }
+    return libs;
+  }
+
+  // ── catálogo: catalogo/<id>.json (con caché por eTag) + miniaturas ──
+  const CAT = 'ys.cat.';
+  function leerCache(clave) { try { return JSON.parse(localStorage.getItem(CAT + clave) || 'null'); } catch { return null; } }
+  function grabarCache(clave, v) { try { localStorage.setItem(CAT + clave, JSON.stringify(v)); } catch {} }
+
+  async function enParalelo(lista, n, fn) {
+    let i = 0; const res = new Array(lista.length);
+    await Promise.all(Array.from({ length: Math.min(n, lista.length) }, async () => { while (i < lista.length) { const k = i++; res[k] = await fn(lista[k], k); } }));
+    return res;
+  }
+
+  async function catalogo(lib, progreso) {
+    const viejo = leerCache(lib.clave) || { entradas: {} };
+    const nuevo = { entradas: {}, fecha: Date.now() };
+    const miniaturas = {};
+    for (const r of lib.raices) {
+      let items;
+      try { items = await hijos(rutaItem(r, 'catalogo') + '/children'); }
+      catch (e) { if (e.status === 404) continue; throw e; }
+      const jsons = items.filter(x => x.file && x.name.endsWith('.json'));
+      let hechos = 0;
+      await enParalelo(jsons, 6, async it => {
+        const prev = viejo.entradas[it.name + '@' + r.id];
+        let datos = prev && prev.eTag === it.eTag ? prev.datos : null;
+        if (!datos) {
+          try {
+            const url = it['@microsoft.graph.downloadUrl'];
+            const resp = url ? await fetch(url) : await g(rutaItem(r) + `:/catalogo/${encodeURIComponent(it.name)}:/content`);
+            datos = await resp.json();
+          } catch { datos = null; }
+        }
+        if (datos && datos.id) nuevo.entradas[it.name + '@' + r.id] = { eTag: it.eTag, datos, raiz: r, privada: r.privada };
+        progreso && progreso(++hechos, jsons.length);
+      });
+      try {
+        for (const m of await hijos(rutaItem(r, 'miniaturas') + '/children'))
+          if (m['@microsoft.graph.downloadUrl']) miniaturas[m.name.replace(/\.jpg$/i, '')] = m['@microsoft.graph.downloadUrl'];
+      } catch {}
+    }
+    grabarCache(lib.clave, nuevo);
+    return { canciones: aCanciones(nuevo), miniaturas };
+  }
+  function catalogoGuardado(lib) { const c = leerCache(lib.clave); return c ? aCanciones(c) : null; }
+  function aCanciones(c) {
+    const vistas = {};
+    for (const k in c.entradas) {
+      const { datos, raiz, privada } = c.entradas[k];
+      // SOLO la Máxima (decisión de fabao): el nivel máximo, o el editado (que sale de la máxima)
+      if (datos.nivel !== 'maximo' && datos.nivel !== 'editado') continue;
+      const previa = vistas[datos.id];
+      if (previa && (previa.editado || 0) >= (datos.editado || 0)) continue;
+      vistas[datos.id] = { ...datos, raiz, privada };
+    }
+    return Object.values(vistas);
+  }
+
+  // ── canción: lista de archivos y descarga con caché en el iPhone ──
+  async function archivosDe(c) {
+    const base = 'canciones/' + c.id;
+    const raizItems = await hijos(rutaItem(c.raiz, base) + '/children');
+    const dirNivel = 'pistas-' + c.nivel;
+    let pistas = raizItems.find(x => x.folder && x.name === dirNivel) ? await hijos(rutaItem(c.raiz, base + '/' + dirNivel) + '/children') : [];
+    if (!pistas.some(x => /\.(mp3|flac|m4a)$/i.test(x.name)) && c.nivel === 'editado' && raizItems.find(x => x.name === 'pistas-maximo'))
+      pistas = await hijos(rutaItem(c.raiz, base + '/pistas-maximo') + '/children');
+    const pref = pistas.length && pistas[0].parentReference ? pistas[0].parentReference : null;
+    return { raiz: raizItems.filter(x => x.file), pistas: pistas.filter(x => x.file), dirPistas: pistas.length ? (pref && pref.name) || dirNivel : dirNivel };
+  }
+
+  const CACHE = 'youstem-canciones-v1';
+  const claveCache = (lib, id, rel) => `https://cache.youstem/${encodeURIComponent(lib)}/${encodeURIComponent(id)}/${rel.split('/').map(encodeURIComponent).join('/')}`;
+
+  async function bajar(item, clave, alAvanzar) {
+    const cache = await caches.open(CACHE);
+    const hay = await cache.match(clave);
+    if (hay && (!item || hay.headers.get('x-etag') === item.eTag)) return hay.arrayBuffer();
+    if (!item) throw new Error('sin conexión y sin copia en el iPhone');
+    const url = item['@microsoft.graph.downloadUrl'];
+    const r = url ? await fetch(url) : await g(`/drives/${item.parentReference.driveId}/items/${item.id}/content`);
+    if (!r.ok) throw new Error('no pude bajar ' + item.name + ' (' + r.status + ')');
+    const total = +r.headers.get('content-length') || item.size || 0;
+    const lector = r.body && r.body.getReader ? r.body.getReader() : null;
+    let buf;
+    if (lector) {
+      const partes = []; let n = 0;
+      while (true) { const { done, value } = await lector.read(); if (done) break; partes.push(value); n += value.length; alAvanzar && alAvanzar(n, total); }
+      buf = new Uint8Array(n); let o = 0; for (const p of partes) { buf.set(p, o); o += p.length; }
+      buf = buf.buffer;
+    } else { buf = await r.arrayBuffer(); alAvanzar && alAvanzar(buf.byteLength, total); }
+    try { await cache.put(clave, new Response(buf.slice(0), { headers: { 'x-etag': item.eTag || '', 'content-type': 'application/octet-stream' } })); } catch {}
+    return buf;
+  }
+  async function enCache(clave) { try { const c = await caches.open(CACHE); const r = await c.match(clave); return r ? r.arrayBuffer() : null; } catch { return null; } }
+  async function guardarManifiesto(clave, m) { try { const c = await caches.open(CACHE); await c.put(clave, new Response(JSON.stringify(m))); } catch {} }
+  async function idsGuardados() {
+    const s = new Set();
+    try { const c = await caches.open(CACHE); for (const r of await c.keys()) { const m = /cache\.youstem\/([^/]+)\/([^/]+)\/manifiesto$/.exec(r.url); if (m) s.add(decodeURIComponent(m[1]) + '|' + decodeURIComponent(m[2])); } } catch {}
+    return s;
+  }
+  async function borrarTodo() { await caches.delete(CACHE); }
+  async function espacio() { try { const e = await navigator.storage.estimate(); return e.usage || 0; } catch { return 0; } }
+
+  return { entrar, atenderVuelta, conectado, salir, token, yo, bibliotecas, catalogo, catalogoGuardado, archivosDe, bajar, enCache,
+           guardarManifiesto, idsGuardados, borrarTodo, espacio, claveCache, CLIENTE };
+})();
+
+// ── YouSTEM web · app ─────────────────────────────────────────────────────────
+const VERSION = '0.0.0';
+const $ = s => document.querySelector(s);
+const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
+const fmtT = s => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), x = Math.floor(s % 60); return m + ':' + String(x).padStart(2, '0'); };
+
+// ── registro (Menú › Ver registro) ──
+const REG = [];
+function anotar(...a) { const l = new Date().toTimeString().slice(0, 8) + ' ' + a.map(x => x instanceof Error ? x.message : (typeof x === 'object' ? JSON.stringify(x) : String(x))).join(' '); REG.push(l); if (REG.length > 300) REG.shift(); console.log(l); }
+addEventListener('error', e => anotar('ERROR', e.message, e.filename + ':' + e.lineno));
+addEventListener('unhandledrejection', e => anotar('ERROR', e.reason && (e.reason.message || e.reason)));
+
+function aviso(t, ms = 3200) { const a = $('#aviso'); a.textContent = t; a.classList.add('ver'); clearTimeout(aviso.t); aviso.t = setTimeout(() => a.classList.remove('ver'), ms); }
+function pantalla(id) { document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.id === id)); }
+function cargando(txt, frac) {
+  const c = $('#cargando');
+  if (txt == null) { c.classList.remove('ver'); return; }
+  c.classList.add('ver'); $('#cargTxt').textContent = txt;
+  $('#cargBarra').style.width = frac == null ? '0%' : Math.round(frac * 100) + '%';
+  $('#cargBarra').parentElement.style.visibility = frac == null ? 'hidden' : 'visible';
+}
+
+// ══════════════════════ Preferencias del iPhone ══════════════════════
+const Pref = {
+  get(k, d) { try { const v = localStorage.getItem('ys.pref.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('ys.pref.' + k, JSON.stringify(v)); } catch {} }
+};
+
+// ══════════════════════ Audio ══════════════════════
+const Audio = {
+  ctx: null, nodo: null, sr: 48000, pos: 0, posCt: 0, sonando: false, alTerminar: null,
+  async iniciar() {
+    if (this.ctx) { if (this.ctx.state !== 'running') await this.ctx.resume().catch(() => {}); return; }
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}   // que suene con el iPhone en silencio
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback' });
+    this.sr = this.ctx.sampleRate;
+    const codigo = document.getElementById('codigoWorklet').textContent;
+    try { await this.ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([codigo], { type: 'application/javascript' }))); }
+    catch (e) { anotar('worklet por blob falló, pruebo data:', e); await this.ctx.audioWorklet.addModule('data:application/javascript;charset=utf-8,' + encodeURIComponent(codigo)); }
+    this.nodo = new AudioWorkletNode(this.ctx, 'youstem', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
+    this.nodo.connect(this.ctx.destination);
+    this.nodo.port.onmessage = e => {
+      const m = e.data;
+      if (m.t === 'pos') { this.pos = m.pos / this.sr; this.posCt = m.ct; this.sonando = m.sonando; }
+      else if (m.t === 'fin') { this.sonando = false; this.alTerminar && this.alTerminar(); }
+    };
+    this.ctx.resume().catch(() => {});
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && this.ctx && this.ctx.state !== 'running') this.ctx.resume().catch(() => {}); });
+  },
+  enviar(m, tr) { this.nodo && this.nodo.port.postMessage(m, tr || []); },
+  ahora() {   // posición suave para la pantalla
+    if (!this.ctx) return this.pos;
+    return this.sonando ? this.pos + Math.max(0, Math.min(0.25, this.ctx.currentTime - this.posCt)) : this.pos;
+  },
+  async decodificar(buf) {
+    return await new Promise((ok, mal) => { const p = this.ctx.decodeAudioData(buf, ok, mal); if (p && p.then) p.then(ok, mal); });
+  }
+};
+let wake = null;
+async function pantallaPrendida(si) {
+  try {
+    if (si && !wake && navigator.wakeLock) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => wake = null); }
+    if (!si && wake) { await wake.release(); wake = null; }
+  } catch {}
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Rep.cancion && Audio.sonando) pantallaPrendida(true); });
+
+// sesión vencida (Microsoft da 24 h a las páginas): se renueva sola con un viaje relámpago, una vez
+function sesionVencida() {
+  if (!sessionStorage.getItem('ys.intentoSilencioso')) { sessionStorage.setItem('ys.intentoSilencioso', '1'); Nube.entrar(true); return; }
+  Nube.salir(); pantalla('pLogin'); aviso('Tu sesión venció: volvé a entrar.');
+}
+
+// ══════════════════════ Arranque ══════════════════════
+async function arrancar() {
+  $('#version').textContent = 'versión ' + VERSION;
+  $('#menuVersion').textContent = 'YouSTEM web ' + VERSION;
+  try {
+    if (await Nube.atenderVuelta()) { anotar('sesión iniciada'); sessionStorage.removeItem('ys.intentoSilencioso'); }
+  } catch (e) { anotar('login', e); aviso('No pude iniciar sesión: ' + e.message, 6000); }
+  if (!Nube.conectado()) { pantalla('pLogin'); return; }
+  pantalla('pBib');
+  Bib.iniciar();
+}
+
+$('#btnEntrar').onclick = () => Nube.entrar();
+
+// ══════════════════════ Biblioteca ══════════════════════
+const Bib = {
+  libs: [], actual: null, canciones: [], miniaturas: {}, guardadas: new Set(),
+  async iniciar() {
+    const libsViejas = Pref.get('libs', null);
+    if (libsViejas) { this.libs = libsViejas; this.dibujarChips(); }
+    const elegida = Pref.get('lib', 'mia');
+    if (libsViejas) this.elegir(libsViejas.find(l => l.clave === elegida) || libsViejas[0], true);
+    try {
+      Nube.yo().then(u => { $('#menuUsuario').textContent = u.displayName || u.userPrincipalName || ''; }).catch(() => {});
+      this.libs = await Nube.bibliotecas();
+      anotar('bibliotecas', this.libs.map(l => l.carpeta + (l.mia ? ' (tuya)' : '')).join(', '));
+      Pref.set('libs', this.libs);
+      if (!this.libs.length) { this.estado('No encontré tu carpeta de YouSTEM en este OneDrive. ¿Entraste con la misma cuenta que usás en la Mac?'); this.dibujarChips(); return; }
+      this.dibujarChips();
+      this.elegir(this.libs.find(l => l.clave === (this.actual && this.actual.clave)) || this.libs.find(l => l.clave === elegida) || this.libs[0]);
+    } catch (e) {
+      anotar('bibliotecas', e);
+      if (e.sinSesion) { sesionVencida(); return; }
+      if (!libsViejas) this.estado('No pude leer OneDrive (' + e.message + '). Revisá la conexión y tocá Recargar en el menú.');
+      else aviso('Sin conexión: muestro lo que ya conocía.');
+    }
+  },
+  dibujarChips() {
+    const n = $('#libs'); n.innerHTML = '';
+    for (const l of this.libs) {
+      const b = el('button', 'chip' + (this.actual && this.actual.clave === l.clave ? ' on' : ''), l.nombre);
+      b.onclick = () => this.elegir(l); n.appendChild(b);
+    }
+    n.style.display = this.libs.length > 1 ? '' : 'none';
+  },
+  async elegir(lib, soloCache) {
+    if (!lib) return;
+    this.actual = lib; Pref.set('lib', lib.clave); this.dibujarChips();
+    const cache = Nube.catalogoGuardado(lib);
+    this.guardadas = await Nube.idsGuardados();
+    if (cache) { this.canciones = cache; this.dibujar(); }
+    else { this.canciones = []; this.dibujar(); this.estado('Leyendo tu biblioteca…'); }
+    if (soloCache) return;
+    try {
+      const { canciones, miniaturas } = await Nube.catalogo(lib, (a, b) => { if (!cache) this.estado(`Leyendo tu biblioteca… ${a} de ${b}`); });
+      if (this.actual !== lib) return;
+      this.canciones = canciones; this.miniaturas = miniaturas; this.dibujar();
+      anotar('catálogo', lib.carpeta, canciones.length + ' con Máxima');
+    } catch (e) {
+      anotar('catálogo', e);
+      if (!cache) this.estado('No pude leer el catálogo: ' + e.message);
+    }
+  },
+  estado(t) { $('#estadoBib').textContent = t || ''; $('#estadoBib').style.display = t ? '' : 'none'; },
+  dibujar() {
+    const q = ($('#q').value || '').trim().toLowerCase();
+    const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const qq = norm(q);
+    const lista = this.canciones.filter(c => !qq || norm(c.titulo + ' ' + c.artista + ' ' + (c.album || '')).includes(qq));
+    const col = new Intl.Collator('es', { numeric: true, sensitivity: 'base' });
+    lista.sort((a, b) => col.compare(a.artista || '', b.artista || '') || col.compare(a.album || '', b.album || '') || col.compare(a.titulo || '', b.titulo || ''));
+    const cont = $('#lista'); cont.innerHTML = '';
+    let artista = null;
+    for (const c of lista) {
+      if (!qq && (c.artista || '') !== artista) { artista = c.artista || ''; cont.appendChild(el('div', 'grupoArt', artista || 'Sin artista')); }
+      const f = el('button', 'tema');
+      const mini = el('div', 'mini');
+      const url = this.miniaturas[c.id];
+      if (url) { const im = new Image(); im.loading = 'lazy'; im.src = url; im.onerror = () => im.remove(); mini.appendChild(im); }
+      f.appendChild(mini);
+      const tx = el('div', 'tx');
+      tx.appendChild(el('div', 'tit', c.titulo || c.id));
+      const sub = [qq ? c.artista : (c.album || ''), c.tonalidad ? 'Tono ' + Modelo.lindo(c.tonalidad) : '', c.bpm ? Math.round(c.bpm) + ' BPM' : '', c.duracion ? fmtT(c.duracion) : ''].filter(Boolean).join(' · ');
+      tx.appendChild(el('div', 'sub', sub));
+      f.appendChild(tx);
+      const ic = el('div', 'iconos');
+      if (c.privada) ic.appendChild(el('span', 'ic', '🔒'));
+      if (this.guardadas.has(this.actual.clave + '|' + c.id)) ic.appendChild(el('span', 'ic guard', '●'));
+      f.appendChild(ic);
+      f.onclick = () => abrirCancion(c, this.actual);
+      cont.appendChild(f);
+    }
+    if (!lista.length && this.canciones.length) this.estado('Nada coincide con “' + q + '”.');
+    else if (!this.canciones.length) { if (!$('#estadoBib').textContent) this.estado('Esta biblioteca todavía no tiene canciones en calidad Máxima.'); }
+    else this.estado('');
+    $('#cuenta').textContent = this.canciones.length ? lista.length + ' de ' + this.canciones.length : '';
+  }
+};
+$('#q').addEventListener('input', () => Bib.dibujar());
+
+// ══════════════════════ Abrir una canción ══════════════════════
+const NOMBRES = { voz: 'Voz', bajo: 'Bajo', bateria: 'Batería', guitarra: 'Guitarra', piano: 'Piano', otros: 'Otros', original: 'Original' };
+const COLORES = { voz: '#ef9f4b', bajo: '#59d9a4', bateria: '#b48ef0', guitarra: '#e8d558', piano: '#f08ec4', original: '#9bb6d8', click: '#bfbfbf', master: '#ffffff' };
+const colorDe = (id, guardado) => {
+  if (guardado) { const h = guardado.replace(/^#/, ''); if (/^[0-9a-f]{8}$/i.test(h)) return '#' + h.slice(2); if (/^[0-9a-f]{6}$/i.test(h)) return '#' + h; }
+  return COLORES[id] || '#5b8def';
+};
+let abriendo = 0;
+
+async function abrirCancion(c, lib) {
+  const turno = ++abriendo;
+  try {
+    await Audio.iniciar();
+    Rep.parar();
+    cargando('Abriendo ' + (c.titulo || c.id) + '…');
+    const clave = rel => Nube.claveCache(lib.clave, c.id, rel);
+    let man;
+    try {
+      const a = await Nube.archivosDe(c);
+      man = { raiz: a.raiz, pistas: a.pistas, dir: a.dirPistas };
+      Nube.guardarManifiesto(clave('manifiesto'), { raiz: a.raiz.map(x => ({ name: x.name })), pistas: a.pistas.map(x => ({ name: x.name })), dir: a.dirPistas });
+    } catch (e) {
+      anotar('lista de archivos', e);
+      if (e.sinSesion) throw e;
+      const m = await Nube.enCache(clave('manifiesto'));
+      if (!m) throw new Error('Sin conexión, y esta canción todavía no está guardada en el iPhone.');
+      man = JSON.parse(new TextDecoder().decode(m)); man.offline = true;
+    }
+    if (turno !== abriendo) return;
+    const item = (lista, n) => man.offline ? null : lista.find(x => x.name === n);
+    const json = async n => {
+      if (!man.raiz.find(x => x.name === n)) return null;
+      try { return JSON.parse(new TextDecoder().decode(await Nube.bajar(item(man.raiz, n), clave(n)))); } catch (e) { anotar(n, e); return null; }
+    };
+    const [anJ, leJ, ajJ] = await Promise.all([json('analisis.json'), json('letra.json'), json('ajustes.json')]);
+
+    // qué pistas suenan: stems.json (Editar stems) o las seis de siempre
+    let pistas = [];
+    const audios = man.pistas.filter(x => /\.(mp3|m4a|flac|wav)$/i.test(x.name));
+    const archivoDe = base => audios.find(x => x.name.replace(/\.[^.]+$/, '') === base && /\.mp3$/i.test(x.name)) || audios.find(x => x.name.replace(/\.[^.]+$/, '') === base);
+    let compensacion = {};
+    if (man.pistas.find(x => x.name === 'stems.json')) {
+      try {
+        const sj = JSON.parse(new TextDecoder().decode(await Nube.bajar(item(man.pistas, 'stems.json'), clave(man.dir + '/stems.json'))));
+        for (const x of sj.pistas || []) { const f = archivoDe(String(x.archivo || '').replace(/^.*\//, '').replace(/\.[^.]+$/, '')); if (f) pistas.push({ id: x.id, nombre: x.nombre || x.id, f }); }
+        compensacion = sj.compensacion || {};
+      } catch (e) { anotar('stems.json', e); }
+    }
+    if (!pistas.length) for (const id of ['voz', 'bajo', 'bateria', 'guitarra', 'piano', 'otros']) { const f = archivoDe(id); if (f) pistas.push({ id, nombre: NOMBRES[id], f }); }
+    if (!pistas.length) throw new Error('No encontré las pistas Máxima de esta canción en OneDrive.');
+
+    // bajar (o leer del iPhone) y decodificar de a una: así entra en memoria
+    const total = pistas.reduce((s, p) => s + (p.f.size || 0), 0) || 1;
+    let hecho = 0;
+    Audio.enviar({ t: 'vaciar' });
+    const cargadas = [];
+    for (let i = 0; i < pistas.length; i++) {
+      const p = pistas[i];
+      if (turno !== abriendo) return;
+      const base = hecho;
+      const buf = await Nube.bajar(item(man.pistas, p.f.name), clave(man.dir + '/' + p.f.name), (n) => cargando(`Bajando ${p.nombre}…`, Math.min(1, (base + n) / total)));
+      hecho += p.f.size || buf.byteLength;
+      cargando(`Preparando ${p.nombre}…`, Math.min(1, hecho / total));
+      const ab = await Audio.decodificar(buf);
+      const n = ab.length, L = new Int16Array(n), R = new Int16Array(n);
+      const k = Math.max(1, +compensacion[p.id] || 1);
+      const a0 = ab.getChannelData(0), a1 = ab.numberOfChannels > 1 ? ab.getChannelData(1) : a0;
+      for (let j = 0; j < n; j++) {
+        let x = a0[j] * k * 32767; L[j] = x > 32767 ? 32767 : x < -32768 ? -32768 : x;
+        x = a1[j] * k * 32767; R[j] = x > 32767 ? 32767 : x < -32768 ? -32768 : x;
+      }
+      Audio.enviar({ t: 'pista', i, L, R, len: n }, [L.buffer, R.buffer]);
+      cargadas.push({ ...p, largo: n / Audio.sr });
+    }
+    Nube.guardarManifiesto(clave('manifiesto'), { raiz: man.raiz.map(x => ({ name: x.name })), pistas: man.pistas.map(x => ({ name: x.name })), dir: man.dir });
+    Bib.guardadas.add(lib.clave + '|' + c.id);
+    if (turno !== abriendo) return;
+    cargando(null);
+    Rep.mostrar(c, lib, cargadas, Modelo.Analisis.deJson(anJ), Modelo.letraDeJson(leJ), Modelo.ajustesDeJson(ajJ || {}));
+    if (man.offline) aviso('Sin conexión: suena la copia guardada en el iPhone.');
+  } catch (e) {
+    anotar('abrir', c.id, e);
+    cargando(null);
+    if (e.sinSesion) { sesionVencida(); return; }
+    aviso(e.message || String(e), 6000);
+  }
+}
+
+// ══════════════════════ Reproducción ══════════════════════
+const PALETA_ARR = ['#3f6f8f', '#6f4f8f', '#8f5f3f', '#3f8f5f', '#8f3f5f', '#6f6f3f'];
+const VolDb = {
+  min: -60, max: 6, skew: Math.log(0.5) / Math.log(48 / 66),       // como el slider de la Mac: la mitad = −12 dB
+  aPos(g) { const db = g <= 0.001 ? this.min : Math.max(this.min, Math.min(this.max, 20 * Math.log10(g))); return Math.pow((db - this.min) / (this.max - this.min), this.skew); },
+  deDb(db) { return db <= this.min + 0.05 ? 0 : Math.pow(10, db / 20); },
+  dbDePos(p) { p = Math.max(0, Math.min(1, p)); return this.min + (this.max - this.min) * Math.pow(p, 1 / this.skew); },
+  texto(g) { if (g <= 0.001) return '−∞'; const db = 20 * Math.log10(g); if (Math.abs(db) < 0.05) return '0 dB'; return (db > 0 ? '+' : '−') + Math.abs(db).toFixed(1); }
+};
+
+const Rep = {
+  cancion: null, lib: null, an: null, letra: null, aj: null, filas: [], pistas: [], dur: 0,
+  tono: 0, centsRef: 0, filasTele: [], rio: null,
+
+  mostrar(c, lib, pistas, an, letra, aj) {
+    this.cancion = c; this.lib = lib; this.an = an; this.letra = letra; this.pistas = pistas;
+    this.dur = Math.max(...pistas.map(p => p.largo), 0);
+    this.ajMac = aj;
+    this.aj = this.conLocal(aj);
+    $('#rTit').textContent = c.titulo || c.id;
+    $('#rArt').textContent = c.artista || '';
+    // "Tocar en": la referencia elegida contra la afinación medida de la grabación
+    this.centsRef = (aj.referenciaHz > 0 && an.afinacionHz > 0) ? 1200 * Math.log2(aj.referenciaHz / an.afinacionHz) : (aj.cents || 0);
+    this.armarFilas();
+    this.armarRegiones();
+    this.armarClick();
+    this.tono = Math.round(this.aj.tono || 0);
+    this.aplicarTono();
+    this.aplicarLoop();
+    Audio.enviar({ t: 'master', v: this.aj.master });
+    this.armarTele();
+    this.dibujarMezcla();
+    pantalla('pRep');
+    this.pos0 = this.aj.marcaInicio > 0.5 ? this.aj.marcaInicio : 0;
+    this.ir(this.pos0);
+    this.refrescarBotones();
+    requestAnimationFrame(() => { this.medir(); this.cuadro(); });
+  },
+
+  // ── tus cambios en el iPhone quedan guardados por canción (la Mac no se toca) ──
+  claveLocal() { return 'ys.local.' + this.lib.clave + '|' + this.cancion.id; },
+  conLocal(aj) {
+    const a = { ...aj, ganancias: { ...aj.ganancias }, mutes: new Set(aj.mutes), solos: new Set(aj.solos) };
+    let l = null; try { l = JSON.parse(localStorage.getItem(this.claveLocal()) || 'null'); } catch {}
+    if (!l) return a;
+    Object.assign(a.ganancias, l.ganancias || {});
+    if (l.mutes) a.mutes = new Set(l.mutes);
+    if (l.solos) a.solos = new Set(l.solos);
+    for (const k of ['tono', 'loop', 'cicloIni', 'cicloFin', 'cuenta', 'clickEncendido', 'master']) if (k in l) a[k] = l[k];
+    a.local = true;
+    return a;
+  },
+  guardarLocal() {
+    const a = this.aj, g = {}, m = [], s = [];
+    for (const f of this.filas) { if (f.tipo === 'master') continue; g[f.id] = f.gan; if (f.mute) m.push(f.id); if (f.solo) s.push(f.id); }
+    const click = this.filas.find(f => f.tipo === 'click');
+    const l = { ganancias: g, mutes: m, solos: s, tono: this.tono, loop: a.loop, cicloIni: a.cicloIni, cicloFin: a.cicloFin, cuenta: a.cuenta,
+                clickEncendido: click ? !click.mute : a.clickEncendido, master: a.master };
+    try { localStorage.setItem(this.claveLocal(), JSON.stringify(l)); } catch {}
+  },
+  volverALaMac() {
+    try { localStorage.removeItem(this.claveLocal()); } catch {}
+    const c = this.cancion, lib = this.lib;
+    this.mostrar(c, lib, this.pistas, this.an, this.letra, this.ajMac);
+    aviso('Mezcla y tono como en la Mac.');
+  },
+
+  // ── filas de la mezcla (grupos, pistas, canales virtuales de los tramos, click, master) ──
+  armarFilas() {
+    const aj = this.aj, F = [];
+    const idx = id => this.pistas.findIndex(p => p.id === id);
+    const agrupadas = new Set();
+    for (const ids of aj.grupos) {
+      const ms = ids.filter(id => idx(id) >= 0 && !agrupadas.has(id));
+      if (ms.length < 2) continue;
+      const gid = Modelo.idGrupo(ms);
+      const v = gid in aj.ganancias ? aj.ganancias[gid] : 1;
+      let m = aj.mutes.has(gid), s = aj.solos.has(gid);
+      if (!m && !s && !(gid in aj.ganancias)) { m = ms.every(id => aj.mutes.has(id)); s = ms.some(id => aj.solos.has(id)); }
+      const nombreBase = ms.map(id => this.pistas[idx(id)].nombre).join(' + ');
+      F.push({ id: gid, tipo: 'grupo', nombre: aj.nombresPistas[gid] || nombreBase, color: colorDe(ms[0], aj.colores[gid] || aj.colores[ms[0]]),
+               miembros: ms.map(idx), bases: ms.map(id => { const g = id in aj.ganancias ? aj.ganancias[id] : 1; return v > 0.001 ? g / v : g; }),
+               gan: v, mute: m, solo: s });
+      ms.forEach(id => agrupadas.add(id));
+    }
+    this.pistas.forEach((p, i) => {
+      if (agrupadas.has(p.id)) return;
+      F.push({ id: p.id, tipo: 'pista', nombre: aj.nombresPistas[p.id] || p.nombre, color: colorDe(p.id, aj.colores[p.id]), pista: i,
+               gan: p.id in aj.ganancias ? aj.ganancias[p.id] : 1, mute: aj.mutes.has(p.id), solo: aj.solos.has(p.id) });
+    });
+    if (this.an.valido) F.push({ id: 'click', tipo: 'click', nombre: 'Click', color: colorDe('click', aj.colores.click), gan: 'click' in aj.ganancias ? aj.ganancias.click : 1, mute: !aj.clickEncendido, solo: false });
+    // canales virtuales: destinos "virtual:N" de los tramos (sin audio propio, solo controles)
+    this.virtuales = [];
+    for (const t of aj.tramos) if (t.destino.startsWith('virtual:') && !this.virtuales.includes(t.destino)) this.virtuales.push(t.destino);
+    this.virtuales.forEach((d, k) => F.push({ id: d, tipo: 'virtual', nombre: aj.nombresPistas[d] || ('Extra ' + d.split(':')[1]), color: colorDe(d, aj.colores[d]),
+               ctl: this.pistas.length + k, gan: d in aj.ganancias ? aj.ganancias[d] : 1, mute: aj.mutes.has(d), solo: aj.solos.has(d) }));
+    if (aj.ordenPistas.length) {
+      const pos = id => { const i = aj.ordenPistas.indexOf(id); return i < 0 ? 1e5 : i; };
+      F.sort((a, b) => pos(a.id) - pos(b.id));   // estable: lo no listado queda en su orden
+    }
+    F.push({ id: 'master', tipo: 'master', nombre: 'Master', color: '#ffffff', gan: aj.master, mute: false, solo: false });
+    this.filas = F;
+    this.enviarControles();
+  },
+  enviarControles() {
+    const g = new Float32Array(64);
+    const algunSolo = this.filas.some(f => f.solo && (f.tipo === 'pista' || f.tipo === 'grupo' || f.tipo === 'virtual'));
+    const apagada = f => f.mute || (algunSolo && !f.solo);
+    for (const f of this.filas) {
+      if (f.tipo === 'pista') g[f.pista] = apagada(f) ? 0 : f.gan;
+      else if (f.tipo === 'grupo') f.miembros.forEach((m, k) => { g[m] = apagada(f) ? 0 : f.bases[k] * f.gan; });
+      else if (f.tipo === 'virtual') g[f.ctl] = apagada(f) ? 0 : f.gan;
+      else if (f.tipo === 'click') Audio.enviar({ t: 'click', c: { on: !f.mute, g: f.gan } });
+      else if (f.tipo === 'master') { this.aj.master = f.gan; Audio.enviar({ t: 'master', v: f.gan }); }
+    }
+    Audio.enviar({ t: 'ctl', g });
+  },
+  armarRegiones() {
+    const sr = Audio.sr, porPista = {};
+    for (const t of this.aj.tramos) {
+      const i = this.pistas.findIndex(p => p.id === t.pista); if (i < 0) continue;
+      let ctl;
+      if (t.destino === '@silencio') ctl = -1;
+      else if (t.destino.startsWith('virtual:')) ctl = this.pistas.length + this.virtuales.indexOf(t.destino);
+      else { ctl = this.pistas.findIndex(p => p.id === t.destino); if (ctl < 0) continue; }
+      (porPista[i] = porPista[i] || []).push([Math.round(t.desde * sr), Math.round(t.hasta * sr), ctl]);
+    }
+    this.pistas.forEach((p, i) => Audio.enviar({ t: 'regiones', i, reg: (porPista[i] || []).sort((a, b) => a[0] - b[0]) }));
+  },
+  armarClick() {
+    const an = this.an; if (!an.valido) return;
+    const sr = Audio.sr, beats = an.beatsEfectivos(), comps = an.compasesEfectivos();
+    const fuertes = new Set(comps.map(t => Math.round(t * 1000)));
+    const compasSeg = comps.length >= 2 ? Math.max(0.8, Math.min(8, comps[1] - comps[0])) : 2;
+    const desde = Math.max(0, an.inicioMusica - compasSeg - 0.1), groove = an.grooveDesde >= 0 ? an.grooveDesde : 0;
+    const b = beats.filter(t => t >= desde);
+    Audio.enviar({ t: 'click', c: { beats: b.map(t => Math.round(t * sr)), fuerte: b.map(t => fuertes.has(Math.round(t * 1000)) ? 1 : 0), desde: 0, suaveHasta: Math.round((groove - 0.05) * sr) } });
+  },
+
+  // ── tono ──
+  aplicarTono() {
+    const r = Math.pow(2, (this.tono * 100 + this.centsRef) / 1200);
+    Audio.enviar({ t: 'tono', r: Math.abs(r - 1) < 1e-4 ? 1 : r });
+    const txt = (this.tono > 0 ? '+' : this.tono < 0 ? '−' : '') + Math.abs(this.tono);
+    $('#tonoVal').textContent = this.tono === 0 ? '0' : txt;
+    const tt = Modelo.tonoTranspuesto(this.an.tonalidad, this.tono);
+    this.bemol = tt.bemol;
+    $('#tonoKey').textContent = Modelo.lindo(tt.nombre);
+    if (this.rio) this.pintarAcordes();
+  },
+  cambiarTono(d) { this.tono = Math.max(-12, Math.min(12, this.tono + d)); this.aplicarTono(); this.guardarLocal(); },
+  nombreAcorde(n) { return Modelo.lindo(Modelo.transponer(n, this.tono, this.bemol)); },
+
+  // ── transporte ──
+  aplicarLoop() {
+    const a = this.aj, ok = a.loop && a.cicloFin > a.cicloIni + 0.2;
+    Audio.enviar({ t: 'loop', on: !!ok, a: a.cicloIni * Audio.sr, b: a.cicloFin * Audio.sr });
+    $('#btnLoop').classList.toggle('on', !!ok);
+    $('#btnLoop').classList.toggle('apagado', !(a.cicloFin > a.cicloIni + 0.2));
+  },
+  ir(seg) { Audio.pos = Math.max(0, Math.min(this.dur, seg)); Audio.enviar({ t: 'ir', pos: Audio.pos * Audio.sr }); this.saltoTele = true; },
+  async tocar() {
+    await Audio.iniciar();
+    const a = this.aj, an = this.an;
+    let desde = Audio.pos >= this.dur - 0.05 ? 0 : Audio.pos;
+    if (a.marcaInicio > 0.5 && !this.reanudar) desde = a.marcaInicio;      // como la Mac: la bandera verde manda
+    Audio.enviar({ t: 'cuenta', desde: 0, hasta: -1, pos: [], fuerte: [] });
+    if (a.cuenta && an.valido) {
+      const destino = a.marcaCuenta >= 0 ? a.marcaCuenta : desde;           // lila = tu entrada; si no, donde arranca
+      const comps = an.compasesEfectivos(), nB = Math.max(2, an.compasN), nComp = Pref.get('cuentaCompases', 1);
+      let paso = 0;
+      for (let i = 0; i + 1 < comps.length; i++) if (comps[i] >= destino - 0.12) { const d = comps[i + 1] - comps[i]; if (d > 0.4 && d < 8) { paso = d / nB; break; } }
+      if (paso <= 0 && comps.length >= 2) paso = Math.max(0.8, Math.min(8, comps[1] - comps[0])) / nB;
+      if (paso < 0.15 || paso > 2.5) paso = 0.5;
+      const total = nComp * nB, pos = [], fuerte = [];
+      for (let k = total; k >= 1; k--) { const t = destino - paso * k; if (t >= 0) { pos.push(Math.round(t * Audio.sr)); fuerte.push(k % nB === 0 ? 1 : 0); } }
+      const ini = destino - paso * total;
+      if (pos.length) {
+        Audio.enviar({ t: 'cuenta', desde: Math.max(0, ini) * Audio.sr, hasta: destino * Audio.sr, pos, fuerte });
+        desde = a.marcaCuenta >= 0 ? 0 : Math.max(0, ini);   // con lila, como la Mac: desde el principio, sin saltos
+      }
+    }
+    this.ir(desde);
+    Audio.enviar({ t: 'play' }); Audio.sonando = true; Audio.posCt = Audio.ctx.currentTime;
+    this.reanudar = false;
+    pantallaPrendida(true); this.refrescarBotones();
+  },
+  pausa() { Audio.enviar({ t: 'pausa' }); Audio.sonando = false; pantallaPrendida(false); this.refrescarBotones(); },
+  parar() { if (Audio.nodo) Audio.enviar({ t: 'pausa' }); Audio.sonando = false; pantallaPrendida(false); },
+  alInicio() { this.reanudar = false; this.ir(this.aj.marcaInicio > 0.5 ? this.aj.marcaInicio : 0); if (Audio.sonando) this.tocar(); },
+  refrescarBotones() {
+    $('#btnPlay').classList.toggle('sonando', Audio.sonando);
+    $('#btnCuenta').classList.toggle('on', !!this.aj.cuenta);
+  },
+
+  // ══════════ TELEPROMPTER: letra con los acordes sobre la palabra, y compases sin letra ══════════
+  armarTele() {
+    const an = this.an, le = this.letra, rio = $('#rio');
+    rio.innerHTML = ''; this.rio = rio; this.filasTele = []; this.palabrasEl = []; this.acordesEl = [];
+    const acordes = an.valido || an.acordes.length ? an.acordesAlPulso().filter(a => !a.sigue) : [];
+    this.acordes = acordes;
+    const comps = an.compasesEfectivos(), beats = an.beatsEfectivos();
+    // renglones con tiempo, en orden
+    const lineas = [];
+    le.lineas.forEach((l, i) => { if (l.t >= 0) lineas.push({ ...l, i, pal: le.palabras[i] || [] }); });
+    lineas.sort((a, b) => a.t - b.t);
+    const filas = [];
+    lineas.forEach((l, k) => {
+      const sig = k + 1 < lineas.length ? lineas[k + 1].t : this.dur;
+      const sec = Modelo.etiquetaSeccion(l.texto);
+      if (sec) { filas.push({ tipo: 'sec', t: l.t, fin: sig, texto: sec }); return; }
+      let pal = l.pal.filter(w => w.texto && w.texto.trim());
+      if (!pal.length) {                  // karaoke estimado: palabras repartidas por largo
+        const ws = l.texto.split(/\s+/).filter(Boolean);
+        const fin = l.fin > l.t ? l.fin : Math.min(sig, l.t + Math.max(1.2, ws.length * 0.42) * 1.5);
+        const peso = ws.map(w => w.length + 1), tot = peso.reduce((a, b) => a + b, 0) || 1;
+        let t = l.t; pal = ws.map((w, j) => { const d = (fin - l.t) * peso[j] / tot; const r = { t, fin: t + d, texto: w }; t += d; return r; });
+      }
+      const finCanto = Math.max(l.fin > 0 ? l.fin : 0, pal.length ? pal[pal.length - 1].fin : l.t + 1.2);
+      filas.push({ tipo: 'letra', t: l.t, fin: Math.min(sig, Math.max(finCanto, l.t + 0.5)), sig, pal, acordes: [] });
+    });
+    // cada acorde va a la palabra que suena en su tiempo; lo que cae lejos del canto va a las filas de compases
+    const zonaDe = f => [f.t - 0.35, Math.min(f.sig, f.fin + 0.6)];
+    const sueltos = [];
+    for (const ac of acordes) {
+      if (Modelo.esSilencio(ac.nombre)) continue;
+      const f = filas.find(f => f.tipo === 'letra' && ac.t >= zonaDe(f)[0] && ac.t < zonaDe(f)[1]);
+      if (f) f.acordes.push(ac); else sueltos.push(ac);
+    }
+    // compases sin letra: celdas de a cuatro (como la hoja de la ventana de acordes)
+    if (comps.length && sueltos.length) {
+      const celdas = Modelo.acordesPorCompas(acordes.filter(a => !Modelo.esSilencio(a.nombre)), comps, beats);
+      const libre = cel => !filas.some(f => f.tipo === 'letra' && cel.t < zonaDe(f)[1] - 0.05 && cel.fin > zonaDe(f)[0] + 0.05) && cel.acordes.length;
+      let tanda = [];
+      const cerrar = () => { if (tanda.length) filas.push({ tipo: 'compases', t: tanda[0].t, fin: tanda[tanda.length - 1].fin, celdas: tanda }); tanda = []; };
+      celdas.forEach((cel, i) => {
+        if (!libre(cel)) { cerrar(); return; }
+        if (tanda.length && (tanda.length >= 4 || Math.abs(tanda[tanda.length - 1].fin - cel.t) > 0.05)) cerrar();
+        tanda.push(cel);
+      });
+      cerrar();
+    } else if (!comps.length && sueltos.length) {
+      for (let i = 0; i < sueltos.length; i += 4) { const g = sueltos.slice(i, i + 4); filas.push({ tipo: 'compases', t: g[0].t, fin: g[g.length - 1].fin, celdas: g.map(a => ({ t: a.t, fin: a.fin, acordes: [a] })) }); }
+    }
+    filas.sort((a, b) => a.t - b.t);
+    if (!filas.length) filas.push({ tipo: 'vacio', t: 0, fin: this.dur, texto: le.valida ? 'La letra de esta canción no tiene tiempos todavía.' : 'Sin letra ni acordes para esta canción.' });
+
+    // ── dibujar ──
+    let previo = null;
+    for (const f of filas) {
+      const d = el('div', 'fila ' + f.tipo);
+      if (f.tipo === 'sec') d.textContent = f.texto;
+      else if (f.tipo === 'vacio') d.textContent = f.texto;
+      else if (f.tipo === 'letra') {
+        const porPal = f.pal.map(() => []);
+        let antes = [];
+        for (const ac of f.acordes) {
+          let j = -1; for (let k = 0; k < f.pal.length; k++) if (f.pal[k].t <= ac.t + 0.12) j = k;
+          const dest = j < 0 ? antes : porPal[j];
+          if (dest.length && dest[dest.length - 1].nombre === ac.nombre) continue;   // el mismo acorde dos veces en la misma palabra: uno
+          dest.push(ac);
+        }
+        if (antes.length) { const w = el('span', 'w solo'); const ca = el('span', 'acs'); antes.forEach(ac => ca.appendChild(this.chipAcorde(ac))); w.appendChild(ca); w.appendChild(el('span', 'tx', '\u00a0')); d.appendChild(w); }
+        f.pal.forEach((p, k) => {
+          const w = el('span', 'w');
+          const ca = el('span', 'acs'); porPal[k].forEach(ac => ca.appendChild(this.chipAcorde(ac)));
+          w.appendChild(ca);
+          const tx = el('span', 'tx', p.texto); w.appendChild(tx);
+          d.appendChild(w); d.appendChild(document.createTextNode(' '));
+          this.palabrasEl.push({ el: tx, t: p.t, fin: p.fin });
+        });
+      } else if (f.tipo === 'compases') {
+        let ant = previo && previo.tipo === 'compases' ? previo.ultimo : null;
+        for (const cel of f.celdas) {
+          const c = el('span', 'cmp');
+          for (const ac of cel.acordes) {
+            const chip = this.chipAcorde(ac);
+            if (cel.acordes.length === 1 && ant === ac.nombre) chip.classList.add('repite');
+            c.appendChild(chip); ant = ac.nombre;
+          }
+          d.appendChild(c);
+        }
+        f.ultimo = ant;
+      }
+      f.el = d; rio.appendChild(d); this.filasTele.push(f); previo = f;
+    }
+    this.palabrasEl.sort((a, b) => a.t - b.t);
+    this.acordesEl.sort((a, b) => a.t - b.t);
+    this.iFila = -1; this.iPal = -1; this.iAc = -1; this.saltoTele = true;
+    this.pintarAcordes();
+  },
+  chipAcorde(ac) {
+    const b = el('b', 'ac'); b.dataset.n = ac.nombre;
+    this.acordesEl.push({ el: b, t: ac.t, fin: ac.fin, n: ac.nombre });
+    return b;
+  },
+  pintarAcordes() { for (const a of this.acordesEl) a.el.textContent = this.nombreAcorde(a.n); this.iAc = -2; },
+
+  medir() {
+    const tele = $('#tele');
+    this.altoTele = tele.clientHeight;
+    for (const f of this.filasTele) { f.y = f.el.offsetTop; f.h = f.el.offsetHeight; }
+    this.saltoTele = true;
+  },
+
+  // un cuadro de animación: cabezal, karaoke, acorde que suena, compás y pulso
+  cuadro() {
+    if (!this.cancion) return;
+    requestAnimationFrame(() => this.cuadro());
+    if (!$('#pRep').classList.contains('activa')) return;
+    const t = Audio.ahora(), an = this.an;
+    $('#tiempo').textContent = fmtT(t) + ' / ' + fmtT(this.dur);
+    this.dibujarBarra(t);
+    // fila actual
+    const F = this.filasTele;
+    let i = 0; for (let k = 0; k < F.length; k++) if (F[k].t <= t + 0.15) i = k;
+    if (i !== this.iFila || this.saltoTele) {
+      if (this.iFila >= 0 && F[this.iFila]) F[this.iFila].el.classList.remove('actual');
+      F[i].el.classList.add('actual');
+      F.forEach((f, k) => f.el.classList.toggle('pasada', k < i));
+      const y = (F[i].y || 0) - Math.round(this.altoTele * 0.28);
+      const rio = this.rio;
+      if (this.saltoTele) { rio.style.transition = 'none'; rio.style.transform = `translateY(${-y}px)`; void rio.offsetHeight; rio.style.transition = ''; }
+      else rio.style.transform = `translateY(${-y}px)`;
+      this.iFila = i;
+    }
+    // karaoke (palabra por palabra)
+    const P = this.palabrasEl;
+    let ip = -1; { let lo = 0, hi = P.length - 1; while (lo <= hi) { const m = (lo + hi) >> 1; if (P[m].t <= t) { ip = m; lo = m + 1; } else hi = m - 1; } }
+    if (ip !== this.iPal || this.saltoTele) {
+      const a = Math.min(ip, this.iPal), b = Math.max(ip, this.iPal);
+      if (this.saltoTele) P.forEach((p, k) => p.el.classList.toggle('oida', k <= ip));
+      else for (let k = Math.max(0, a + 1); k <= b && k < P.length; k++) P[k].el.classList.toggle('oida', k <= ip);
+      this.iPal = ip;
+    }
+    // acorde que suena
+    const A = this.acordes || [];
+    let ia = -1; for (let k = 0; k < A.length; k++) { if (A[k].t <= t + 0.05) ia = k; else break; }
+    if (ia !== this.iAc || this.saltoTele) {
+      for (const x of this.acordesEl) x.el.classList.toggle('suena', ia >= 0 && Math.abs(x.t - A[ia].t) < 0.01 && x.n === A[ia].nombre);
+      const ahora = ia >= 0 ? A[ia] : null;
+      let prox = null; for (let k = ia + 1; k < A.length; k++) if (!Modelo.esSilencio(A[k].nombre)) { prox = A[k]; break; }
+      $('#acAhora').textContent = ahora ? (Modelo.esSilencio(ahora.nombre) ? 'N.C.' : this.nombreAcorde(ahora.nombre)) : '';
+      $('#acProx').textContent = prox ? '→ ' + this.nombreAcorde(prox.nombre) : '';
+      this.iAc = ia;
+    }
+    // sección y pulso
+    const b = an.arreglo.find(x => t >= x.t - 0.001 && t < x.fin);
+    const sec = b ? b.nombre : '';
+    if (sec !== this.secTxt) { $('#seccion').textContent = sec; this.secTxt = sec; }
+    this.dibujarPulso(t);
+    this.saltoTele = false;
+  },
+  dibujarPulso(t) {
+    const an = this.an, cont = $('#pulsos');
+    if (!an.valido) { if (cont.childElementCount) cont.innerHTML = ''; return; }
+    const comps = an.compasesEfectivos(), beats = an.beatsEfectivos();
+    let ic = -1; for (let k = 0; k < comps.length; k++) { if (comps[k] <= t + 0.03) ic = k; else break; }
+    const nB = ic >= 0 ? an.compasEn(comps[ic]) : an.compasN;
+    let b = -1;
+    if (ic >= 0) { const t1 = ic + 1 < comps.length ? comps[ic + 1] : comps[ic] + an.duracionCompas(); b = beats.filter(x => x >= comps[ic] - 0.03 && x < t1 - 0.03 && x <= t + 0.03).length - 1; }
+    if (cont.childElementCount !== nB) { cont.innerHTML = ''; for (let k = 0; k < nB; k++) cont.appendChild(el('i')); }
+    const clave = ic + ':' + b;
+    if (clave !== this.pulsoClave) { [...cont.children].forEach((d, k) => d.classList.toggle('on', k === b)); this.pulsoClave = clave; }
+  },
+
+  // ── barra de posición con la estructura (arreglos), el loop y las banderas ──
+  dibujarBarra(t) {
+    const cv = $('#barra'), dpr = window.devicePixelRatio || 1;
+    const W = cv.clientWidth, H = cv.clientHeight;
+    if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+    const x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H);
+    const d = this.dur || 1, X = s => s / d * W;
+    x.fillStyle = 'rgba(255,255,255,.08)'; x.fillRect(0, H * 0.25, W, H * 0.5);
+    for (const b of this.an.arreglo) {
+      x.fillStyle = PALETA_ARR[((b.color % 6) + 6) % 6]; x.fillRect(X(b.t), H * 0.18, Math.max(1, X(b.fin) - X(b.t) - 1), H * 0.64);
+      if (X(b.fin) - X(b.t) > 34) { x.fillStyle = 'rgba(255,255,255,.75)'; x.font = '600 10px -apple-system,system-ui'; x.textBaseline = 'middle'; x.fillText(b.nombre.slice(0, 14), X(b.t) + 4, H / 2, X(b.fin) - X(b.t) - 6); }
+    }
+    const a = this.aj;
+    if (a.cicloFin > a.cicloIni + 0.2) { x.fillStyle = a.loop ? 'rgba(90,143,181,.35)' : 'rgba(255,255,255,.10)'; x.fillRect(X(a.cicloIni), 0, X(a.cicloFin) - X(a.cicloIni), H); }
+    x.fillStyle = 'rgba(255,255,255,.22)'; x.fillRect(0, H * 0.18, X(t), H * 0.64);
+    const bandera = (s, col) => { if (s < 0) return; x.fillStyle = col; x.beginPath(); x.moveTo(X(s), 0); x.lineTo(X(s) + 6, 0); x.lineTo(X(s), 7); x.fill(); x.fillRect(X(s) - 1, 0, 2, H); };
+    if (a.marcaInicio > 0.5) bandera(a.marcaInicio, '#4cd97b');
+    if (a.marcaCuenta >= 0) bandera(a.marcaCuenta, '#b48ef0');
+    x.fillStyle = '#fff'; x.fillRect(X(t) - 1, 0, 2, H);
+  },
+
+  // ── mezcla: una columna por fila ──
+  dibujarMezcla() {
+    const m = $('#mezcla'); m.innerHTML = '';
+    for (const f of this.filas) {
+      const c = el('div', 'canal ' + f.tipo); c.style.setProperty('--c', f.color);
+      c.appendChild(el('div', 'nom', f.nombre));
+      const fad = el('div', 'fader'); const riel = el('div', 'riel'); const rell = el('div', 'rell'); const per = el('div', 'per'); const cero = el('div', 'cero');
+      riel.appendChild(rell); riel.appendChild(cero); riel.appendChild(per); fad.appendChild(riel); c.appendChild(fad);
+      const db = el('div', 'db'); c.appendChild(db);
+      const bots = el('div', 'bots');
+      let bm = null, bs = null;
+      if (f.tipo !== 'master') { bm = el('button', 'm', 'M'); bots.appendChild(bm); }
+      if (f.tipo !== 'master' && f.tipo !== 'click') { bs = el('button', 's', 'S'); bots.appendChild(bs); }
+      c.appendChild(bots);
+      const pintar = () => {
+        const p = VolDb.aPos(f.gan);
+        rell.style.height = (p * 100) + '%'; per.style.bottom = `calc(${p * 100}% - 7px)`;
+        cero.style.bottom = (VolDb.aPos(1) * 100) + '%';
+        db.textContent = VolDb.texto(f.gan);
+        bm && bm.classList.toggle('on', f.mute); bs && bs.classList.toggle('on', f.solo);
+        c.classList.toggle('callada', f.mute);
+      };
+      f.pintar = pintar; pintar();
+      // arrastre vertical; doble toque = 0 dB
+      let ultimoToque = 0;
+      fad.addEventListener('pointerdown', e => {
+        e.preventDefault(); fad.setPointerCapture(e.pointerId);
+        const ahora = performance.now();
+        if (ahora - ultimoToque < 320) { f.gan = 1; pintar(); this.enviarControles(); this.guardarLocal(); ultimoToque = 0; return; }
+        ultimoToque = ahora;
+        const r = riel.getBoundingClientRect(), y0 = e.clientY, p0 = VolDb.aPos(f.gan);
+        const mover = ev => { const p = p0 + (y0 - ev.clientY) / r.height; f.gan = VolDb.deDb(Math.round(VolDb.dbDePos(p) * 10) / 10); pintar(); this.enviarControles(); };
+        const soltar = () => { fad.removeEventListener('pointermove', mover); fad.removeEventListener('pointerup', soltar); fad.removeEventListener('pointercancel', soltar); this.guardarLocal(); };
+        fad.addEventListener('pointermove', mover); fad.addEventListener('pointerup', soltar); fad.addEventListener('pointercancel', soltar);
+      });
+      bm && (bm.onclick = () => { f.mute = !f.mute; pintar(); this.enviarControles(); this.guardarLocal(); });
+      bs && (bs.onclick = () => { f.solo = !f.solo; this.filas.forEach(x => x.pintar && x.pintar()); this.pintarSolos(); this.enviarControles(); this.guardarLocal(); });
+      m.appendChild(c);
+    }
+    this.pintarSolos();
+  },
+  pintarSolos() {
+    const algun = this.filas.some(f => f.solo);
+    [...$('#mezcla').children].forEach((c, k) => { const f = this.filas[k]; c.classList.toggle('fueraSolo', algun && !f.solo && f.tipo !== 'master' && f.tipo !== 'click'); });
+  }
+};
+
+// ── controles de Reproducción ──
+$('#btnVolver').onclick = () => { Rep.parar(); Rep.refrescarBotones(); pantalla('pBib'); Bib.dibujar(); };
+$('#btnPlay').onclick = () => Audio.sonando ? Rep.pausa() : Rep.tocar();
+$('#btnInicio').onclick = () => Rep.alInicio();
+$('#tonoMenos').onclick = () => Rep.cambiarTono(-1);
+$('#tonoMas').onclick = () => Rep.cambiarTono(+1);
+$('#tonoVal').onclick = () => { Rep.tono = Math.round(Rep.ajMac.tono || 0); Rep.aplicarTono(); Rep.guardarLocal(); aviso('Tono como en la Mac.'); };
+$('#btnCuenta').onclick = () => { Rep.aj.cuenta = !Rep.aj.cuenta; Rep.refrescarBotones(); Rep.guardarLocal(); aviso(Rep.aj.cuenta ? 'Cuenta prendida' : 'Cuenta apagada', 1400); };
+$('#btnLoop').onclick = () => {
+  const a = Rep.aj;
+  if (!(a.cicloFin > a.cicloIni + 0.2)) { aviso('Mantené apretada una parte de la barra (Intro, Coro…) para repetirla.'); return; }
+  a.loop = !a.loop; Rep.aplicarLoop(); Rep.guardarLocal();
+};
+Audio.alTerminar = () => { Rep.reanudar = false; Rep.refrescarBotones(); pantallaPrendida(false); };
+
+// barra: tocar = ir ahí; mantener apretado sobre una parte del arreglo = repetir esa parte
+(() => {
+  const cv = $('#barra'); let tLargo = null, x0 = 0, arrastrando = false;
+  const seg = e => { const r = cv.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * Rep.dur; };
+  cv.addEventListener('pointerdown', e => {
+    cv.setPointerCapture(e.pointerId); x0 = e.clientX; arrastrando = false;
+    const s = seg(e);
+    tLargo = setTimeout(() => {
+      tLargo = null;
+      const b = Rep.an.arreglo.find(x => s >= x.t && s < x.fin);
+      if (b) { Rep.aj.cicloIni = b.t; Rep.aj.cicloFin = b.fin; Rep.aj.loop = true; Rep.aplicarLoop(); Rep.guardarLocal(); aviso('Repitiendo: ' + (b.nombre || 'esta parte')); if (navigator.vibrate) navigator.vibrate(20); }
+    }, 550);
+  });
+  cv.addEventListener('pointermove', e => { if (Math.abs(e.clientX - x0) > 8) { arrastrando = true; if (tLargo) { clearTimeout(tLargo); tLargo = null; } Rep.ir(seg(e)); } });
+  cv.addEventListener('pointerup', e => { if (tLargo) { clearTimeout(tLargo); tLargo = null; Rep.reanudar = true; Rep.ir(seg(e)); } else if (arrastrando) Rep.reanudar = true; });
+})();
+
+addEventListener('resize', () => { if (Rep.cancion) requestAnimationFrame(() => Rep.medir()); });
+addEventListener('orientationchange', () => setTimeout(() => Rep.cancion && Rep.medir(), 300));
+
+// ══════════════════════ Menú ══════════════════════
+async function abrirMenu() {
+  $('#menu').classList.add('ver');
+  const n = await Nube.espacio();
+  $('#menuEspacio').textContent = n ? (n / 1048576).toFixed(0) + ' MB guardados en el iPhone' : '';
+  $('#menuCuenta').textContent = 'Cuenta: ' + Pref.get('cuentaCompases', 1) + (Pref.get('cuentaCompases', 1) === 1 ? ' compás' : ' compases');
+  $('#menuMac').style.display = Rep.cancion && $('#pRep').classList.contains('activa') ? '' : 'none';
+}
+const cerrarMenu = () => $('#menu').classList.remove('ver');
+$('#btnMenu').onclick = abrirMenu; $('#btnMenu2').onclick = abrirMenu;
+$('#menu').addEventListener('click', e => { if (e.target.id === 'menu') cerrarMenu(); });
+$('#menuCerrar').onclick = cerrarMenu;
+$('#menuRecargar').onclick = () => { cerrarMenu(); pantalla('pBib'); Bib.iniciar(); };
+$('#menuCuenta').onclick = () => { Pref.set('cuentaCompases', Pref.get('cuentaCompases', 1) === 1 ? 2 : 1); abrirMenu(); };
+$('#menuMac').onclick = () => { cerrarMenu(); Rep.volverALaMac(); };
+$('#menuBorrar').onclick = async () => {
+  if (!confirm('¿Borrar del iPhone todas las canciones guardadas? Siguen en tu OneDrive.')) return;
+  await Nube.borrarTodo(); Bib.guardadas = new Set(); Bib.dibujar(); abrirMenu(); aviso('Listo: el iPhone quedó liviano.');
+};
+$('#menuRegistro').onclick = () => { $('#registro').textContent = REG.join('\n') || '(vacío)'; $('#panelReg').classList.add('ver'); };
+$('#regCerrar').onclick = () => $('#panelReg').classList.remove('ver');
+$('#regCopiar').onclick = async () => { try { await navigator.clipboard.writeText(REG.join('\n')); aviso('Registro copiado'); } catch { aviso('No pude copiar'); } };
+$('#menuSalir').onclick = () => { if (!confirm('¿Cerrar sesión de Microsoft en YouSTEM?')) return; Nube.salir(); cerrarMenu(); Rep.parar(); pantalla('pLogin'); };
+
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
+arrancar();
+</script>
+</body>
+</html>
