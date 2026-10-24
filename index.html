@@ -18,7 +18,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:var(--fondo);color:var(--texto);font:15px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none}
+html,body{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;margin:0;height:100%;background:var(--fondo);color:var(--texto);font:15px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;inset:0}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;touch-action:manipulation}
 .pantalla{position:absolute;inset:0;display:none;flex-direction:column;padding:var(--sa-t) var(--sa-r) 0 var(--sa-l)}
@@ -48,7 +48,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .chip{padding:7px 14px;border-radius:999px;background:var(--panel2);color:var(--gris);font-weight:600;white-space:nowrap;font-size:14px}
 .chip.on{background:var(--texto);color:#111}
 .buscar{padding:0 14px 8px;flex:none}
-.buscar input{width:100%;padding:11px 14px;border-radius:12px;border:0;background:var(--panel2);color:var(--texto);font:inherit;font-size:16px;outline:none}
+.buscar input{-webkit-user-select:text;user-select:text;width:100%;padding:11px 14px;border-radius:12px;border:0;background:var(--panel2);color:var(--texto);font:inherit;font-size:16px;outline:none}
 .estado{padding:28px 24px;color:var(--gris);text-align:center}
 .lista{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 6px calc(12px + var(--sa-b))}
 .grupoArt{position:sticky;top:0;z-index:1;background:var(--fondo);color:var(--gris);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:12px 10px 5px}
@@ -89,8 +89,11 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .acs2{display:flex;align-items:baseline;gap:10px;justify-content:center}
 .acAhora{font-size:34px;font-weight:800;color:var(--verde);letter-spacing:-.5px;min-width:1ch;text-align:center}
 .acProx{font-size:17px;color:var(--gris);font-weight:600;white-space:nowrap}
-.key{text-align:right;color:var(--tenue);font-size:12px;font-weight:600}
+.key{justify-self:end;text-align:right;color:var(--gris);font-size:12px;font-weight:600;padding:8px 10px;margin:-8px -10px;border-radius:10px;cursor:pointer}
+.key:active{background:var(--panel2)}
+.key.grados span::after{content:" · grados";color:var(--acento)}
 .key span:not(:empty)::before{content:"Tono ";font-weight:500}
+.key span:empty::before{content:"Cifrado"}
 
 .tele{flex:1;min-height:0;overflow:hidden;position:relative;padding:0 16px;font-size:clamp(19px,5.6vw,38px);
   -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 84%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 84%,transparent 100%)}
@@ -131,21 +134,21 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .play.sonando .bars{display:block}
 .tiempo{position:absolute;right:14px;bottom:2px;font-size:11px;color:var(--tenue);font-variant-numeric:tabular-nums}
 
-.mezcla{display:flex;gap:3px;padding:4px 8px 8px;height:clamp(150px,29dvh,250px);flex:none}
+.mezcla{display:flex;gap:3px;padding:2px 8px 6px;height:clamp(118px,21dvh,190px);flex:none}
 .canal{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;background:var(--panel);border-radius:10px;padding:5px 2px 4px;transition:opacity .2s}
 .canal.master{flex:.9 1 0;margin-left:4px;background:#20252c}
 .canal.fueraSolo{opacity:.42}
 .nom{font-size:10.5px;font-weight:700;color:var(--c);width:100%;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px}
 .fader{flex:1;width:100%;position:relative;touch-action:none;margin:4px 0}
-.riel{position:absolute;left:50%;top:7px;bottom:7px;width:6px;margin-left:-3px;border-radius:3px;background:rgba(255,255,255,.1)}
+.riel{position:absolute;left:50%;top:6px;bottom:6px;width:4px;margin-left:-2px;border-radius:3px;background:rgba(255,255,255,.1)}
 .rell{position:absolute;left:0;right:0;bottom:0;border-radius:3px;background:var(--c);opacity:.9}
 .canal.callada .rell{opacity:.25}
 .cero{position:absolute;left:-7px;right:-7px;height:1px;background:rgba(255,255,255,.35)}
-.per{position:absolute;left:50%;width:30px;height:14px;margin-left:-15px;border-radius:5px;background:#e9edf2;box-shadow:0 1px 4px rgba(0,0,0,.6)}
-.per::after{content:"";position:absolute;left:5px;right:5px;top:6px;height:2px;background:var(--c);border-radius:1px}
+.per{position:absolute;left:50%;width:24px;height:12px;margin-left:-12px;border-radius:4px;background:#e9edf2;box-shadow:0 1px 4px rgba(0,0,0,.6)}
+.per::after{content:"";position:absolute;left:4px;right:4px;top:5px;height:2px;background:var(--c);border-radius:1px}
 .db{font-size:9.5px;color:var(--gris);font-variant-numeric:tabular-nums;height:13px}
 .bots{display:flex;gap:3px;width:100%;padding:0 2px;margin-top:3px}
-.bots button{flex:1;height:24px;border-radius:6px;background:var(--panel2);font-size:11px;font-weight:800;color:var(--gris);min-width:0}
+.bots button{flex:1;height:22px;border-radius:6px;background:var(--panel2);font-size:11px;font-weight:800;color:var(--gris);min-width:0}
 .bots .m.on{background:#e05a5a;color:#fff}
 .bots .s.on{background:#e8c547;color:#111}
 
@@ -908,10 +911,48 @@ const Modelo = (() => {
     const i = nombre.indexOf('/');
     return i >= 0 ? parte(nombre.slice(0, i)) + '/' + parte(nombre.slice(i + 1)) : parte(nombre);
   }
+  // ── (como la Mac 1.3.6) GRADOS: números romanos contra el tono vigente en ese segundo ──
+  function romano(intervalo, minuscula) {
+    const r = ['I', 'bII', 'II', 'bIII', 'III', 'IV', '#IV', 'V', 'bVI', 'VI', 'bVII', 'VII'][((intervalo % 12) + 12) % 12];
+    return (minuscula ? r.toLowerCase() : r).replace('b', '♭').replace('#', '♯');
+  }
+  const simbolos = t => t.replace(/b(?=\d)/g, '♭').replace(/#(?=\d)/g, '♯');
+  function normalizarTipo(t) {
+    t = t.trim().replace(/♯/g, '#').replace(/♭/g, 'b').replace(/−/g, '-').replace('(b5)', 'b5').replace('(#5)', '#5').replace('min', 'm');
+    if (t.startsWith('ø')) { let r = t.slice(1); if (r.startsWith('7')) r = r.slice(1); return 'm7b5' + r; }
+    if (t.startsWith('°') || t.startsWith('o')) { const r = t.slice(1); return r.startsWith('7') ? 'dim7' + r.slice(1) : 'dim' + r; }
+    if (t.startsWith('mmaj7')) return 'm(maj7)' + t.slice(5);
+    if (t.startsWith('-')) return 'm' + t.slice(1);
+    if (t.startsWith('Δ')) { const r = t.slice(1); return r.startsWith('7') ? 'maj7' + r.slice(1) : (/^\d/.test(r) ? 'maj' + r : 'maj7' + r); }
+    if (t.startsWith('+')) return 'aug' + t.slice(1);
+    if (t === 'M') return '';
+    if (/^M\d/.test(t)) return 'maj' + t.slice(1);
+    return t;
+  }
+  function grado(nombre, tono) {
+    const k = parsearTono(tono); if (!k) return null;
+    const cab = nombre.split('/')[0], c = claseNota(cab); if (!c) return null;
+    const t = normalizarTipo(cab.slice(c.largo));
+    const menor = (t.startsWith('m') && !t.startsWith('maj')) || t.startsWith('dim');
+    let cal;
+    if (t.startsWith('m7b5')) cal = 'ø' + simbolos(t.slice(4));
+    else if (t.startsWith('m(maj7)')) cal = 'Δ7' + simbolos(t.slice(7));
+    else if (t.startsWith('maj7')) cal = 'Δ7' + simbolos(t.slice(4));
+    else if (t.startsWith('maj')) cal = 'Δ' + simbolos(t.slice(3));
+    else if (t.startsWith('dim7')) cal = '°7' + simbolos(t.slice(4));
+    else if (t.startsWith('dim')) cal = '°' + simbolos(t.slice(3));
+    else if (t.startsWith('aug')) cal = '+' + simbolos(t.slice(3));
+    else if (t.startsWith('m')) cal = simbolos(t.slice(1));
+    else cal = simbolos(t);
+    const i = nombre.indexOf('/');
+    if (i >= 0) { const b = claseNota(nombre.slice(i + 1).trim()); if (b) cal += '/' + romano(b.pc - k.pc, false); }
+    return romano(c.pc - k.pc, menor) + cal;
+  }
+
   // escritura linda: ♯ ♭ reales
   const lindo = n => (n || '').replace(/(^|\/)([A-G])#/g, '$1$2♯').replace(/(^|\/)([A-G])b/g, '$1$2♭');
 
-  return { tonoTranspuesto, Analisis, acordesPorCompas, letraDeJson, etiquetaSeccion, ajustesDeJson, idGrupo, transponer, usaBemoles, lindo, esSilencio, claseNota };
+  return { grado, tonoTranspuesto, Analisis, acordesPorCompas, letraDeJson, etiquetaSeccion, ajustesDeJson, idGrupo, transponer, usaBemoles, lindo, esSilencio, claseNota };
 })();
 
 // ── Nube: entrar con Microsoft (PKCE, sin librerías) y leer OneDrive con Graph ──
@@ -1131,7 +1172,7 @@ const Nube = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.0.0';
+const VERSION = '0.0.1';
 const $ = s => document.querySelector(s);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const fmtT = s => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), x = Math.floor(s % 60); return m + ':' + String(x).padStart(2, '0'); };
@@ -1413,7 +1454,8 @@ const Rep = {
     $('#rTit').textContent = c.titulo || c.id;
     $('#rArt').textContent = c.artista || '';
     // "Tocar en": la referencia elegida contra la afinación medida de la grabación
-    this.centsRef = (aj.referenciaHz > 0 && an.afinacionHz > 0) ? 1200 * Math.log2(aj.referenciaHz / an.afinacionHz) : (aj.cents || 0);
+    // (0.0.1, fabao) SIEMPRE a 440, automático y sin botón: la afinación medida de la grabación se lleva a La 440
+    this.centsRef = an.afinacionHz > 300 && an.afinacionHz < 500 ? 1200 * Math.log2(440 / an.afinacionHz) : 0;
     this.armarFilas();
     this.armarRegiones();
     this.armarClick();
@@ -1536,13 +1578,29 @@ const Rep = {
     Audio.enviar({ t: 'tono', r: Math.abs(r - 1) < 1e-4 ? 1 : r });
     const txt = (this.tono > 0 ? '+' : this.tono < 0 ? '−' : '') + Math.abs(this.tono);
     $('#tonoVal').textContent = this.tono === 0 ? '0' : txt;
-    const tt = Modelo.tonoTranspuesto(this.an.tonalidad, this.tono);
-    this.bemol = tt.bemol;
-    $('#tonoKey').textContent = Modelo.lindo(tt.nombre);
+    this.aplicarTonoTexto();
     if (this.rio) this.pintarAcordes();
   },
+  aplicarTonoTexto() {
+    const tt = Modelo.tonoTranspuesto(this.an.tonoEn(Audio.ahora()), this.tono);
+    this.bemol = Modelo.tonoTranspuesto(this.an.tonalidad, this.tono).bemol;   // la ortografía, por el tono de la canción
+    $('#tonoKey').textContent = Modelo.lindo(tt.nombre);
+  },
   cambiarTono(d) { this.tono = Math.max(-12, Math.min(12, this.tono + d)); this.aplicarTono(); this.guardarLocal(); },
-  nombreAcorde(n) { return Modelo.lindo(Modelo.transponer(n, this.tono, this.bemol)); },
+  // cifrado americano o grados (tocando "Tono"); los grados van contra el tono vigente en ese segundo
+  nombreAcorde(n, t) {
+    if (Pref.get('notacion', 'americana') === 'grados' && !Modelo.esSilencio(n)) {
+      const g = Modelo.grado(n, this.an.tonoEn(t == null ? Audio.ahora() : t));
+      if (g) return g;
+    }
+    return Modelo.lindo(Modelo.transponer(n, this.tono, this.bemol));
+  },
+  cambiarNotacion() {
+    const n = Pref.get('notacion', 'americana') === 'grados' ? 'americana' : 'grados';
+    Pref.set('notacion', n); this.pintarAcordes(); this.iAc = -2;
+    aviso(n === 'grados' ? 'Cifrado en grados (I, IV, V…)' : 'Cifrado americano (C, F, G…)', 1600);
+    $('#tonoKey').parentElement.classList.toggle('grados', n === 'grados');
+  },
 
   // ── transporte ──
   aplicarLoop() {
@@ -1687,7 +1745,7 @@ const Rep = {
     this.acordesEl.push({ el: b, t: ac.t, fin: ac.fin, n: ac.nombre });
     return b;
   },
-  pintarAcordes() { for (const a of this.acordesEl) a.el.textContent = this.nombreAcorde(a.n); this.iAc = -2; },
+  pintarAcordes() { for (const a of this.acordesEl) a.el.textContent = this.nombreAcorde(a.n, a.t); this.iAc = -2; $('#tonoKey').parentElement.classList.toggle('grados', Pref.get('notacion', 'americana') === 'grados'); },
 
   medir() {
     const tele = $('#tele');
@@ -1733,8 +1791,8 @@ const Rep = {
       for (const x of this.acordesEl) x.el.classList.toggle('suena', ia >= 0 && Math.abs(x.t - A[ia].t) < 0.01 && x.n === A[ia].nombre);
       const ahora = ia >= 0 ? A[ia] : null;
       let prox = null; for (let k = ia + 1; k < A.length; k++) if (!Modelo.esSilencio(A[k].nombre)) { prox = A[k]; break; }
-      $('#acAhora').textContent = ahora ? (Modelo.esSilencio(ahora.nombre) ? 'N.C.' : this.nombreAcorde(ahora.nombre)) : '';
-      $('#acProx').textContent = prox ? '→ ' + this.nombreAcorde(prox.nombre) : '';
+      $('#acAhora').textContent = ahora ? (Modelo.esSilencio(ahora.nombre) ? 'N.C.' : this.nombreAcorde(ahora.nombre, ahora.t)) : '';
+      $('#acProx').textContent = prox ? '→ ' + this.nombreAcorde(prox.nombre, prox.t) : '';
       this.iAc = ia;
     }
     // sección y pulso
@@ -1742,6 +1800,7 @@ const Rep = {
     const sec = b ? b.nombre : '';
     if (sec !== this.secTxt) { $('#seccion').textContent = sec; this.secTxt = sec; }
     this.dibujarPulso(t);
+    if (an.cambiosTono.length) { const k = an.tonoEn(t); if (k !== this.tonoMostrado) { this.tonoMostrado = k; this.aplicarTonoTexto(); } }
     this.saltoTele = false;
   },
   dibujarPulso(t) {
@@ -1831,6 +1890,7 @@ $('#btnPlay').onclick = () => Audio.sonando ? Rep.pausa() : Rep.tocar();
 $('#btnInicio').onclick = () => Rep.alInicio();
 $('#tonoMenos').onclick = () => Rep.cambiarTono(-1);
 $('#tonoMas').onclick = () => Rep.cambiarTono(+1);
+$('#tonoKey').parentElement.onclick = () => Rep.cambiarNotacion();
 $('#tonoVal').onclick = () => { Rep.tono = Math.round(Rep.ajMac.tono || 0); Rep.aplicarTono(); Rep.guardarLocal(); aviso('Tono como en la Mac.'); };
 $('#btnCuenta').onclick = () => { Rep.aj.cuenta = !Rep.aj.cuenta; Rep.refrescarBotones(); Rep.guardarLocal(); aviso(Rep.aj.cuenta ? 'Cuenta prendida' : 'Cuenta apagada', 1400); };
 $('#btnLoop').onclick = () => {
@@ -1884,6 +1944,8 @@ $('#regCerrar').onclick = () => $('#panelReg').classList.remove('ver');
 $('#regCopiar').onclick = async () => { try { await navigator.clipboard.writeText(REG.join('\n')); aviso('Registro copiado'); } catch { aviso('No pude copiar'); } };
 $('#menuSalir').onclick = () => { if (!confirm('¿Cerrar sesión de Microsoft en YouSTEM?')) return; Nube.salir(); cerrarMenu(); Rep.parar(); pantalla('pLogin'); };
 
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+['gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
 try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
 arrancar();
 </script>
