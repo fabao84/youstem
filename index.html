@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="YouSTEM">
 <meta name="theme-color" content="#14171b">
 <title>YouSTEM</title>
+<link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icono.png">
 <link rel="icon" href="icono.png">
 <style>:root{
@@ -20,7 +21,6 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;margin:0;height:100%;background:var(--fondo);color:var(--texto);font:15px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;left:0;right:0;top:0;bottom:0}
-html.app body{bottom:auto;height:var(--alto)}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;touch-action:manipulation}
 .pantalla{position:absolute;inset:0;display:none;flex-direction:column;padding:var(--sa-t) var(--sa-r) 0 var(--sa-l)}
 .pantalla.activa{display:flex}
@@ -64,7 +64,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .ic.guard{color:var(--verde);font-size:10px}
 
 /* ── reproducción: TODO entra en una pantalla ── */
-#pRep{padding-bottom:var(--sa-b)}
+#pRep{padding-bottom:var(--abajo,var(--sa-b))}
 .rcab{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 4px;flex:none;height:52px}
 #btnVolver{font-size:34px;font-weight:300}
 .rtit{flex:1;min-width:0;line-height:1.15}
@@ -1177,7 +1177,7 @@ const Nube = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.0.2';
+const VERSION = '0.0.4';
 const $ = s => document.querySelector(s);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const fmtT = s => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), x = Math.floor(s % 60); return m + ':' + String(x).padStart(2, '0'); };
@@ -1951,14 +1951,25 @@ $('#menuSalir').onclick = () => { if (!confirm('¿Cerrar sesión de Microsoft en
 
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 ['gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
-// como app de pantalla de inicio, iOS a veces informa una altura más corta que la pantalla (quedaba una franja vacía abajo)
+// (0.0.3) LA PANTALLA SE MIDE SOLA. Siempre se usa el área que el iPhone realmente muestra (nada de suponer el alto
+// de la pantalla: en la 0.0.2 eso cortaba la mezcla). Como app de pantalla de inicio, iOS a veces deja la página más
+// corta que la pantalla y entonces no hay barra de inicio debajo: se saca el margen de abajo para ganar ese lugar.
 function ajustarAlto() {
   const app = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
-  document.documentElement.classList.toggle('app', app);
-  if (!app) return;
+  const raiz = document.documentElement;
+  raiz.classList.toggle('app', app);
+  const sonda = document.createElement('div');
+  sonda.style.cssText = 'position:fixed;left:0;top:0;bottom:0;width:1px;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none';
+  document.body.appendChild(sonda);
+  const cs = getComputedStyle(sonda), alto = sonda.getBoundingClientRect().height;
+  const saT = parseFloat(cs.paddingTop) || 0, saB = parseFloat(cs.paddingBottom) || 0;
+  sonda.remove();
   const horiz = matchMedia('(orientation: landscape)').matches;
-  const pantallaAlto = horiz ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
-  document.documentElement.style.setProperty('--alto', Math.max(innerHeight, pantallaAlto) + 'px');
+  const pantalla = horiz ? Math.min(screen.width, screen.height) : Math.max(screen.width, screen.height);
+  const faltaAbajo = app && saB > 0 && alto < pantalla - saB * 0.8;   // la página no llega hasta la barra de inicio
+  raiz.style.setProperty('--abajo', faltaAbajo ? '4px' : 'var(--sa-b)');
+  const linea = `pantalla: app=${app} alto=${Math.round(alto)} inner=${innerHeight} vv=${Math.round(window.visualViewport ? visualViewport.height : 0)} screen=${pantalla} saT=${saT} saB=${saB} → margen abajo ${faltaAbajo ? 'no' : 'sí'}`;
+  if (linea !== ajustarAlto.ultima) { ajustarAlto.ultima = linea; anotar(linea); }
   if (Rep.cancion) requestAnimationFrame(() => Rep.medir());
 }
 ajustarAlto(); addEventListener('resize', ajustarAlto); addEventListener('orientationchange', () => setTimeout(ajustarAlto, 250));
