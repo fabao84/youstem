@@ -73,6 +73,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .tit{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sub{color:var(--gris);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .iconos{display:flex;gap:6px;align-items:center;flex:none;font-size:12px}
+.masFila{width:38px;height:38px;margin:-6px -6px -6px 2px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--gris);border-radius:10px}
+.masFila:active{background:var(--panel2)}
 .ic.guard{color:var(--verde);font-size:10px}
 
 /* ── reproducción: TODO entra en una pantalla ── */
@@ -455,6 +457,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
   <div class="hojaCaja">
     <div class="hojaTit"><span id="accTit"></span><span id="accSub" class="gris"></span></div>
     <button id="accCompartir">Compartir la canción (.youstem)</button>
+    <button id="accPrivada"></button>
     <button id="accBorrar" class="rojo"></button>
     <button id="accCerrar" class="cerrar">Cancelar</button>
   </div>
@@ -1463,6 +1466,31 @@ const Nube = (() => {
     if (!r.ok) { const e = new Error('no pude guardar ' + ruta + ' (' + r.status + ')'); e.status = r.status; e.sinPermiso = r.status === 401 || r.status === 403; throw e; }
     return r.json().catch(() => ({}));
   }
+  // (0.3.12) mover una canción entre tu carpeta privada y la de la banda: la carpeta de la canción, la miniatura y,
+  // al final, la ficha del catálogo (con privadaCambio = ahora: así las Macs adoptan el cambio al sincronizar)
+  async function itemEn(raiz, ruta) { const r = await g(rutaItem(raiz, ruta)); if (r.status === 404) return null; if (!r.ok) { const e = new Error(ruta + ' → ' + r.status); e.status = r.status; e.sinPermiso = r.status === 401 || r.status === 403; throw e; } return r.json(); }
+  async function carpetaEn(raiz, nombre) {
+    const it = await itemEn(raiz, nombre); if (it) return it.id;
+    const r = await g(rutaItem(raiz) + '/children', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: nombre, folder: {}, '@microsoft.graph.conflictBehavior': 'fail' }) });
+    if (!r.ok) { const e = new Error('no pude crear ' + nombre + ' (' + r.status + ')'); e.sinPermiso = r.status === 401 || r.status === 403; throw e; }
+    return (await r.json()).id;
+  }
+  async function moverItem(it, destId) {
+    const r = await g(`/drives/${it.parentReference.driveId}/items/${it.id}?@microsoft.graph.conflictBehavior=replace`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parentReference: { id: destId }, name: it.name }) });
+    if (!r.ok) { const e = new Error('no pude mover ' + it.name + ' (' + r.status + ')'); e.status = r.status; e.sinPermiso = r.status === 401 || r.status === 403; throw e; }
+  }
+  async function moverCancion(id, desde, hasta) {
+    const cat = await itemEn(desde, 'catalogo/' + id + '.json');
+    if (!cat) throw new Error('no está en esa carpeta (¿ya se movió?)');
+    const dir = await itemEn(desde, 'canciones/' + id);
+    if (dir) await moverItem(dir, await carpetaEn(hasta, 'canciones'));
+    const mini = await itemEn(desde, 'miniaturas/' + id + '.jpg');
+    if (mini) await moverItem(mini, await carpetaEn(hasta, 'miniaturas'));
+    const datos = await leerJson(desde, 'catalogo/' + id + '.json');
+    datos.privadaCambio = Date.now(); delete datos.privada;
+    await escribir(desde, 'catalogo/' + id + '.json', JSON.stringify(datos));
+    await moverItem(await itemEn(desde, 'catalogo/' + id + '.json'), await carpetaEn(hasta, 'catalogo'));
+  }
   function pedirEscritura() { try { localStorage.setItem('ys.escribir', '1'); } catch {} return entrar(); }
 
   async function borrarTodo() {
@@ -1471,7 +1499,7 @@ const Nube = (() => {
   async function espacio() { try { const e = await navigator.storage.estimate(); return e.usage || 0; } catch { return 0; } }
 
   return { entrar, atenderVuelta, conectado, salir, token, yo, bibliotecas, catalogo, catalogoGuardado, archivosDe, bajar, enCache,
-           guardarManifiesto, idsGuardados, borrarTodo, espacio, claveCache, CLIENTE, leerJson, escribir, ponerCache, pedirEscritura, quiereEscribir, rutaItem };
+           guardarManifiesto, idsGuardados, borrarTodo, espacio, claveCache, CLIENTE, leerJson, escribir, ponerCache, moverCancion, pedirEscritura, quiereEscribir, rutaItem };
 })();
 
 // ── Local: usar sin nube. Importar .youstem / .youstemcorr, guardar en el dispositivo, carpeta en la computadora ──
@@ -1756,7 +1784,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.3.11';
+const VERSION = '0.3.12';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2035,13 +2063,12 @@ const Bib = {
       if (varias) ic.appendChild(el('span', 'ic deLib', lib.local ? '📱' : lib.mia ? (c.privada ? '🔒' : 'mía') : lib.nombre));
       else if (c.privada) ic.appendChild(el('span', 'ic', '🔒'));
       if (!lib.local && this.guardadas.has(lib.clave + '|' + c.id)) ic.appendChild(el('span', 'ic guard', '●'));
+      // (0.3.12) las opciones (compartir, privada/banda, borrar) van en el ⋯ de cada fila: mantener apretado saltaba al hacer scroll
+      const mas = el('span', 'masFila', '⋯'); mas.setAttribute('role', 'button'); mas.setAttribute('aria-label', 'Opciones de la canción');
+      ic.appendChild(mas);
       f.appendChild(ic);
-      let largo = null, hecho = false;
-      const soltar = () => { clearTimeout(largo); largo = null; f.classList.remove('apretado'); };
-      f.addEventListener('pointerdown', () => { hecho = false; f.classList.add('apretado'); largo = setTimeout(() => { soltar(); hecho = true; if (navigator.vibrate) navigator.vibrate(15); this.acciones(c, lib); }, 600); });
-      ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => f.addEventListener(t, soltar));
-      f.addEventListener('contextmenu', e => { e.preventDefault(); if (!hecho) { soltar(); hecho = true; this.acciones(c, lib); } });
-      f.onclick = () => { if (hecho) { hecho = false; return; } abrirCancion(c, lib); };
+      f.addEventListener('contextmenu', e => { e.preventDefault(); this.acciones(c, lib); });   // clic derecho en la compu
+      f.onclick = e => { if (e.target.closest('.masFila')) { e.stopPropagation(); this.acciones(c, lib); return; } abrirCancion(c, lib); };
       cont.appendChild(f);
     }
     // el buscador busca en las pestañas elegidas; si hay en otras, lo avisa
@@ -2063,6 +2090,11 @@ const Bib = {
     $('#accBorrar').textContent = lib.local ? 'Borrar de ' + EQUIPO : 'Borrar la copia guardada en ' + EQUIPO;
     $('#accBorrar').style.display = guardada ? '' : 'none';
     $('#accCompartir').onclick = () => { $('#acciones').classList.remove('ver'); compartirCancion(c, lib); };
+    // (0.3.12) privada ↔ banda: solo lo tuyo, y solo si tenés las dos carpetas
+    const puedeMover = lib.mia && lib.raices.some(r => r.privada) && lib.raices.some(r => !r.privada);
+    $('#accPrivada').style.display = puedeMover ? '' : 'none';
+    $('#accPrivada').textContent = c.privada ? '👥 Compartir con la banda (pasa a Compartidas)' : '🔒 Volver privada (la banda deja de verla)';
+    $('#accPrivada').onclick = () => { $('#acciones').classList.remove('ver'); cambiarPrivada(c, lib, !c.privada); };
     $('#accBorrar').onclick = () => { $('#acciones').classList.remove('ver'); this.preguntarBorrar(c, lib); };
     $('#acciones').classList.add('ver');
   },
@@ -2843,6 +2875,31 @@ $('#menuDescartar').onclick = () => {
 $('#accCerrar').onclick = () => $('#acciones').classList.remove('ver');
 $('#acciones').addEventListener('click', e => { if (e.target.id === 'acciones') $('#acciones').classList.remove('ver'); });
 $('#btnCompartir').onclick = () => Rep.cancion && compartirCancion(Rep.cancion, Rep.lib);
+
+// ══════════════════════ (0.3.12) Privada ↔ banda: se mueve en TU OneDrive (como la Mac), sin subir ni bajar nada ══════════════════════
+async function cambiarPrivada(c, lib, aPrivada) {
+  const t = '«' + (c.titulo || c.id) + '»';
+  if (!confirm(aPrivada ? '¿Volver privada ' + t + '? La banda deja de verla (lo que ya bajó cada uno le queda).' : '¿Compartir ' + t + ' con la banda? Pasa a tu carpeta compartida y la ven tus colegas.')) return;
+  if (!Nube.quiereEscribir()) {
+    if (confirm('Para mover canciones en tu OneDrive, Microsoft te va a pedir permiso para escribir en tu carpeta (una sola vez). Después volvé a elegir la canción. ¿Seguimos?')) Nube.pedirEscritura();
+    return;
+  }
+  const desde = lib.raices.find(r => !!r.privada === !aPrivada), hasta = lib.raices.find(r => !!r.privada === aPrivada);
+  if (!desde || !hasta) { aviso('No encontré tus dos carpetas (privada y compartida).'); return; }
+  try {
+    cargando((aPrivada ? 'Volviendo privada ' : 'Compartiendo ') + t + '…');
+    await Nube.moverCancion(c.id, desde, hasta);
+    anotar('privacidad', c.id, aPrivada ? '→ privada' : '→ banda');
+    c.privada = aPrivada; c.raiz = hasta;
+    Bib.dibujar();
+    aviso(aPrivada ? t + ' ahora es privada.' : t + ' ya la ve la banda.', 3500);
+    Bib.cargarTodo();
+  } catch (e) {
+    anotar('privacidad', c.id, e);
+    if (e.sinPermiso) { if (confirm('OneDrive no me dejó mover. ¿Pedimos el permiso de escritura de nuevo?')) Nube.pedirEscritura(); }
+    else aviso('No pude moverla: ' + e.message, 6000);
+  } finally { cargando(null); }
+}
 
 // ══════════════════════ Compartir una canción guardada: arma el .youstem (como el de la Mac) desde lo que hay en el dispositivo ══════════════════════
 async function compartirCancion(c, lib) {
