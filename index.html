@@ -322,6 +322,27 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
   .tele{font-size:clamp(26px,2.9vw,56px)}
   .mezcla{height:auto}
 }
+.viene,.pie{display:none}
+/* (0.3.6) tableta acostada / computadora */
+.ancha .rcuerpo{flex-direction:row}
+.ancha .izq{flex:1;min-width:0}
+.ancha .der{width:min(470px,40vw);max-width:none;min-width:0;flex:none;padding:12px 18px 10px;gap:10px;border-left:1px solid var(--linea)}
+.ancha .tele{padding-top:10px}
+.ancha .ahora{background:var(--panel);border-radius:16px;padding:12px 18px;grid-template-columns:auto 1fr auto;margin:0}
+.ancha .acs2{flex-direction:column;align-items:center;gap:2px}
+.ancha .acAhora{font-size:clamp(44px,5.2vw,74px);line-height:1}
+.ancha .acProx{font-size:20px}
+.ancha .viene{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:46px;align-content:start;gap:6px;background:var(--panel);border-radius:16px;padding:12px;flex:1;min-height:0;overflow:hidden}
+.vc{position:relative;background:var(--panel2);border-radius:9px;display:flex;align-items:center;padding:12px 10px 6px;min-width:0}
+.vc.on{outline:2px solid var(--verde)}
+.vc.on .va{color:var(--verde)}
+.va{font-size:19px;font-weight:700;color:var(--acorde);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs{position:absolute;top:2px;left:8px;font-size:9px;font-weight:800;color:var(--gris);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;overflow:hidden;max-width:90%}
+.ancha .transporte{padding:2px 0}
+.ancha .mezcla{height:clamp(170px,26vh,230px);flex:none;padding:0}
+.ancha .pie{display:flex;align-items:center;gap:14px;padding:6px 18px calc(10px + var(--sa-b));border-top:1px solid var(--linea);flex:none}
+.ancha .pie .barra{flex:1;width:auto;height:44px;margin:0}
+.ancha .pie .tiempo{position:static;font-size:14px;color:var(--gris);min-width:96px;text-align:right}
 @media (hover:hover){ button:hover{filter:brightness(1.15)} .tema:hover{background:var(--panel)} .fader{cursor:ns-resize} }
 </style>
 </head>
@@ -388,6 +409,8 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
       <div id="mezcla" class="mezcla"></div>
     </div>
   </div>
+  <div id="viene" class="viene"></div>
+  <div id="pie" class="pie"></div>
 </section>
 
 <section id="pEd" class="editor">
@@ -1674,7 +1697,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.3.5';
+const VERSION = '0.3.6';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2102,7 +2125,7 @@ const Rep = {
     this.tono = Math.round(this.aj.tono || 0);
     this.aplicarTono();
     this.aplicarLoop();
-    Audio.enviar({ t: 'master', v: this.aj.master });
+    Audio.enviar({ t: 'master', v: this.aj.masterMute ? 0 : this.aj.master });
     this.armarTele();
     this.dibujarMezcla();
     pantalla('pRep');
@@ -2121,7 +2144,7 @@ const Rep = {
     Object.assign(a.ganancias, l.ganancias || {});
     if (l.mutes) a.mutes = new Set(l.mutes);
     if (l.solos) a.solos = new Set(l.solos);
-    for (const k of ['tono', 'loop', 'cicloIni', 'cicloFin', 'cuenta', 'clickEncendido', 'master', 'vozMidi']) if (k in l) a[k] = l[k];
+    for (const k of ['tono', 'loop', 'cicloIni', 'cicloFin', 'cuenta', 'clickEncendido', 'master', 'masterMute', 'vozMidi']) if (k in l) a[k] = l[k];
     a.local = true;
     return a;
   },
@@ -2130,7 +2153,7 @@ const Rep = {
     for (const f of this.filas) { if (f.tipo === 'master') continue; g[f.id] = f.gan; if (f.mute) m.push(f.id); if (f.solo) s.push(f.id); }
     const click = this.filas.find(f => f.tipo === 'click');
     const l = { ganancias: g, mutes: m, solos: s, tono: this.tono, loop: a.loop, cicloIni: a.cicloIni, cicloFin: a.cicloFin, cuenta: a.cuenta,
-                clickEncendido: click ? !click.mute : a.clickEncendido, master: a.master, vozMidi: a.vozMidi };
+                clickEncendido: click ? !click.mute : a.clickEncendido, master: a.master, masterMute: !!a.masterMute, vozMidi: a.vozMidi };
     try { localStorage.setItem(this.claveLocal(), JSON.stringify(l)); } catch {}
   },
   volverALaMac() {
@@ -2173,7 +2196,7 @@ const Rep = {
       const pos = id => { const i = aj.ordenPistas.indexOf(id); return i < 0 ? 1e5 : i; };
       F.sort((a, b) => pos(a.id) - pos(b.id));   // estable: lo no listado queda en su orden
     }
-    F.push({ id: 'master', tipo: 'master', nombre: 'Master', color: '#ffffff', gan: aj.master, mute: false, solo: false });
+    F.push({ id: 'master', tipo: 'master', nombre: 'Master', color: '#ffffff', gan: aj.master, mute: !!aj.masterMute, solo: false });
     this.filas = F;
     this.enviarControles();
   },
@@ -2186,7 +2209,7 @@ const Rep = {
       else if (f.tipo === 'grupo') f.miembros.forEach((m, k) => { g[m] = apagada(f) ? 0 : f.bases[k] * f.gan; });
       else if (f.tipo === 'virtual') g[f.ctl] = apagada(f) ? 0 : f.gan;
       else if (f.tipo === 'click') Audio.enviar({ t: 'click', c: { on: !f.mute, g: f.gan } });
-      else if (f.tipo === 'master') { this.aj.master = f.gan; Audio.enviar({ t: 'master', v: f.gan }); }
+      else if (f.tipo === 'master') { this.aj.master = f.gan; this.aj.masterMute = f.mute; Audio.enviar({ t: 'master', v: f.mute ? 0 : f.gan }); }
     }
     Audio.enviar({ t: 'ctl', g });
   },
@@ -2296,6 +2319,8 @@ const Rep = {
     const acordes = an.valido || an.acordes.length ? an.acordesAlPulso().filter(a => !a.sigue) : [];
     this.acordes = acordes;
     const comps = an.compasesEfectivos(), beats = an.beatsEfectivos();
+    this.celdasViene = comps.length ? Modelo.acordesPorCompas(acordes.filter(a => !Modelo.esSilencio(a.nombre)), comps, beats) : [];
+    this.iViene = -2;
     // renglones con tiempo, en orden
     const lineas = [];
     le.lineas.forEach((l, i) => { if (l.t >= 0) lineas.push({ ...l, i, pal: le.palabras[i] || [] }); });
@@ -2390,7 +2415,7 @@ const Rep = {
     this.acordesEl.push({ el: b, t: ac.t, fin: ac.fin, n: ac.nombre });
     return b;
   },
-  pintarAcordes() { for (const a of this.acordesEl) a.el.textContent = this.nombreAcorde(a.n, a.t); this.iAc = -2; $('#tonoKey').parentElement.classList.toggle('grados', Pref.get('notacion', 'americana') === 'grados'); },
+  pintarAcordes() { for (const a of this.acordesEl) a.el.textContent = this.nombreAcorde(a.n, a.t); this.iAc = -2; this.iViene = -2; $('#tonoKey').parentElement.classList.toggle('grados', Pref.get('notacion', 'americana') === 'grados'); },
 
   medir() {
     const tele = $('#tele');
@@ -2438,6 +2463,7 @@ const Rep = {
       let prox = null; for (let k = ia + 1; k < A.length; k++) if (!Modelo.esSilencio(A[k].nombre)) { prox = A[k]; break; }
       $('#acAhora').textContent = ahora ? (Modelo.esSilencio(ahora.nombre) ? 'N.C.' : this.nombreAcorde(ahora.nombre, ahora.t)) : '';
       $('#acProx').textContent = prox ? '→ ' + this.nombreAcorde(prox.nombre, prox.t) : '';
+      this.pintarViene(t);
       this.iAc = ia;
     }
     // sección y pulso
@@ -2471,7 +2497,16 @@ const Rep = {
     x.fillStyle = 'rgba(255,255,255,.08)'; x.fillRect(0, H * 0.25, W, H * 0.5);
     for (const b of this.an.arreglo) {
       x.fillStyle = PALETA_ARR[((b.color % 6) + 6) % 6]; x.fillRect(X(b.t), H * 0.18, Math.max(1, X(b.fin) - X(b.t) - 1), H * 0.64);
-      if (X(b.fin) - X(b.t) > 34) { x.fillStyle = 'rgba(255,255,255,.75)'; x.font = '600 10px -apple-system,system-ui'; x.textBaseline = 'middle'; x.fillText(b.nombre.slice(0, 14), X(b.t) + 4, H / 2, X(b.fin) - X(b.t) - 6); }
+      // (0.3.6) el nombre entra entero: si no cabe se achica la letra (hasta 8 px); recién ahí se corta
+      const ancho = X(b.fin) - X(b.t) - 8;
+      if (ancho > 14) {
+        const grande = H >= 36, txt = grande ? b.nombre.toUpperCase() : b.nombre;
+        let fs = grande ? 13 : 10; x.font = `700 ${fs}px -apple-system,system-ui`;
+        while (fs > 8 && x.measureText(txt).width > ancho) { fs--; x.font = `700 ${fs}px -apple-system,system-ui`; }
+        x.fillStyle = grande ? '#fff' : 'rgba(255,255,255,.75)'; x.textBaseline = 'middle';
+        if (grande) { x.textAlign = 'center'; x.fillText(txt, (X(b.t) + X(b.fin)) / 2, H / 2, ancho); x.textAlign = 'left'; }
+        else x.fillText(txt, X(b.t) + 4, H / 2, ancho);
+      }
     }
     const a = this.aj;
     if (a.cicloFin > a.cicloIni + 0.2) { x.fillStyle = a.loop ? 'rgba(90,143,181,.35)' : 'rgba(255,255,255,.10)'; x.fillRect(X(a.cicloIni), 0, X(a.cicloFin) - X(a.cicloIni), H); }
@@ -2480,6 +2515,27 @@ const Rep = {
     if (a.marcaInicio > 0.5) bandera(a.marcaInicio, '#4cd97b');
     if (a.marcaCuenta >= 0) bandera(a.marcaCuenta, '#b48ef0');
     x.fillStyle = '#fff'; x.fillRect(X(t) - 1, 0, 2, H);
+  },
+
+  // ── (0.3.6) "lo que viene" (tableta acostada / computadora): el compás que suena y los 7 siguientes ──
+  pintarViene(t) {
+    const caja = $('#viene'); if (!caja || !document.documentElement.classList.contains('ancha')) return;
+    const C = this.celdasViene || []; let i = -1;
+    for (let k = 0; k < C.length; k++) { if (C[k].t <= t + 0.03) i = k; else break; }
+    const ini = Math.max(0, i);
+    if (ini === this.iViene) return;
+    this.iViene = ini; caja.innerHTML = '';
+    const secDe = tt => { const b = this.an.arreglo.find(x => tt >= x.t - 0.02 && tt < x.fin - 0.02); return b ? b.nombre : ''; };
+    let ant = null, secAnt = C[ini] ? secDe(C[ini].t) : '';
+    const filas = Math.max(2, Math.floor((caja.clientHeight - 24 + 6) / 52)), cuantos = filas * 4;   // llena el lugar que haya
+    for (let k = ini; k < ini + cuantos && k < C.length; k++) {
+      const cel = C[k], d = el('div', 'vc' + (k === i ? ' on' : ''));
+      const sec = secDe(cel.t); if (k > ini && sec && sec !== secAnt) d.appendChild(el('span', 'vs', sec)); secAnt = sec;
+      const txt = cel.acordes.map(a => this.nombreAcorde(a.nombre, a.t)).join('  ');
+      d.appendChild(el('span', 'va', cel.acordes.length === 1 && ant === cel.acordes[0].nombre ? '%' : txt));
+      ant = cel.acordes.length === 1 ? cel.acordes[0].nombre : (cel.acordes.length ? cel.acordes[cel.acordes.length - 1].nombre : ant);
+      caja.appendChild(d);
+    }
   },
 
   // ── mezcla: una columna por fila ──
@@ -2502,8 +2558,7 @@ const Rep = {
       const db = el('div', 'db'); c.appendChild(db);
       const bots = el('div', 'bots');
       let bm = null, bs = null;
-      if (f.tipo !== 'master') { bm = el('button', 'm', 'M'); bots.appendChild(bm); }
-      else bots.appendChild(el('span', 'hueco'));   // el master ocupa lo mismo que los demás: fader del mismo tamaño
+      bm = el('button', 'm', 'M'); bots.appendChild(bm);   // (0.3.6) el Master también tiene M: calla todo sin mover el fader
       if (f.tipo !== 'master' && f.tipo !== 'click') { bs = el('button', 's', 'S'); bots.appendChild(bs); }
       c.appendChild(bots);
       const pintar = () => {
@@ -2642,7 +2697,7 @@ async function compartirCancion(c, lib) {
     if (pend) { const i = archivos.findIndex(a => a.nombre === c.id + '/analisis.json'); if (i >= 0) archivos[i].datos = new TextEncoder().encode(JSON.stringify(mezclarEdiciones(JSON.parse(new TextDecoder().decode(archivos[i].datos)), pend.ed), null, 2)); }
     if (!archivos.some(a => a.nombre.endsWith('/miniatura.jpg'))) {
       let d = await leer('miniatura.jpg');
-      const url = !d && !lib.local && Bib.miniaturas[c.id];   // la de OneDrive (catalogo/miniaturas), si hay conexión
+      const url = !d && !lib.local && Bib.miniaturas[lib.clave + '|' + c.id];   // la de OneDrive (catalogo/miniaturas), si hay conexión
       if (url) try { const r = await fetch(url); if (r.ok) d = new Uint8Array(await r.arrayBuffer()); } catch {}
       if (d) archivos.push({ nombre: c.id + '/miniatura.jpg', datos: d });
     }
@@ -2810,6 +2865,18 @@ document.addEventListener('focusout', aSuLugarLuego);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) aSuLugarLuego(); });
 addEventListener('focus', aSuLugarLuego);
 if (window.visualViewport) visualViewport.addEventListener('resize', aSuLugarLuego);
+// (0.3.6) tableta acostada / computadora: acorde y "lo que viene" a la derecha, la letra hasta arriba, la barra de arreglos abajo de punta a punta
+function acomodar() {
+  const ancha = matchMedia('(min-width:700px) and (min-height:600px) and (orientation:landscape)').matches;
+  const raiz = document.documentElement, era = raiz.classList.contains('ancha');
+  raiz.classList.toggle('ancha', ancha);
+  const ahora = $('.ahora'), der = $('.der'), izq = $('.izq'), barra = $('#barra'), pie = $('#pie'), tiempo = $('#tiempo'), viene = $('#viene'), trans = $('.transporte');
+  if (ancha) { der.prepend(viene); der.prepend(ahora); pie.append(barra); pie.append(tiempo); }
+  else { izq.prepend(ahora); der.prepend(barra); trans.append(tiempo); }
+  if (Rep.cancion) Rep.iViene = -2;
+  if (ancha !== era && Rep.cancion) { requestAnimationFrame(() => Rep.medir()); }
+}
+acomodar(); addEventListener('resize', acomodar); addEventListener('orientationchange', () => setTimeout(acomodar, 250));
 ajustarAlto(); addEventListener('resize', ajustarAlto); addEventListener('orientationchange', () => setTimeout(ajustarAlto, 250));
 try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
 arrancar();
