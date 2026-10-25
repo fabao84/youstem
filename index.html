@@ -1655,7 +1655,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.3.1';
+const VERSION = '0.3.2';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2725,6 +2725,22 @@ function ajustarAlto() {
   if (linea !== ajustarAlto.ultima) { ajustarAlto.ultima = linea; anotar(linea); }
   if (Rep.cancion) requestAnimationFrame(() => Rep.medir());
 }
+// (0.3.2) iOS como app de inicio: al cerrar el teclado (buscador) o volver del selector de archivos / la hoja de
+// compartir, a veces deja la página corrida hacia arriba; se VE bien (todo es fijo) pero los toques caen más abajo.
+// Si la página quedó corrida, se vuelve a su lugar.
+function aSuLugar() {
+  if (document.activeElement && document.activeElement.matches && document.activeElement.matches('input, textarea')) return;
+  if (window.scrollY || window.scrollX || document.documentElement.scrollTop || document.body.scrollTop) {
+    anotar('pantalla corrida ' + Math.round(window.scrollY) + ' px: vuelve a su lugar');
+    window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0;
+  }
+}
+const aSuLugarLuego = () => { setTimeout(aSuLugar, 60); setTimeout(aSuLugar, 400); };
+addEventListener('scroll', aSuLugarLuego, { passive: true });
+document.addEventListener('focusout', aSuLugarLuego);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) aSuLugarLuego(); });
+addEventListener('focus', aSuLugarLuego);
+if (window.visualViewport) visualViewport.addEventListener('resize', aSuLugarLuego);
 ajustarAlto(); addEventListener('resize', ajustarAlto); addEventListener('orientationchange', () => setTimeout(ajustarAlto, 250));
 try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
 arrancar();
