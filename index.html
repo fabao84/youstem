@@ -1241,10 +1241,17 @@ const Nube = (() => {
       if (priv) raices.push({ ...carpeta(priv), privada: true });
       libs.push({ clave: 'mia', nombre: 'Mías', carpeta: mia ? mia.name : 'YouSTEM Privado', raices, mia: true });
     }
+    // (0.3.3) qué vio en la raíz (para Ver registro): nombre y si es acceso directo o carpeta propia
+    bibliotecas.vistas = raiz.filter(x => /^youstem/i.test(x.name)).map(x => x.name + (x.remoteItem ? ' (acceso directo)' : x.folder ? ' (carpeta)' : ' (?)')).join(', ');
     for (const x of raiz) {
       if (!/^youstem-/i.test(x.name) || (mia && x.id === mia.id)) continue;
       if (!x.remoteItem && !x.folder) continue;
-      if (!x.remoteItem && propias.includes(x) && x !== mia) continue;   // carpetas viejas tuyas: no
+      // (0.3.3) otra carpeta YouSTEM-… que OneDrive muestra como propia (no como acceso directo): antes se salteaba
+      // ("carpetas viejas tuyas"); ahora entra si tiene canciones (catalogo con fichas)
+      if (!x.remoteItem && propias.includes(x)) {
+        try { const cat = await hijos(rutaItem(carpeta(x), 'catalogo') + '/children?$select=name'); if (!cat.some(f => /\.json$/i.test(f.name))) continue; }
+        catch { continue; }
+      }
       const c = carpeta(x);
       libs.push({ clave: 'b:' + c.drive + ':' + c.id, nombre: x.name.replace(/^youstem-/i, ''), carpeta: x.name, raices: [{ ...c, privada: false }], mia: false });
     }
@@ -1655,7 +1662,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.3.2';
+const VERSION = '0.3.3';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -1764,7 +1771,7 @@ const Bib = {
     try {
       Nube.yo().then(u => { $('#menuUsuario').textContent = u.displayName || u.userPrincipalName || ''; if (u.displayName) Pref.set('yo', u.displayName); }).catch(() => {});
       const nube = await Nube.bibliotecas();
-      anotar('bibliotecas', nube.map(l => l.carpeta + (l.mia ? ' (tuya)' : '')).join(', '));
+      anotar('bibliotecas', nube.map(l => l.carpeta + (l.mia ? ' (tuya)' : '')).join(', '), '· en la raíz:', Nube.bibliotecas.vistas || 'nada');
       Pref.set('libs', nube);
       this.libs = this.conLocal(nube);
       this.dibujarChips();
