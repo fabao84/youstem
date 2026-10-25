@@ -524,6 +524,7 @@ class YouStem extends AudioWorkletProcessor {
     this.bCuentaF = sintetizarBeep(sampleRate, 0.085, 660, 1.15, true);
     this.bCuentaD = sintetizarBeep(sampleRate, 0.085, 495, 0.85, true);
     this.tmpL = new Float32Array(4096); this.tmpR = new Float32Array(4096);
+    this.tmpFL = new Float32Array(4096); this.tmpFR = new Float32Array(4096);   // (0.3.11) lo que NO cambia de tono: batería, click y cuenta
     this.avisoCada = 1024; this.contAviso = 0;
     this.reiniciarTono();
     this.port.onmessage = (e) => this.mensaje(e.data);
@@ -535,12 +536,17 @@ class YouStem extends AudioWorkletProcessor {
     this.olaL = new Float32Array(W); this.olaR = new Float32Array(W);
     this.O = new Fifo(8192); this.oLeido = 0;       // salida lista
     this.aIdeal = 0; this.prev = -1;
+    this.SF = new Fifo(16384);                      // batería/click aparte: solo velocidad, alineada con lo estirado
+    // el estirado entrega lo tonal corrido ~8 ms más HS·(1−rw) muestras (medido): la batería se atrasa lo mismo
+    const d = this.rw === 1 ? 0 : Math.round(0.008 * sampleRate - HS * (this.rw - 1));
+    this.fFase = -Math.max(0, d) * (this.ratio / this.rw);
+    if (d < 0) { this.O.reservar(-d); this.O.L.fill(0, 0, -d); this.O.R.fill(0, 0, -d); this.O.n = -d; }   // subiendo mucho: se atrasa lo tonal
   }
 
   mensaje(m) {
     switch (m.t) {
       case 'vaciar': this.pistas = []; this.largo = 0; this.pos = 0; this.sonando = false; this.reiniciarTono(); break;
-      case 'pista': this.pistas[m.i] = { L: m.L, R: m.R, len: m.len, ctl: m.i, reg: [], g: 0, M: null, gm: 0, pa: 1, pm: 0 };
+      case 'pista': this.pistas[m.i] = { L: m.L, R: m.R, len: m.len, ctl: m.i, reg: [], g: 0, M: null, gm: 0, pa: 1, pm: 0, fija: !!m.fija };
                     this.largo = Math.max(this.largo, m.len); break;
       // (voz → MIDI) la melodía va al lado del audio de la pista; el switch reparte el fader (pa = audio, pm = melodía)
       case 'melodia': if (this.pistas[m.i]) this.pistas[m.i].M = m.M; break;
@@ -572,8 +578,10 @@ class YouStem extends AudioWorkletProcessor {
   avisar() { this.port.postMessage({ t: 'pos', pos: this.posOida(), sonando: this.sonando, ct: currentTime }); }
 
   // n muestras de la mezcla desde this.pos (avanza, hace loop, para al final)
-  mezclar(L, R, n) {
+  // FL/FR (opcional): ahí va lo que no cambia de tono (batería, click, cuenta); sin ellos, todo junto en L/R
+  mezclar(L, R, n, FL, FR) {
     L.fill(0, 0, n); R.fill(0, 0, n);
+    if (FL) { FL.fill(0, 0, n); FR.fill(0, 0, n); }
     let hecho = 0;
     while (hecho < n) {
       if (this.loopOn && this.loopB > this.loopA && this.pos >= this.loopB && this.pos < this.loopB + 4096 && !(this.cuenta.hasta > 0 && this.pos < this.cuenta.hasta)) {
@@ -587,17 +595,18 @@ class YouStem extends AudioWorkletProcessor {
       if (this.loopOn && this.loopB > this.loopA && this.pos < this.loopB) lim = Math.min(lim, this.loopB);
       if (this.cuenta.hasta > 0 && this.pos < this.cuenta.hasta) lim = Math.min(lim, this.cuenta.hasta);
       const k = Math.min(n - hecho, lim - this.pos);
-      this.mezclarTramo(L, R, hecho, k, this.pos);
+      this.mezclarTramo(L, R, hecho, k, this.pos, FL || L, FR || R);
       this.pos += k; hecho += k;
       if (this.cuenta.hasta > 0 && this.pos >= this.cuenta.hasta) this.cuenta = { desde: 0, hasta: -1, pos: [], fuerte: [] };
     }
     return n;
   }
 
-  mezclarTramo(L, R, off, k, p0) {
+  mezclarTramo(L0, R0, off, k, p0, FL, FR) {
     const ctl = this.ctl;
     for (const p of this.pistas) {
       if (!p) continue;
+      const L = p.fija ? FL : L0, R = p.fija ? FR : R0;
       let cur = p0; const fin = p0 + k;
       while (cur < fin) {
         let c = p.ctl, segFin = fin;
@@ -631,8 +640,8 @@ class YouStem extends AudioWorkletProcessor {
     }
     // click (se calla durante la cuenta)
     const cl = this.click, enCuenta = this.cuenta.hasta > 0 && p0 < this.cuenta.hasta && p0 + k > this.cuenta.desde;
-    if (cl.on && !enCuenta && cl.beats.length) this.sumarBeeps(L, R, off, k, p0, cl.beats, cl.fuerte, this.bClickF, this.bClickD, cl.g, cl);
-    if (enCuenta) this.sumarBeeps(L, R, off, k, p0, this.cuenta.pos, this.cuenta.fuerte, this.bCuentaF, this.bCuentaD, 1.0, null);
+    if (cl.on && !enCuenta && cl.beats.length) this.sumarBeeps(FL, FR, off, k, p0, cl.beats, cl.fuerte, this.bClickF, this.bClickD, cl.g, cl);
+    if (enCuenta) this.sumarBeeps(FL, FR, off, k, p0, this.cuenta.pos, this.cuenta.fuerte, this.bCuentaF, this.bCuentaD, 1.0, null);
   }
 
   sumarBeeps(L, R, off, k, p0, beats, fuerte, bF, bD, gan, cl) {
@@ -658,10 +667,7 @@ class YouStem extends AudioWorkletProcessor {
       if (!this.sonando) { X.reservar(1); X.L[X.n] = 0; X.R[X.n] = 0; X.n++; continue; }
       const i0 = Math.floor(this.sFase);
       if (S.n < i0 + 4) {
-        S.reservar(2048);
-        const n = this.mezclar(this.tmpL, this.tmpR, 2048);
-        S.L.set(this.tmpL.subarray(0, 2048), S.n); S.R.set(this.tmpR.subarray(0, 2048), S.n);
-        S.n += 2048; if (n < 2048) { /* terminó: el resto queda en silencio */ }
+        this.cargar();
         continue;
       }
       const f = this.sFase - i0, a = Math.max(0, i0 - 1);
@@ -693,6 +699,29 @@ class YouStem extends AudioWorkletProcessor {
       R[k] = cubica(S.R[a], S.R[i0], S.R[i0 + 1], S.R[i0 + 2], f);
       this.sFase += r;
     }
+  }
+
+  // un pedazo de mezcla: lo que cambia de tono va a S (al estirado), lo que no (batería, click) a SF
+  cargar() {
+    const S = this.S, SF = this.SF;
+    S.reservar(2048); SF.reservar(2048);
+    this.mezclar(this.tmpL, this.tmpR, 2048, this.tmpFL, this.tmpFR);
+    S.L.set(this.tmpL.subarray(0, 2048), S.n); S.R.set(this.tmpR.subarray(0, 2048), S.n); S.n += 2048;
+    SF.L.set(this.tmpFL.subarray(0, 2048), SF.n); SF.R.set(this.tmpFR.subarray(0, 2048), SF.n); SF.n += 2048;
+  }
+  // suma la batería/click a la salida estirada: misma velocidad neta (ratio/rw), sin cambiar de tono
+  sumarFija(L, R, n) {
+    const SF = this.SF, v = this.ratio / this.rw;
+    for (let k = 0; k < n; k++) {
+      if (this.fFase < 1) { this.fFase += v; continue; }   // el atraso inicial de la batería
+      let i0 = Math.floor(this.fFase);
+      while (SF.n < i0 + 4) { if (!this.sonando) return; this.cargar(); }
+      const f = this.fFase - i0, a = Math.max(0, i0 - 1);
+      L[k] += cubica(SF.L[a], SF.L[i0], SF.L[i0 + 1], SF.L[i0 + 2], f);
+      R[k] += cubica(SF.R[a], SF.R[i0], SF.R[i0 + 1], SF.R[i0 + 2], f);
+      this.fFase += v;
+    }
+    if (this.fFase > 8192) { const q = Math.floor(this.fFase) - 2; SF.descartar(q); this.fFase -= q; }
   }
 
   unSalto() {
@@ -742,6 +771,7 @@ class YouStem extends AudioWorkletProcessor {
       while (this.O.n - this.oLeido < n) this.unSalto();
       L.set(this.O.L.subarray(this.oLeido, this.oLeido + n)); R.set(this.O.R.subarray(this.oLeido, this.oLeido + n));
       this.oLeido += n;
+      this.sumarFija(L, R, n);
     }
     for (let i = 0; i < n; i++) { this.gMaster += (gm - this.gMaster) * 0.003; L[i] *= this.gMaster; if (R !== L) R[i] *= this.gMaster; }
     this.contAviso += n;
@@ -1726,7 +1756,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.3.9';
+const VERSION = '0.3.11';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2135,7 +2165,9 @@ async function abrirCancion(c, lib, op = {}) {
         let x = a0[j] * k * 32767; L[j] = x > 32767 ? 32767 : x < -32768 ? -32768 : x;
         x = a1[j] * k * 32767; R[j] = x > 32767 ? 32767 : x < -32768 ? -32768 : x;
       }
-      Audio.enviar({ t: 'pista', i, L, R, len: n }, [L.buffer, R.buffer]);
+      // (0.3.11) la batería (y el click y la cuenta) no cambian de tono: solo los instrumentos y la voz
+      const fija = /bater|drum|percus/i.test(p.id + ' ' + (p.nombre || ''));
+      Audio.enviar({ t: 'pista', i, L, R, len: n, fija }, [L.buffer, R.buffer]);
       let mel = false;
       if (p.id === 'voz' && notasVoz) {   // voz → MIDI: la melodía (flauta) al lado de la voz, al mismo nivel que el canto
         try {
@@ -2243,16 +2275,18 @@ const Rep = {
     Object.assign(a.ganancias, l.ganancias || {});
     if (l.mutes) a.mutes = new Set(l.mutes);
     if (l.solos) a.solos = new Set(l.solos);
+    a.muteAntes = new Set(l.muteAntes || []);
     for (const k of ['tono', 'loop', 'cicloIni', 'cicloFin', 'cuenta', 'clickEncendido', 'master', 'masterMute', 'vozMidi']) if (k in l) a[k] = l[k];
     a.local = true;
     return a;
   },
   guardarLocal() {
     const a = this.aj, g = {}, m = [], s = [];
-    for (const f of this.filas) { if (f.tipo === 'master') continue; g[f.id] = f.gan; if (f.mute) m.push(f.id); if (f.solo) s.push(f.id); }
+    const ma = [];
+    for (const f of this.filas) { if (f.tipo === 'master') continue; g[f.id] = f.gan; if (f.mute) m.push(f.id); if (f.solo) s.push(f.id); if (f.muteAntes) ma.push(f.id); }
     const click = this.filas.find(f => f.tipo === 'click');
     const l = { ganancias: g, mutes: m, solos: s, tono: this.tono, loop: a.loop, cicloIni: a.cicloIni, cicloFin: a.cicloFin, cuenta: a.cuenta,
-                clickEncendido: click ? !click.mute : a.clickEncendido, master: a.master, masterMute: !!a.masterMute, vozMidi: a.vozMidi };
+                clickEncendido: click ? !click.mute : a.clickEncendido, master: a.master, masterMute: !!a.masterMute, vozMidi: a.vozMidi, muteAntes: ma };
     try { localStorage.setItem(this.claveLocal(), JSON.stringify(l)); } catch {}
   },
   volverALaMac() {
@@ -2295,6 +2329,7 @@ const Rep = {
       const pos = id => { const i = aj.ordenPistas.indexOf(id); return i < 0 ? 1e5 : i; };
       F.sort((a, b) => pos(a.id) - pos(b.id));   // estable: lo no listado queda en su orden
     }
+    if (aj.muteAntes) for (const f of F) if (f.solo && aj.muteAntes.has(f.id)) f.muteAntes = true;
     F.push({ id: 'master', tipo: 'master', nombre: 'Master', color: '#ffffff', gan: aj.master, mute: !!aj.masterMute, solo: false });
     this.filas = F;
     this.enviarControles();
@@ -2358,7 +2393,10 @@ const Rep = {
     this.bemol = Modelo.tonoTranspuesto(this.an.tonalidad, this.tono).bemol;   // la ortografía, por el tono de la canción
     $('#tonoKey').textContent = Modelo.lindo(tt.nombre);
   },
-  cambiarTono(d) { this.tono = Math.max(-12, Math.min(12, this.tono + d)); this.aplicarTono(); this.guardarLocal(); },
+  cambiarTono(d) {
+    this.tono = Math.max(-12, Math.min(12, this.tono + d)); this.aplicarTono(); this.guardarLocal();
+    if (this.tono !== 0 && !Pref.get('vioBateriaFija', false)) { Pref.set('vioBateriaFija', true); aviso('Cambian de tono los instrumentos y la voz; la batería queda igual.', 3500); }
+  },
   // cifrado americano o grados (tocando "Tono"); los grados van contra el tono vigente en ese segundo
   nombreAcorde(n, t) {
     if (Pref.get('notacion', 'americana') === 'grados' && !Modelo.esSilencio(n)) {
@@ -2704,8 +2742,13 @@ const Rep = {
         const soltar = () => { fad.removeEventListener('pointermove', mover); fad.removeEventListener('pointerup', soltar); fad.removeEventListener('pointercancel', soltar); this.guardarLocal(); };
         fad.addEventListener('pointermove', mover); fad.addEventListener('pointerup', soltar); fad.addEventListener('pointercancel', soltar);
       });
-      bm && (bm.onclick = () => { f.mute = !f.mute; pintar(); this.enviarControles(); this.guardarLocal(); });
-      bs && (bs.onclick = () => { f.solo = !f.solo; this.filas.forEach(x => x.pintar && x.pintar()); this.pintarSolos(); this.enviarControles(); this.guardarLocal(); });
+      bm && (bm.onclick = () => { f.mute = !f.mute; f.muteAntes = false; pintar(); this.enviarControles(); this.guardarLocal(); });
+      // (0.3.10) como la Mac: Solo en una pista muteada la hace sonar (le saca el mute); al sacar el Solo vuelve al mute que tenía
+      bs && (bs.onclick = () => {
+        if (!f.solo) { f.solo = true; f.muteAntes = f.mute; if (f.mute) f.mute = false; }
+        else { f.solo = false; if (f.muteAntes) f.mute = true; f.muteAntes = false; }
+        this.filas.forEach(x => x.pintar && x.pintar()); this.pintarSolos(); this.enviarControles(); this.guardarLocal();
+      });
       m.appendChild(c);
     }
     this.pintarSolos();
