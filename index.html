@@ -335,7 +335,10 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 .ancha .viene{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:46px;align-content:start;gap:6px;background:var(--panel);border-radius:16px;padding:12px;flex:1;min-height:0;overflow:hidden}
 .vc{position:relative;background:var(--panel2);border-radius:9px;display:flex;align-items:center;padding:12px 10px 6px;min-width:0}
 .vc.on{outline:2px solid var(--verde)}
-.vc.on .va{color:var(--verde)}
+.vc.on .va{color:var(--acorde)}
+.vac.vsuena{color:var(--verde)}
+.vac.ya{color:var(--tenue)}
+.va.tres{font-size:15px}
 .va{font-size:19px;font-weight:700;color:var(--acorde);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vs{position:absolute;top:2px;left:8px;font-size:9px;font-weight:800;color:var(--gris);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;overflow:hidden;max-width:90%}
 .ancha .transporte{padding:2px 0}
@@ -438,6 +441,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="menuEditar">✎ Editar acordes y arreglos</button>
     <button id="menuEnviar">Enviar correcciones (.youstemcorr)</button>
     <button id="menuDescartar">Descartar mis correcciones de esta canción</button>
+    <button id="menuAudio">Reiniciar el audio (si suena raro)</button>
     <button id="menuMac">Volver a la mezcla y el tono de la Mac</button>
     <button id="menuCuenta">Cuenta: 1 compás</button>
     <button id="menuRecargar">Recargar la biblioteca</button>
@@ -512,7 +516,7 @@ class YouStem extends AudioWorkletProcessor {
     this.largo = 0; this.pos = 0; this.sonando = false;
     this.loopOn = false; this.loopA = 0; this.loopB = 0;
     this.master = 1; this.gMaster = 1;
-    this.ratio = 1;
+    this.ratio = 1; this.rw = 1;   // ratio = remuestreo total; rw = cuánto estira el WSOLA (1 = no estira: solo velocidad)
     this.click = { on: false, g: 1, beats: [], fuerte: [], desde: 0, suaveHasta: 0, i: 0 };
     this.cuenta = { desde: 0, hasta: -1, pos: [], fuerte: [] };
     this.bClickF = sintetizarBeep(sampleRate, 0.05, 1568, 0.8, false);
@@ -548,7 +552,8 @@ class YouStem extends AudioWorkletProcessor {
       case 'pausa': this.sonando = false; this.reiniciarTono(); this.avisar(); break;
       case 'ir': this.pos = Math.max(0, Math.min(this.largo, Math.round(m.pos))); this.reiniciarTono(); this.click.i = 0; this.avisar(); break;
       case 'loop': this.loopOn = m.on; this.loopA = Math.round(m.a); this.loopB = Math.round(m.b); break;
-      case 'tono': if (Math.abs(m.r - this.ratio) > 1e-6) { this.ratio = m.r; this.reiniciarTono(); } break;
+      case 'tono': { const rw = m.rw == null ? m.r : m.rw; if (Math.abs(m.r - this.ratio) > 1e-6 || Math.abs(rw - this.rw) > 1e-6) { this.ratio = m.r; this.rw = rw; this.reiniciarTono(); } break; }
+      case 'hola': this.port.postMessage({ t: 'hola', n: m.n }); break;
       case 'click': Object.assign(this.click, m.c); this.click.i = 0; break;
       case 'cuenta': this.cuenta = { desde: Math.round(m.desde), hasta: Math.round(m.hasta), pos: m.pos, fuerte: m.fuerte }; break;
     }
@@ -559,7 +564,8 @@ class YouStem extends AudioWorkletProcessor {
     if (this.ratio === 1) return this.pos;
     const r = this.ratio;
     const enS = this.S.n - this.sFase;
-    const oidaX = this.aIdeal - (this.O.n - this.oLeido + HS) / r;
+    if (this.rw === 1) return Math.max(0, this.pos - enS);
+    const oidaX = this.aIdeal - (this.O.n - this.oLeido + HS) / this.rw;
     const enX = (this.xOff + this.X.n) - oidaX;
     return Math.max(0, this.pos - enS - enX * r);
   }
@@ -668,6 +674,27 @@ class YouStem extends AudioWorkletProcessor {
     }
   }
 
+  // (0.3.8) solo la afinación a 440 (sin cambiar semitonos): se remuestrea y listo, como girar un poquito la cinta.
+  // Suena idéntico al original (sin el "robótico" del estirado) y casi no usa procesador; el tempo cambia lo mismo
+  // que la afinación (±50 cents = ±3 %), y todo (letra, click, loop) sigue atado al tiempo de la grabación.
+  velocidad(L, R, n) {
+    const r = this.ratio, S = this.S;
+    for (let k = 0; k < n; k++) {
+      let i0 = Math.floor(this.sFase);
+      if (S.n < i0 + 4) {
+        if (!this.sonando) { L.fill(0, k); R.fill(0, k); return; }
+        if (this.sFase > 4096) { const q = i0 - 2; S.descartar(q); this.sFase -= q; i0 -= q; }
+        S.reservar(2048);
+        this.mezclar(this.tmpL, this.tmpR, 2048);
+        S.L.set(this.tmpL.subarray(0, 2048), S.n); S.R.set(this.tmpR.subarray(0, 2048), S.n); S.n += 2048;
+      }
+      const f = this.sFase - i0, a = Math.max(0, i0 - 1);
+      L[k] = cubica(S.L[a], S.L[i0], S.L[i0 + 1], S.L[i0 + 2], f);
+      R[k] = cubica(S.R[a], S.R[i0], S.R[i0 + 1], S.R[i0 + 2], f);
+      this.sFase += r;
+    }
+  }
+
   unSalto() {
     const r = this.ratio, X = this.X;
     const ideal = Math.round(this.aIdeal);
@@ -697,7 +724,7 @@ class YouStem extends AudioWorkletProcessor {
     O.reservar(HS);
     O.L.set(this.olaL.subarray(0, HS), O.n); O.R.set(this.olaR.subarray(0, HS), O.n); O.n += HS;
     this.olaL.copyWithin(0, HS); this.olaR.copyWithin(0, HS); this.olaL.fill(0, W - HS); this.olaR.fill(0, W - HS);
-    this.prev = mejor; this.aIdeal += HS / r;
+    this.prev = mejor; this.aIdeal += HS / this.rw;
     const corte = Math.min(this.prev, Math.round(this.aIdeal)) - D - 8 - this.xOff;
     if (corte > 16384) { X.descartar(corte); this.xOff += corte; }
   }
@@ -709,6 +736,8 @@ class YouStem extends AudioWorkletProcessor {
       L.fill(0); R.fill(0);
     } else if (this.ratio === 1) {
       this.mezclar(L, R, n);
+    } else if (this.rw === 1) {
+      this.velocidad(L, R, n);
     } else {
       while (this.O.n - this.oLeido < n) this.unSalto();
       L.set(this.O.L.subarray(this.oLeido, this.oLeido + n)); R.set(this.O.R.subarray(this.oLeido, this.oLeido + n));
@@ -1697,7 +1726,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.3.6';
+const VERSION = '0.3.9';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -1742,12 +1771,49 @@ const Audio = {
     this.nodo.port.onmessage = e => {
       const m = e.data;
       if (m.t === 'pos') { this.pos = m.pos / this.sr; this.posCt = m.ct; this.sonando = m.sonando; }
+      else if (m.t === 'hola') { const f = this.esperando && this.esperando[m.n]; if (f) { delete this.esperando[m.n]; f(); } }
       else if (m.t === 'fin') { this.sonando = false; this.alTerminar && this.alTerminar(); }
     };
     this.ctx.resume().catch(() => {});
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && this.ctx && this.ctx.state !== 'running') this.ctx.resume().catch(() => {}); });
+    anotar('audio: motor nuevo', this.sr + ' Hz', 'salida ' + Math.round((this.ctx.baseLatency || 0) * 1000) + ' ms');
+    // (0.3.9) iOS: una llamada, Siri, otra app, o conectar/desconectar auriculares deja el audio "robótico" hasta
+    // cerrar y abrir. Si el motor queda interrumpido y vuelve, se arma uno nuevo solo (la canción sigue donde estaba).
+    const ctx = this.ctx;
+    ctx.onstatechange = () => {
+      anotar('audio: estado', ctx.state);
+      if (ctx !== this.ctx) return;
+      if (ctx.state === 'interrupted') this.interrumpido = true;
+      else if (ctx.state === 'running' && this.interrumpido) { this.interrumpido = false; Rep.reiniciarAudio('volvió de una interrupción'); }
+    };
+    if (!this.vigilando) {
+      this.vigilando = true;
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { this.ocultoDesde = Date.now(); return; }
+        if (!this.ctx) return;
+        if (this.ctx.state === 'running') return;
+        const ctx = this.ctx; ctx.resume().catch(() => {});
+        setTimeout(() => { if (ctx === this.ctx && ctx.state !== 'running') Rep.reiniciarAudio('volvió de otra app'); }, 600);
+      });
+      try {
+        let t = null;
+        navigator.mediaDevices && navigator.mediaDevices.addEventListener && navigator.mediaDevices.addEventListener('devicechange', () => {
+          clearTimeout(t); t = setTimeout(() => Rep.reiniciarAudio('cambió la salida de audio (auriculares/parlante)'), 900);
+        });
+      } catch {}
+    }
+  },
+  // cierra el motor (para armar uno nuevo)
+  async cerrar() {
+    const ctx = this.ctx; this.ctx = null; this.nodo = null; this.sonando = false;
+    if (ctx) { ctx.onstatechange = null; try { await ctx.close(); } catch {} }
   },
   enviar(m, tr) { this.nodo && this.nodo.port.postMessage(m, tr || []); },
+  // espera a que el motor haya procesado todo lo mandado antes (p. ej. que soltó la canción anterior)
+  listo() {
+    if (!this.nodo) return Promise.resolve();
+    this.esperando = this.esperando || {}; const n = (this.nHola = (this.nHola || 0) + 1);
+    return new Promise(ok => { this.esperando[n] = ok; this.enviar({ t: 'hola', n }); setTimeout(ok, 1500); });
+  },
   ahora() {   // posición suave para la pantalla
     if (!this.ctx) return this.pos;
     return this.sonando ? this.pos + Math.max(0, Math.min(0.25, this.ctx.currentTime - this.posCt)) : this.pos;
@@ -1996,7 +2062,7 @@ const colorDe = (id, guardado) => {
 };
 let abriendo = 0;
 
-async function abrirCancion(c, lib) {
+async function abrirCancion(c, lib, op = {}) {
   const turno = ++abriendo;
   try {
     await Audio.iniciar();
@@ -2047,8 +2113,12 @@ async function abrirCancion(c, lib) {
 
     // bajar (o leer del iPhone) y decodificar de a una: así entra en memoria
     const total = pistas.reduce((s, p) => s + (p.f.size || 0), 0) || 1;
-    let hecho = 0;
+    let hecho = 0, memoria = 0;
+    // (0.3.8) antes de cargar: el motor suelta la canción anterior y la pantalla también, y se le da un respiro al navegador
     Audio.enviar({ t: 'vaciar' });
+    Rep.liberar();
+    await Audio.listo();
+    await new Promise(r => setTimeout(r, 120));
     const cargadas = [];
     for (let i = 0; i < pistas.length; i++) {
       const p = pistas[i];
@@ -2078,12 +2148,16 @@ async function abrirCancion(c, lib) {
         } catch (e) { anotar('voz-midi', e); }
       }
       cargadas.push({ ...p, largo: n / Audio.sr, mel });
+      memoria += n * 4 + (mel ? n * 2 : 0);
+      await new Promise(r => setTimeout(r, 30));   // un respiro entre pista y pista (deja limpiar la memoria del decodificado)
     }
+    anotar('abierta', c.id, pistas.length + ' pistas', fmtT(Math.max(...cargadas.map(x => x.largo), 0)), Math.round(memoria / 1048576) + ' MB de audio en memoria', Audio.sr + ' Hz');
     if (!man.local) Nube.guardarManifiesto(clave('manifiesto'), { raiz: man.raiz.map(x => ({ name: x.name })), pistas: man.pistas.map(x => ({ name: x.name })), dir: man.dir });
     Bib.guardadas.add(lib.clave + '|' + c.id);
     if (turno !== abriendo) return;
     cargando(null);
     Rep.anJson = anJ;
+    Rep.restaurar = op;
     Rep.mostrar(c, lib, cargadas, Modelo.Analisis.deJson(anJ), Modelo.letraDeJson(leJ), Modelo.ajustesDeJson(ajJ || {}));
     if (man.offline && !man.local) aviso('Sin conexión: suena la copia guardada en ' + EQUIPO + '.');
   } catch (e) {
@@ -2130,11 +2204,36 @@ const Rep = {
     this.dibujarMezcla();
     pantalla('pRep');
     this.pos0 = this.aj.marcaInicio > 0.5 ? this.aj.marcaInicio : 0;
-    this.ir(this.pos0);
+    const vuelve = this.restaurar || {}; this.restaurar = null;
+    this.ir(vuelve.pos != null ? vuelve.pos : this.pos0);
+    if (vuelve.sonar) setTimeout(async () => {
+      this.reanudar = true; await this.tocar();
+      if (Audio.ctx && Audio.ctx.state !== 'running') aviso('Tocá ▶ para seguir.', 4000);
+    }, 150);
     this.refrescarBotones();
     requestAnimationFrame(() => { this.medir(); this.cuadro(); });
   },
 
+  // (0.3.9) motor de audio nuevo con la misma canción, en el mismo lugar (lo que hacía cerrar y abrir la app)
+  async reiniciarAudio(motivo) {
+    if (!this.cancion || this.reiniciando) return;
+    this.reiniciando = true;
+    try {
+      const c = this.cancion, lib = this.lib, pos = Audio.ahora(), sonar = Audio.sonando;
+      anotar('audio: reinicio', motivo, 'en ' + fmtT(pos));
+      this.parar();
+      await Audio.cerrar();
+      await new Promise(r => setTimeout(r, 250));
+      await abrirCancion(c, lib, { pos, sonar });
+      if (motivo !== 'a pedido') aviso('Audio reiniciado (' + motivo + ').', 2500);
+    } finally { this.reiniciando = false; }
+  },
+  // suelta la canción anterior (audio y pantalla) antes de cargar otra
+  liberar() {
+    this.cancion = null; this.pistas = []; this.filasTele = []; this.palabrasEl = []; this.acordesEl = []; this.acordes = []; this.celdasViene = []; this.vieneSpans = [];
+    const rio = $('#rio'); if (rio) rio.innerHTML = '';
+    const v = $('#viene'); if (v) v.innerHTML = '';
+  },
   // ── tus cambios en el iPhone quedan guardados por canción (la Mac no se toca) ──
   claveLocal() { return 'ys.local.' + this.lib.clave + '|' + this.cancion.id; },
   conLocal(aj) {
@@ -2242,8 +2341,13 @@ const Rep = {
 
   // ── tono ──
   aplicarTono() {
-    const r = Math.pow(2, (this.tono * 100 + this.centsRef) / 1200);
-    Audio.enviar({ t: 'tono', r: Math.abs(r - 1) < 1e-4 ? 1 : r });
+    // (0.3.8) semitonos = estirado (WSOLA, mantiene el tempo); la corrección a 440 = solo velocidad (sin estirar: suena limpio)
+    const rs = Math.pow(2, this.tono / 12), rc = Math.pow(2, this.centsRef / 1200);
+    let r = rs * rc; if (Math.abs(r - 1) < 1e-4) r = 1;
+    const rw = this.tono === 0 ? 1 : rs;
+    Audio.enviar({ t: 'tono', r, rw });
+    const modo = r === 1 ? 'original' : rw === 1 ? 'solo velocidad (440)' : 'estirado';
+    if (modo !== this.modoTono) { this.modoTono = modo; anotar('tono:', this.tono, 'semitonos ·', this.centsRef.toFixed(1), 'cents a 440 →', modo); }
     const txt = (this.tono > 0 ? '+' : this.tono < 0 ? '−' : '') + Math.abs(this.tono);
     $('#tonoVal').textContent = this.tono === 0 ? '0' : txt;
     this.aplicarTonoTexto();
@@ -2319,7 +2423,17 @@ const Rep = {
     const acordes = an.valido || an.acordes.length ? an.acordesAlPulso().filter(a => !a.sigue) : [];
     this.acordes = acordes;
     const comps = an.compasesEfectivos(), beats = an.beatsEfectivos();
-    this.celdasViene = comps.length ? Modelo.acordesPorCompas(acordes.filter(a => !Modelo.esSilencio(a.nombre)), comps, beats) : [];
+    // (0.3.7) "lo que viene": TODOS los acordes de cada compás (no solo el dominante), cada uno con su tiempo
+    this.celdasViene = comps.map((t0, i) => {
+      const t1 = i + 1 < comps.length ? comps[i + 1] : Math.max(t0 + 0.5, this.dur);
+      const acs = [];
+      for (const a of acordes) {
+        if (a.t >= t1 - 0.03 || a.fin <= t0 + 0.03 || Modelo.esSilencio(a.nombre)) continue;
+        if (acs.length && acs[acs.length - 1].nombre === a.nombre) continue;
+        acs.push({ nombre: a.nombre, t: Math.max(a.t, t0), viene: a.t < t0 - 0.03 });
+      }
+      return { t: t0, fin: t1, acordes: acs };
+    });
     this.iViene = -2;
     // renglones con tiempo, en orden
     const lineas = [];
@@ -2463,9 +2577,9 @@ const Rep = {
       let prox = null; for (let k = ia + 1; k < A.length; k++) if (!Modelo.esSilencio(A[k].nombre)) { prox = A[k]; break; }
       $('#acAhora').textContent = ahora ? (Modelo.esSilencio(ahora.nombre) ? 'N.C.' : this.nombreAcorde(ahora.nombre, ahora.t)) : '';
       $('#acProx').textContent = prox ? '→ ' + this.nombreAcorde(prox.nombre, prox.t) : '';
-      this.pintarViene(t);
       this.iAc = ia;
     }
+    this.pintarViene(t);   // cada cuadro: el compás puede cambiar sin que cambie el acorde (%)
     // sección y pulso
     const b = an.arreglo.find(x => t >= x.t - 0.001 && t < x.fin);
     const sec = b ? b.nombre : '';
@@ -2521,21 +2635,29 @@ const Rep = {
   pintarViene(t) {
     const caja = $('#viene'); if (!caja || !document.documentElement.classList.contains('ancha')) return;
     const C = this.celdasViene || []; let i = -1;
-    for (let k = 0; k < C.length; k++) { if (C[k].t <= t + 0.03) i = k; else break; }
+    for (let k = 0; k < C.length; k++) { if (C[k].t <= t + 0.05) i = k; else break; }   // mismo margen que el acorde grande
     const ini = Math.max(0, i);
-    if (ini === this.iViene) return;
-    this.iViene = ini; caja.innerHTML = '';
-    const secDe = tt => { const b = this.an.arreglo.find(x => tt >= x.t - 0.02 && tt < x.fin - 0.02); return b ? b.nombre : ''; };
-    let ant = null, secAnt = C[ini] ? secDe(C[ini].t) : '';
-    const filas = Math.max(2, Math.floor((caja.clientHeight - 24 + 6) / 52)), cuantos = filas * 4;   // llena el lugar que haya
-    for (let k = ini; k < ini + cuantos && k < C.length; k++) {
-      const cel = C[k], d = el('div', 'vc' + (k === i ? ' on' : ''));
-      const sec = secDe(cel.t); if (k > ini && sec && sec !== secAnt) d.appendChild(el('span', 'vs', sec)); secAnt = sec;
-      const txt = cel.acordes.map(a => this.nombreAcorde(a.nombre, a.t)).join('  ');
-      d.appendChild(el('span', 'va', cel.acordes.length === 1 && ant === cel.acordes[0].nombre ? '%' : txt));
-      ant = cel.acordes.length === 1 ? cel.acordes[0].nombre : (cel.acordes.length ? cel.acordes[cel.acordes.length - 1].nombre : ant);
-      caja.appendChild(d);
+    if (ini !== this.iViene) {
+      this.iViene = ini; caja.innerHTML = ''; this.vieneSpans = [];
+      const secDe = tt => { const b = this.an.arreglo.find(x => tt >= x.t - 0.02 && tt < x.fin - 0.02); return b ? b.nombre : ''; };
+      const filas = Math.max(2, Math.floor((caja.clientHeight - 24 + 6) / 52)), cuantos = filas * 4;   // llena el lugar que haya
+      let ant = null, secAnt = C[ini] ? secDe(C[ini].t) : '';
+      for (let k = ini; k < ini + cuantos && k < C.length; k++) {
+        const cel = C[k], d = el('div', 'vc' + (k === i ? ' on' : ''));
+        const sec = secDe(cel.t); if (k > ini && sec && sec !== secAnt) d.appendChild(el('span', 'vs', sec)); secAnt = sec;
+        const va = el('span', 'va');
+        if (cel.acordes.length === 1 && cel.acordes[0].nombre === ant && k !== i) va.textContent = '%';
+        else cel.acordes.forEach((a, j) => { const sp = el('span', 'vac', (j ? ' ' : '') + this.nombreAcorde(a.nombre, a.t)); va.appendChild(sp); if (k === i) this.vieneSpans.push({ el: sp, t: a.t }); });
+        if (cel.acordes.length > 2) va.classList.add('tres');
+        d.appendChild(va);
+        if (cel.acordes.length) ant = cel.acordes[cel.acordes.length - 1].nombre;
+        caja.appendChild(d);
+      }
     }
+    // en el compás que suena: el acorde de ahora en verde, los que ya pasaron apagados
+    const S = this.vieneSpans || []; let j = -1;
+    for (let k = 0; k < S.length; k++) if (S[k].t <= t + 0.05) j = k;
+    S.forEach((x, k) => { x.el.classList.toggle('vsuena', k === j); x.el.classList.toggle('ya', k < j); });
   },
 
   // ── mezcla: una columna por fila ──
@@ -2648,6 +2770,7 @@ async function abrirMenu() {
   $('#menuCuenta').textContent = 'Cuenta: ' + Pref.get('cuentaCompases', 1) + (Pref.get('cuentaCompases', 1) === 1 ? ' compás' : ' compases');
   const enRep = !!Rep.cancion && $('#pRep').classList.contains('activa');
   $('#menuMac').style.display = enRep ? '' : 'none';
+  $('#menuAudio').style.display = enRep ? '' : 'none';
   $('#menuEditar').style.display = enRep && Editor.puede() ? '' : 'none';
   $('#menuEnviar').style.display = enRep && !Rep.lib.mia ? '' : 'none';
   $('#menuDescartar').style.display = enRep && !Rep.lib.local && edicionGuardada(Rep.lib, Rep.cancion.id) ? '' : 'none';
@@ -2659,6 +2782,7 @@ $('#menuCerrar').onclick = cerrarMenu;
 $('#menuRecargar').onclick = () => { cerrarMenu(); pantalla('pBib'); Bib.iniciar(); };
 $('#menuCuenta').onclick = () => { Pref.set('cuentaCompases', Pref.get('cuentaCompases', 1) === 1 ? 2 : 1); abrirMenu(); };
 $('#menuMac').onclick = () => { cerrarMenu(); Rep.volverALaMac(); };
+$('#menuAudio').onclick = () => { cerrarMenu(); Rep.reiniciarAudio('a pedido'); };
 $('#menuBorrar').onclick = async () => {
   if (!confirm('¿Borrar ' + DE_EQUIPO() + ' las copias de OneDrive guardadas? Siguen en tu OneDrive. Las importadas no se tocan.')) return;
   await Nube.borrarTodo(); Bib.guardadas = new Set(); Bib.dibujar(); abrirMenu(); aviso('Listo: quedó liviano.');
