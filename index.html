@@ -233,6 +233,16 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 .edComp.vacio{background:none;cursor:default}
 .edComp.actual{background:#26313c}
 .edComp.sel{border-color:var(--acorde)}
+.edComp.rango{background:#2b3f52;border-color:#4d7fa8}
+.edHoja.eligiendo{touch-action:none}
+.edHoja.eligiendo .edComp{cursor:cell}
+.edSec[data-s]{cursor:pointer}
+.edEt2{color:var(--gris);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.edNombres{gap:8px}
+.edNom{padding:11px 16px;border-radius:11px;background:var(--panel2);font-size:16px;font-weight:700;min-width:84px}
+.edNom.on{background:var(--texto);color:#111}
+.edNom.otro{color:var(--gris);font-weight:600}
+.edPegar{background:rgba(124,196,255,.08);border-radius:10px;padding:6px 8px}
 .edNum{position:absolute;top:3px;left:7px;font-size:10px;color:var(--tenue)}
 .edAc{flex:1;padding:14px 12px 8px;font-size:22px;font-weight:700;color:var(--acorde);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .edAc.dos{word-spacing:18px}
@@ -388,7 +398,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="edRehacer" class="edBot redondo" title="Rehacer (⌘⇧Z)">↷</button>
     <button id="edListo" class="edBot listo">Listo ✓</button>
   </header>
-  <div class="edArrCaja"><div id="edArr" class="edArr"></div><button id="edSecNueva" class="edBot">＋ Sección</button></div>
+  <div class="edArrCaja"><div id="edArr" class="edArr"></div></div>
   <div id="edHoja" class="edHoja"></div>
   <div id="edPanel" class="edPanel"></div>
   <div class="edTrans"><button id="edPlay" class="edBot redondo grande2">▶</button><button id="edRep" class="edBot">⟲ Repetir el compás</button><span id="edTiempo" class="edT"></span><span class="edNota">El pulso se arregla en la Mac · el click suena mientras editás</span></div>
@@ -1664,7 +1674,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.3.4';
+const VERSION = '0.3.5';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2809,7 +2819,9 @@ arrancar();
 // con el click sonando. Lo que cambia en analisis.json es SOLO ediciones.acordes / tiempos / nuevos / arreglo,
 // en el mismo formato que escribe la Mac.
 const Editor = (() => {
-  const NOMBRES_SEC = ['Intro', 'Verso', 'Pre-coro', 'Coro', 'Puente', 'Solo', 'Interludio', 'Final'];
+  // (0.3.5) nombres de siempre, para tocar sin teclado; lo escrito con "Otro…" se suma a la lista (sin numerar)
+  const NOMBRES_SEC = ['Intro', 'Verso', 'Pre-coro', 'Coro', 'Post-coro', 'Puente', 'Solo', 'Interludio', 'Instrumental', 'Break', 'Final', 'Fade out'];
+  const igualNombre = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
   const CALIDADES = [['', 'mayor'], ['m', 'm'], ['7', '7'], ['maj7', 'maj7'], ['m7', 'm7'], ['sus4', 'sus4'], ['sus2', 'sus2'], ['6', '6'], ['m6', 'm6'],
                      ['9', '9'], ['add9', 'add9'], ['m9', 'm9'], ['dim', 'dim'], ['dim7', 'dim7'], ['m7b5', 'm7♭5'], ['aug', 'aug'], ['7sus4', '7sus4'], ['13', '13']];
   const SOST = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'], BEM = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
@@ -2817,7 +2829,7 @@ const Editor = (() => {
   const clon = x => JSON.parse(JSON.stringify(x));
 
   const E = {
-    abierto: false, an: null, foto: null, pila: [], rehacerP: [], sel: null, bloque: -1, partidos: new Set(), hoja: null,
+    abierto: false, an: null, foto: null, pila: [], rehacerP: [], sel: null, rango: null, bloques: [], copia: null, partidos: new Set(), hoja: null,
     raiz: '', bajo: '', calidad: '', conBajo: false, repetir: false,
 
     puede,
@@ -2830,8 +2842,8 @@ const Editor = (() => {
       a._ce = null; a._be = null;
     },
     apilar() { this.pila.push(this.estado()); if (this.pila.length > 200) this.pila.shift(); this.rehacerP = []; },
-    deshacer() { if (!this.pila.length) return; this.rehacerP.push(this.estado()); this.poner(this.pila.pop()); this.dibujar(); },
-    rehacer() { if (!this.rehacerP.length) return; this.pila.push(this.estado()); this.poner(this.rehacerP.pop()); this.dibujar(); },
+    deshacer() { if (!this.pila.length) return; this.rehacerP.push(this.estado()); this.poner(this.pila.pop()); this.bloques = []; this.dibujar(); },
+    rehacer() { if (!this.rehacerP.length) return; this.pila.push(this.estado()); this.poner(this.rehacerP.pop()); this.bloques = []; this.dibujar(); },
     hayCambios() { return JSON.stringify(this.estado()) !== JSON.stringify(this.foto); },
     edicionesJson() {
       const a = this.an;
@@ -2985,7 +2997,7 @@ const Editor = (() => {
       const c = R.cancion;
       if (c.listaParaVivo && !confirm('«' + (c.titulo || c.id) + '» tiene las correcciones BLOQUEADAS en la Mac (acordes, letra y pulso ya curados).\n\n¿La editás igual?')) return;
       this.an = R.an; this.foto = this.estado(); this.pila = []; this.rehacerP = [];
-      this.sel = null; this.bloque = -1; this.partidos = new Set(); this.repetir = false;
+      this.sel = null; this.rango = null; this.bloques = []; this.partidos = new Set(); this.repetir = false;
       const fc = R.filas.find(f => f.tipo === 'click');
       this.clickAntes = fc ? fc.mute : null;
       if (fc && fc.mute) { fc.mute = false; fc.pintar && fc.pintar(); R.enviarControles(); }
@@ -3024,6 +3036,7 @@ const Editor = (() => {
         const fila = el('div', 'edFila');
         const sec = H.secciones[f.seccion];
         const et = el('div', 'edSec', f.primera && sec ? sec.nombre : '');
+        if (f.primera && sec) { et.dataset.s = f.seccion; et.title = 'Dos toques: elegir toda la sección'; }
         if (f.primera && sec) et.style.setProperty('--c', PALETA_ARR[Math.max(0, Math.min(5, sec.color | 0))]);
         fila.appendChild(et);
         for (const i of f.compases) fila.appendChild(this.celda(i, i === actual));
@@ -3035,7 +3048,8 @@ const Editor = (() => {
       $('#edDeshacer').disabled = !this.pila.length; $('#edRehacer').disabled = !this.rehacerP.length;
     },
     celda(i, actual) {
-      const c = this.hoja.compases[i], d = el('div', 'edComp' + (actual ? ' actual' : ''));
+      const r = this.rango, enRango = r && i >= r.a && i <= r.b;
+      const c = this.hoja.compases[i], d = el('div', 'edComp' + (actual ? ' actual' : '') + (enRango ? ' rango' : ''));
       d.dataset.i = i;
       d.appendChild(el('span', 'edNum', String(i + 1)));
       if (this.enCuadrantes(c, i)) {
@@ -3070,22 +3084,209 @@ const Editor = (() => {
       const r = $('#edArr'); r.innerHTML = '';
       const dur = Rep.dur || 1;
       this.an.arreglo.forEach((b, k) => {
-        const d = el('button', 'edBloque' + (k === this.bloque ? ' sel' : '') + (b.ok ? ' ok' : ''), b.nombre || 'Sección');
+        const d = el('button', 'edBloque' + (this.bloques.includes(k) ? ' sel' : '') + (b.ok ? ' ok' : ''), b.nombre || 'Sección');
         d.style.left = (b.t / dur * 100) + '%'; d.style.width = Math.max(0.4, (b.fin - b.t) / dur * 100) + '%';
         d.style.background = PALETA_ARR[Math.max(0, Math.min(5, b.color | 0))];
-        d.onclick = e => { e.stopPropagation(); this.bloque = k; this.dibujarArr(); this.dibujarPanel(); Rep.ir(b.t); };
+        d.dataset.k = k;
         r.appendChild(d);
       });
       const cab = el('div', 'edCabezal'); cab.id = 'edCabezal'; r.appendChild(cab);
+    },
+    // ── secciones elegidas en la franja: tocar = esa; Shift+clic o mantener apretada otra = todas las de en medio ──
+    elegirBloque(k, sumar) {
+      const arr = this.an.arreglo; if (!arr[k]) return;
+      const orden = arr.map((x, i) => i).sort((x, y) => arr[x].t - arr[y].t);
+      if (sumar && this.bloques.length) {
+        const pos = this.bloques.map(i => orden.indexOf(i)).concat([orden.indexOf(k)]);
+        this.bloques = orden.slice(Math.min(...pos), Math.max(...pos) + 1);
+      } else this.bloques = [k];
+      // en la hoja quedan marcados sus compases (y sus acordes)
+      const t0 = Math.min(...this.bloques.map(i => arr[i].t)), t1 = Math.max(...this.bloques.map(i => arr[i].fin));
+      const a = Math.max(0, this.compasEn(t0 + 0.02)), z = Math.max(a, this.compasEn(t1 - 0.05));
+      this.rango = { a, b: z }; this.sel = null;
+      Rep.ir(t0);
+      this.dibujar(); this.verCompas(a);
+    },
+    verCompas(i) {
+      const d = document.querySelector(`#edHoja .edComp[data-i="${i}"]`), H = $('#edHoja'); if (!d) return;
+      const r = d.getBoundingClientRect(), h = H.getBoundingClientRect();
+      if (r.top < h.top || r.bottom > h.bottom) H.scrollTop += r.top - h.top - 40;
+    },
+    nombresSec() { const extra = Pref.get('nombresSec', []); return NOMBRES_SEC.concat(extra.filter(n => !NOMBRES_SEC.some(m => igualNombre(m, n)))); },
+    pedirOtroNombre(previo) {
+      const n = prompt('Nombre de la sección', previo || ''); if (n == null || !n.trim()) return null;
+      const nombre = n.trim().slice(0, 40);
+      const extra = Pref.get('nombresSec', []);
+      if (!NOMBRES_SEC.concat(extra).some(m => igualNombre(m, nombre))) Pref.set('nombresSec', extra.concat([nombre]).slice(-20));
+      return nombre;
+    },
+    // mismo nombre = mismo color (todos los Coro iguales); nombre nuevo = el próximo color libre
+    colorPara(nombre, salvo) {
+      const arr = this.an.arreglo.filter(b => b !== salvo);
+      const igual = arr.find(b => igualNombre(b.nombre, nombre)); if (igual) return igual.color | 0;
+      const usados = new Set(arr.map(b => b.color | 0));
+      for (let i = 0; i < 6; i++) if (!usados.has(i)) return i;
+      return arr.length % 6;
+    },
+    filaNombres(P, actual, alElegir) {
+      const f = el('div', 'edFilaP edNombres');
+      this.nombresSec().forEach(n => { const x = el('button', 'edNom' + (actual && igualNombre(actual, n) ? ' on' : ''), n); x.onclick = () => alElegir(n); f.appendChild(x); });
+      const otro = el('button', 'edNom otro', 'Otro…'); otro.onclick = () => { const n = this.pedirOtroNombre(actual); if (n) alElegir(n); };
+      f.appendChild(otro);
+      P.appendChild(f);
+    },
+    tiempoFin(i) { const c = this.hoja.compases; return i >= c.length - 1 ? Math.max(c[c.length - 1].t1, Rep.dur) : c[i].t1; },
+    // pone secciones nuevas: lo de adentro sale, lo de los bordes se recorta (o queda partido). Las con OK de la Mac no se tocan.
+    colocarSecciones(nuevas) {
+      const arr = this.an.arreglo;
+      for (const nb of nuevas) {
+        const ok = arr.find(x => x.ok && x.t < nb.fin - 0.05 && x.fin > nb.t + 0.05);
+        if (ok) { aviso('«' + (ok.nombre || 'Una sección') + '» tiene OK en la Mac: no la piso.', 4000); return false; }
+      }
+      let lista = arr.slice();
+      for (const nb of nuevas) {
+        const quedan = [];
+        for (const x of lista) {
+          if (x.fin <= nb.t + 1e-6 || x.t >= nb.fin - 1e-6) { quedan.push(x); continue; }
+          if (x.t < nb.t) { const izq = { ...x, fin: nb.t, cortar: false }; if (izq.fin - izq.t > 0.3) quedan.push(izq); }
+          if (x.fin > nb.fin) { const der = { ...x, t: nb.fin }; if (der.fin - der.t > 0.3) quedan.push(der); }
+        }
+        quedan.push(nb); lista = quedan;
+      }
+      lista.sort((x, y) => x.t - y.t);
+      arr.length = 0; lista.forEach(x => arr.push(x));
+      this.an._ce = null; this.an._be = null;
+      return true;
+    },
+    seccionDelRango(nombre) {
+      const r = this.rango; if (!r) return;
+      this.apilar();
+      const nb = { t: this.hoja.compases[r.a].t0, fin: this.tiempoFin(r.b), nombre, color: this.colorPara(nombre), compas: 0, ok: false, cortar: false };
+      if (!this.colocarSecciones([nb])) { this.pila.pop(); return; }
+      anotar('editor: sección', nombre, 'compases ' + (r.a + 1) + '–' + (r.b + 1));
+      this.rango = null; this.bloques = [];
+      this.dibujar(); aviso('Sección «' + nombre + '» lista.', 1800);
+    },
+    renombrarBloques(nombre) {
+      this.apilar();
+      for (const k of this.bloques) { const b = this.an.arreglo[k]; b.nombre = nombre; b.color = this.colorPara(nombre, b); }
+      this.dibujar();
+    },
+    borrarBloques() {
+      this.apilar();
+      this.bloques.slice().sort((x, y) => y - x).forEach(k => this.an.arreglo.splice(k, 1));
+      this.bloques = []; this.rango = null; this.dibujar();
+    },
+    // ── copiar / pegar: los acordes compás por compás (en su tiempo) y/o las secciones ──
+    copiar() {
+      const r = this.rango; if (!r) { aviso('Elegí compases o secciones para copiar.'); return; }
+      const H = this.hoja, acordes = [], secciones = [];
+      for (let i = r.a; i <= r.b; i++) {
+        const c = H.compases[i];
+        for (const x of c.items) if (x.adentro || i === r.a) acordes.push([i - r.a, x.pulso, x.nombre]);
+      }
+      const t0 = H.compases[r.a].t0, t1 = this.tiempoFin(r.b);
+      for (const b of this.an.arreglo) {
+        if (b.fin <= t0 + 0.05 || b.t >= t1 - 0.05) continue;
+        const a = Math.max(r.a, this.compasEn(Math.max(b.t, t0) + 0.02)), z = Math.min(r.b, this.compasEn(Math.min(b.fin, t1) - 0.05));
+        if (z >= a) secciones.push({ desde: a - r.a, n: z - a + 1, nombre: b.nombre, color: b.color | 0, compas: b.compas | 0 });
+      }
+      const nombres = secciones.map(x => x.nombre).join(' + ');
+      this.copia = { n: r.b - r.a + 1, acordes, secciones, nombre: nombres || ('compases ' + (r.a + 1) + '–' + (r.b + 1)) };
+      anotar('editor: copiado', this.copia.nombre, this.copia.n + ' compases, ' + acordes.length + ' acordes');
+      aviso('Copiado: ' + this.copia.nombre + ' (' + this.copia.n + ' compases). Tocá el compás donde empieza y «Pegar».', 3500);
+      this.dibujarPanel();
+    },
+    pegar(modo, desde) {
+      const cp = this.copia; if (!cp) return;
+      const d = desde != null ? desde : this.sel ? this.sel.c : this.rango ? this.rango.a : -1;
+      if (d < 0) { aviso('Tocá el compás donde empieza.'); return; }
+      const H = this.hoja, ultimo = Math.min(H.compases.length - 1, d + cp.n - 1);
+      this.apilar();
+      if (modo !== 'seccion') {
+        for (let k = 0; d + k <= ultimo; k++) {
+          const c = H.compases[d + k];
+          const l = cp.acordes.filter(x => x[0] === k).map(x => [c.bt[Math.min(x[1], c.pulsos - 1)], x[2]]);
+          this.reemplazarTramo(c.t0, c.t1, l);
+        }
+      }
+      if (modo !== 'acordes' && cp.secciones.length) {
+        const nuevas = cp.secciones.filter(x => d + x.desde <= ultimo).map(x => ({ t: H.compases[d + x.desde].t0, fin: this.tiempoFin(Math.min(ultimo, d + x.desde + x.n - 1)), nombre: x.nombre, color: x.color, compas: x.compas, ok: false, cortar: false }));
+        if (!this.colocarSecciones(nuevas) && modo === 'seccion') { this.pila.pop(); return; }
+      }
+      anotar('editor: pegado', cp.nombre, modo, 'en compás ' + (d + 1));
+      this.rango = { a: d, b: ultimo }; this.sel = null; this.bloques = [];
+      this.dibujar();
+      aviso('Pegado en el compás ' + (d + 1) + '.', 1800);
+    },
+    duplicar() {
+      const r = this.rango; if (!r || !this.bloques.length) return;
+      this.copiar();
+      if (r.b + 1 >= this.hoja.compases.length) { aviso('No hay compases después para duplicar.'); return; }
+      this.pegar('seccion', r.b + 1);
+    },
+    // ── tramo de compases en la hoja: arrastrar (mantener apretado en la tableta), Shift+clic, o dos toques en el nombre ──
+    // suave = mientras se arrastra: solo se pintan las marcas (rehacer la hoja bajo el dedo corta el arrastre en el iPad)
+    elegirRango(a, b, suave) {
+      this.rango = { a: Math.min(a, b), b: Math.max(a, b) }; this.sel = null; this.bloques = [];
+      if (!suave) { this.dibujar(); return; }
+      document.querySelectorAll('#edHoja .edComp[data-i]').forEach(d => { const i = +d.dataset.i; d.classList.toggle('rango', i >= this.rango.a && i <= this.rango.b); d.classList.remove('sel'); });
+      document.querySelectorAll('#edHoja .edPul.sel').forEach(q => q.classList.remove('sel'));
+    },
+    panelRango(P) {
+      const r = this.rango, n = r.b - r.a + 1;
+      const f1 = el('div', 'edFilaP');
+      f1.appendChild(el('span', 'edDonde', n === 1 ? 'Compás ' + (r.a + 1) : 'Compases ' + (r.a + 1) + ' a ' + (r.b + 1) + ' (' + n + ')'));
+      const bc = el('button', 'edChip', '⧉ Copiar'); bc.onclick = () => this.copiar(); f1.appendChild(bc);
+      if (this.copia) { const bp = el('button', 'edChip', 'Pegar «' + this.copia.nombre + '» acá'); bp.onclick = () => this.pegar('las dos', r.a); f1.appendChild(bp); }
+      const bq = el('button', 'edChip', 'Quitar la selección'); bq.onclick = () => { this.rango = null; this.dibujar(); }; f1.appendChild(bq);
+      P.appendChild(f1);
+      P.appendChild(el('div', 'edEt2', 'Marcar como sección:'));
+      this.filaNombres(P, null, nm => this.seccionDelRango(nm));
+    },
+    panelBloques(P) {
+      const bs = this.bloques.map(k => this.an.arreglo[k]), r = this.rango;
+      const n = r ? r.b - r.a + 1 : 0;
+      const f1 = el('div', 'edFilaP');
+      f1.appendChild(el('span', 'edDonde', bs.map(b => b.nombre || 'Sección').join(' + ') + (n ? ' · ' + n + (n === 1 ? ' compás' : ' compases') : '')));
+      const bc = el('button', 'edChip', '⧉ Copiar'); bc.onclick = () => this.copiar(); f1.appendChild(bc);
+      const bd = el('button', 'edChip', 'Duplicar sección'); bd.title = 'La pega justo después'; bd.onclick = () => this.duplicar(); f1.appendChild(bd);
+      const del = el('button', 'edChip rojo', bs.length > 1 ? 'Borrar las ' + bs.length : 'Borrar sección'); del.onclick = () => this.borrarBloques(); f1.appendChild(del);
+      const fuera = el('button', 'edChip', 'Listo'); fuera.onclick = () => { this.bloques = []; this.rango = null; this.dibujar(); }; f1.appendChild(fuera);
+      P.appendChild(f1);
+      P.appendChild(el('div', 'edEt2', bs.length > 1 ? 'Ponerles nombre a las ' + bs.length + ':' : 'Nombre:'));
+      this.filaNombres(P, bs.length === 1 ? bs[0].nombre : null, nm => this.renombrarBloques(nm));
+      if (bs.length === 1) {
+        const f2 = el('div', 'edFilaP');
+        f2.appendChild(el('span', 'edEt', 'Color'));
+        PALETA_ARR.forEach((col, i) => { const x = el('button', 'edColor' + ((bs[0].color | 0) === i ? ' on' : '')); x.style.background = col; x.onclick = () => { this.apilar(); bs[0].color = i; this.dibujar(); }; f2.appendChild(x); });
+        if (bs[0].ok) f2.appendChild(el('span', 'edEt', '✓ OK en la Mac'));
+        P.appendChild(f2);
+      }
     },
 
     // ── panel de abajo: la paleta (acorde) o la sección elegida ──
     dibujarPanel() {
       const P = $('#edPanel'); P.innerHTML = '';
-      if (this.bloque >= 0 && this.an.arreglo[this.bloque]) { this.panelSeccion(P); return; }
+      if (this.bloques.length && this.bloques.every(k => this.an.arreglo[k])) { this.panelBloques(P); return; }
+      if (this.rango) { this.panelRango(P); return; }
       const s = this.sel;
-      if (!s) { P.appendChild(el('div', 'edAyuda', 'Tocá un compás para cambiarle el acorde (o un tiempo, si está partido). Tocá una sección de la franja de arriba para nombrarla o moverla. El pulso no se toca acá: lo arregla la Mac.')); return; }
+      if (!s) {
+        P.appendChild(el('div', 'edAyuda', 'Tocá un compás para cambiarle el acorde. Para una SECCIÓN: ' + (matchMedia('(pointer: coarse)').matches ? 'mantené apretado el primer compás y arrastrá hasta el último' : 'arrastrá del primer compás al último (o Shift+clic)') + ', y tocá el nombre. Tocá una sección de la franja para copiarla, renombrarla o borrarla. El pulso no se toca acá: lo arregla la Mac.'));
+        return;
+      }
       const c = this.hoja.compases[s.c];
+      if (this.copia) {
+        const fp = el('div', 'edFilaP edPegar');
+        fp.appendChild(el('span', 'edDonde', 'Pegar acá «' + this.copia.nombre + '» (' + this.copia.n + ')'));
+        const b1 = el('button', 'edChip', 'Pegar acordes'); b1.onclick = () => this.pegar('acordes'); fp.appendChild(b1);
+        if (this.copia.secciones.length) {
+          const b2 = el('button', 'edChip', 'Pegar sección'); b2.onclick = () => this.pegar('seccion'); fp.appendChild(b2);
+          const b3 = el('button', 'edChip on', 'Pegar las dos'); b3.onclick = () => this.pegar('las dos'); fp.appendChild(b3);
+        }
+        const bx = el('button', 'edChip', '✕'); bx.title = 'Olvidar lo copiado'; bx.onclick = () => { this.copia = null; this.dibujarPanel(); }; fp.appendChild(bx);
+        P.appendChild(fp);
+      }
       // fila 1: dónde
       const f1 = el('div', 'edFilaP');
       f1.appendChild(el('span', 'edDonde', 'Compás ' + (s.c + 1)));
@@ -3124,89 +3325,6 @@ const Editor = (() => {
       f5.appendChild(poner);
       P.appendChild(f5);
     },
-    panelSeccion(P) {
-      const k = this.bloque, b = this.an.arreglo[k];
-      const f1 = el('div', 'edFilaP');
-      f1.appendChild(el('span', 'edDonde', b.nombre || 'Sección'));
-      NOMBRES_SEC.forEach(n => { const x = el('button', 'edChip' + (b.nombre === n ? ' on' : ''), n); x.onclick = () => this.cambiarSec(s => { s.nombre = n; }); f1.appendChild(x); });
-      const otro = el('button', 'edChip', 'Otro…');
-      otro.onclick = () => { const n = prompt('Nombre de la sección', b.nombre || ''); if (n != null && n.trim()) this.cambiarSec(s => { s.nombre = n.trim().slice(0, 40); }); };
-      f1.appendChild(otro);
-      P.appendChild(f1);
-      const f2 = el('div', 'edFilaP');
-      f2.appendChild(el('span', 'edEt', 'Color'));
-      PALETA_ARR.forEach((col, i) => { const x = el('button', 'edColor' + ((b.color | 0) === i ? ' on' : '')); x.style.background = col; x.onclick = () => this.cambiarSec(s => { s.color = i; }); f2.appendChild(x); });
-      P.appendChild(f2);
-      const f3 = el('div', 'edFilaP');
-      if (b.ok) f3.appendChild(el('span', 'edEt', '✓ OK en la Mac: sus bordes no se mueven'));
-      else {
-        f3.appendChild(el('span', 'edEt', 'Empieza'));
-        const a1 = el('button', 'edChip', '◀ un compás'); a1.onclick = () => this.moverBorde(k, true, -1); f3.appendChild(a1);
-        const a2 = el('button', 'edChip', 'un compás ▶'); a2.onclick = () => this.moverBorde(k, true, +1); f3.appendChild(a2);
-        f3.appendChild(el('span', 'edEt', 'Termina'));
-        const z1 = el('button', 'edChip', '◀ un compás'); z1.onclick = () => this.moverBorde(k, false, -1); f3.appendChild(z1);
-        const z2 = el('button', 'edChip', 'un compás ▶'); z2.onclick = () => this.moverBorde(k, false, +1); f3.appendChild(z2);
-      }
-      const del = el('button', 'edChip rojo', 'Borrar sección'); del.onclick = () => { this.apilar(); this.an.arreglo.splice(k, 1); this.bloque = -1; this.dibujar(); };
-      f3.appendChild(del);
-      const fuera = el('button', 'edChip', 'Listo con la sección'); fuera.onclick = () => { this.bloque = -1; this.dibujarArr(); this.dibujarPanel(); };
-      f3.appendChild(fuera);
-      P.appendChild(f3);
-    },
-    cambiarSec(fn) { this.apilar(); fn(this.an.arreglo[this.bloque]); this.dibujar(); },
-    // los bordes caen en el "1" de un compás; si toca a la vecina, el borde compartido se mueve para las dos
-    bordes() { const c = this.an.compasesEfectivos().slice(); if (!c.length || Rep.dur > c[c.length - 1] + 0.05) c.push(Rep.dur); return c; },
-    moverBorde(k, izq, paso) {
-      const arr = this.an.arreglo, b = arr[k], B = this.bordes();
-      const cerca = t => { let m = 0, d = 1e9; B.forEach((x, i) => { if (Math.abs(x - t) < d) { d = Math.abs(x - t); m = i; } }); return m; };
-      const orden = arr.map((x, i) => i).sort((x, y) => arr[x].t - arr[y].t), pos = orden.indexOf(k);
-      const prev = pos > 0 ? arr[orden[pos - 1]] : null, sig = pos + 1 < orden.length ? arr[orden[pos + 1]] : null;
-      this.apilar();
-      if (izq) {
-        const i = cerca(b.t) + paso; if (i < 0 || i >= B.length) { this.pila.pop(); return; }
-        const t = B[i]; if (t >= b.fin - 0.3) { this.pila.pop(); return; }
-        if (prev && t < prev.fin - 0.01) {
-          if (prev.ok || Math.abs(prev.fin - b.t) > 0.01 || t <= prev.t + 0.3) { this.pila.pop(); aviso('Choca con «' + (prev.nombre || 'la sección anterior') + '».'); return; }
-          prev.fin = t;
-        } else if (prev && Math.abs(prev.fin - b.t) < 0.01 && !prev.ok) prev.fin = t;
-        b.t = t;
-      } else {
-        const i = cerca(b.fin) + paso; if (i < 0 || i >= B.length) { this.pila.pop(); return; }
-        const t = B[i]; if (t <= b.t + 0.3) { this.pila.pop(); return; }
-        if (sig && t > sig.t + 0.01) {
-          if (sig.ok || Math.abs(sig.t - b.fin) > 0.01 || t >= sig.fin - 0.3) { this.pila.pop(); aviso('Choca con «' + (sig.nombre || 'la sección siguiente') + '».'); return; }
-          sig.t = t;
-        } else if (sig && Math.abs(sig.t - b.fin) < 0.01 && !sig.ok) sig.t = t;
-        b.fin = t;
-      }
-      this.an._ce = null; this.an._be = null;
-      this.dibujar();
-    },
-    // ＋ Sección: desde el compás elegido. Adentro de otra sección = la parte en dos; en un hueco = hasta la próxima (máx. 8 compases)
-    nuevaSeccion() {
-      const s = this.sel;
-      const t0 = s ? this.hoja.compases[s.c].t0 : (this.hoja.compases[Math.max(0, this.compasEn(Audio.ahora()))] || { t0: 0 }).t0;
-      const arr = this.an.arreglo;
-      const dentro = arr.find(b => t0 > b.t + 0.05 && t0 < b.fin - 0.05);
-      const nombre = 'Sección ' + (arr.length + 1);
-      this.apilar();
-      if (dentro) {
-        if (dentro.ok) { this.pila.pop(); aviso('«' + dentro.nombre + '» tiene OK en la Mac: no se parte.'); return; }
-        const nb = { t: t0, fin: dentro.fin, nombre, color: arr.length % 6, compas: dentro.compas, ok: false, cortar: dentro.cortar };
-        dentro.fin = t0; dentro.cortar = false; arr.push(nb);
-      } else {
-        if (arr.some(b => Math.abs(b.t - t0) < 0.05)) { this.pila.pop(); aviso('Ya empieza una sección en ese compás.'); return; }
-        const B = this.bordes(); let i = B.findIndex(x => Math.abs(x - t0) < 0.05); if (i < 0) i = 0;
-        let fin = B[Math.min(B.length - 1, i + 8)];
-        for (const b of arr) if (b.t > t0 + 0.05) fin = Math.min(fin, b.t);
-        if (fin - t0 < 0.3) { this.pila.pop(); return; }
-        arr.push({ t: t0, fin, nombre, color: arr.length % 6, compas: 0, ok: false, cortar: false });
-      }
-      arr.sort((x, y) => x.t - y.t);
-      this.bloque = arr.findIndex(b => Math.abs(b.t - t0) < 0.05);
-      this.dibujar();
-    },
-
     // ── cada cuadro: el compás que suena, el cabezal de la franja, el tiempo ──
     cuadro() {
       if (!this.abierto) return;
@@ -3226,13 +3344,26 @@ const Editor = (() => {
       $('#edPlay').textContent = Audio.sonando ? '❚❚' : '▶';
     },
     tocarCompas(e) {
+      if (this.tragarClic) { this.tragarClic = false; return; }
+      const et = e.target.closest('.edSec');
+      if (et && et.dataset.s != null) {   // dos toques en el nombre de la sección = todos sus compases
+        const ahora = performance.now();
+        if (this.toqueSec && this.toqueSec.s === et.dataset.s && ahora - this.toqueSec.t < 450) {
+          const si = +et.dataset.s, sec = this.hoja.secciones[si], cs = this.hoja.compases;
+          const a = cs.findIndex(c => c.seccion === si); let z = a; while (z >= 0 && z + 1 < cs.length && cs[z + 1].seccion === si) z++;
+          if (a >= 0) { const k = this.an.arreglo.findIndex(b => Math.abs(b.t - sec.t0) < 0.01); if (k >= 0) this.elegirBloque(k); else this.elegirRango(a, z); }
+          this.toqueSec = null; return;
+        }
+        this.toqueSec = { s: et.dataset.s, t: ahora }; return;
+      }
       const d = e.target.closest('.edComp'); if (!d || d.classList.contains('vacio')) return;
       const i = +d.dataset.i, q = e.target.closest('.edPul'), c = this.hoja.compases[i];
-      this.bloque = -1;
+      if (e.shiftKey) { const ancla = this.sel ? this.sel.c : this.rango ? this.rango.a : i; this.elegirRango(ancla, i); return; }
+      this.bloques = []; this.rango = null;
       if (q) { const p = +q.dataset.p; this.sel = { c: i, p, entero: false }; Rep.ir(c.bt[p]); }
       else { this.sel = { c: i, p: 0, entero: true }; Rep.ir(c.t0); }
       if (this.repetir) this.aplicarRepetir();
-      this.dibujarArr(); this.dibujarSel();
+      this.dibujar();
     },
     aplicarRepetir() {
       const s = this.sel, c = s && this.hoja.compases[s.c];
@@ -3328,8 +3459,76 @@ $('#edListo').onclick = () => Editor.listo();
 $('#edDeshacer').onclick = () => Editor.deshacer();
 $('#edRehacer').onclick = () => Editor.rehacer();
 $('#edHoja').addEventListener('click', e => Editor.tocarCompas(e));
-$('#edSecNueva').onclick = () => Editor.nuevaSeccion();
-$('#edArr').addEventListener('click', e => { const r = $('#edArr').getBoundingClientRect(); Rep.ir((e.clientX - r.left) / r.width * Rep.dur); Editor.bloque = -1; Editor.dibujarArr(); Editor.dibujarPanel(); });
+// franja: tocar una sección = elegirla; Shift+clic o mantener apretada = sumar las de en medio; tocar un hueco = ir ahí
+(() => {
+  const A = $('#edArr'); let largo = null, hecho = false;
+  A.addEventListener('pointerdown', e => {
+    const b = e.target.closest('.edBloque'); hecho = false; if (!b) return;
+    largo = setTimeout(() => { hecho = true; if (navigator.vibrate) navigator.vibrate(12); Editor.elegirBloque(+b.dataset.k, true); }, 500);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => A.addEventListener(t, () => clearTimeout(largo)));
+  A.addEventListener('contextmenu', e => e.preventDefault());
+  A.addEventListener('click', e => {
+    if (hecho) { hecho = false; return; }
+    const b = e.target.closest('.edBloque');
+    if (b) { Editor.elegirBloque(+b.dataset.k, e.shiftKey || e.metaKey || e.ctrlKey); return; }
+    const r = A.getBoundingClientRect(); Rep.ir((e.clientX - r.left) / r.width * Rep.dur);
+    Editor.bloques = []; Editor.rango = null; Editor.dibujar();
+  });
+})();
+// hoja: arrastrar para elegir un tramo (mouse: directo; dedo: mantener apretado medio segundo y arrastrar)
+(() => {
+  const H = $('#edHoja');
+  let ini = -1, arrastrando = false, largo = null, x0 = 0, y0 = 0, ultimoX = 0, ultimoY = 0, rodar = null;
+  const compasEn = (x, y) => { const d = document.elementFromPoint(x, y); const c = d && d.closest && d.closest('.edComp'); return c && !c.classList.contains('vacio') ? +c.dataset.i : -1; };
+  const mover = (x, y) => {
+    ultimoX = x; ultimoY = y;
+    const i = compasEn(x, y);
+    if (i >= 0 && (!Editor.rango || Editor.rango.a !== Math.min(ini, i) || Editor.rango.b !== Math.max(ini, i))) Editor.elegirRango(ini, i, true);
+  };
+  const empezar = () => {
+    arrastrando = true; Editor.tragarClic = true; H.classList.add('eligiendo');
+    if (navigator.vibrate) navigator.vibrate(15);
+    Editor.elegirRango(ini, ini, true);
+    clearInterval(rodar);
+    rodar = setInterval(() => {   // en los bordes la hoja se mueve sola
+      const h = H.getBoundingClientRect();
+      if (ultimoY > h.bottom - 40) { H.scrollTop += 14; mover(ultimoX, ultimoY); } else if (ultimoY < h.top + 40) { H.scrollTop -= 14; mover(ultimoX, ultimoY); }
+    }, 30);
+  };
+  const terminar = () => {
+    clearTimeout(largo); largo = null; clearInterval(rodar);
+    if (arrastrando) { arrastrando = false; H.classList.remove('eligiendo'); Editor.dibujar(); setTimeout(() => { Editor.tragarClic = false; }, 60); }
+    ini = -1;
+  };
+  // mouse
+  H.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse' || e.button !== 0 || e.shiftKey) return;
+    const d = e.target.closest('.edComp'); if (!d || d.classList.contains('vacio')) return;
+    ini = +d.dataset.i; x0 = ultimoX = e.clientX; y0 = ultimoY = e.clientY;
+  });
+  addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' || ini < 0 || !(e.buttons & 1)) return;
+    if (!arrastrando) { if (Math.hypot(e.clientX - x0, e.clientY - y0) < 8 || compasEn(e.clientX, e.clientY) === ini) return; empezar(); }
+    mover(e.clientX, e.clientY);
+  });
+  addEventListener('pointerup', e => { if (e.pointerType === 'mouse') terminar(); });
+  // dedo
+  H.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) { terminar(); return; }
+    const t = e.touches[0], d = e.target.closest('.edComp'); if (!d || d.classList.contains('vacio')) return;
+    ini = +d.dataset.i; x0 = t.clientX; y0 = t.clientY; ultimoX = t.clientX; ultimoY = t.clientY;
+    largo = setTimeout(() => { largo = null; empezar(); }, 450);
+  }, { passive: true });
+  H.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    if (largo && Math.hypot(t.clientX - x0, t.clientY - y0) > 10) { clearTimeout(largo); largo = null; ini = -1; return; }   // deslizar = mover la hoja
+    if (arrastrando) { e.preventDefault(); mover(t.clientX, t.clientY); }
+  }, { passive: false });
+  H.addEventListener('touchend', terminar); H.addEventListener('touchcancel', terminar);
+  H.addEventListener('contextmenu', e => { if (e.target.closest('.edComp')) e.preventDefault(); });
+})();
+
 $('#edPlay').onclick = () => { if (Audio.sonando) Rep.pausa(); else { Rep.reanudar = true; Rep.tocar(); } };
 $('#edRep').onclick = () => { if (!Editor.sel) { aviso('Elegí un compás primero.'); return; } Editor.repetir = !Editor.repetir; Editor.aplicarRepetir(); };
 document.addEventListener('keydown', e => {
@@ -3337,7 +3536,10 @@ document.addEventListener('keydown', e => {
   const cmd = e.metaKey || e.ctrlKey;
   if (cmd && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? Editor.rehacer() : Editor.deshacer(); }
   else if (e.code === 'Space') { e.preventDefault(); e.stopImmediatePropagation(); $('#edPlay').click(); }
-  else if (e.key === 'Escape') Editor.cancelar();
+  else if (cmd && e.key.toLowerCase() === 'c' && (Editor.rango || Editor.bloques.length)) { e.preventDefault(); Editor.copiar(); }
+  else if (cmd && e.key.toLowerCase() === 'v' && Editor.copia) { e.preventDefault(); Editor.pegar('las dos'); }
+  else if (cmd && e.key.toLowerCase() === 'd' && Editor.bloques.length) { e.preventDefault(); Editor.duplicar(); }
+  else if (e.key === 'Escape') { if (Editor.rango || Editor.bloques.length || Editor.sel) { Editor.rango = null; Editor.bloques = []; Editor.sel = null; Editor.dibujar(); } else Editor.cancelar(); }
   else if ((e.key === 'Backspace' || e.key === 'Delete') && Editor.sel) { e.preventDefault(); Editor.borrar(); }
 }, true);
 </script>
