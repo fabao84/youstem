@@ -38,6 +38,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .grande:active{transform:scale(.98)}
 .nota{color:var(--gris);font-size:13px;margin:18px 4px 0}
 .nota.chica{font-size:11px;color:var(--tenue)}
+.grande.sec{margin-top:22px;background:var(--panel2);color:var(--texto)}
+.loginCaja .nota{margin-top:10px}
+#pLogin{overflow-y:auto}
 
 /* ── biblioteca ── */
 .cab{display:flex;align-items:center;gap:10px;padding:8px 12px 6px 14px;flex:none}
@@ -51,6 +54,13 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .buscar{padding:0 14px 8px;flex:none}
 .buscar input{-webkit-user-select:text;user-select:text;width:100%;padding:11px 14px;border-radius:12px;border:0;background:var(--panel2);color:var(--texto);font:inherit;font-size:16px;outline:none}
 .estado{padding:28px 24px;color:var(--gris);text-align:center}
+.barraLocal{display:flex;gap:8px;padding:0 14px 8px;flex:none;flex-wrap:wrap}
+.barraLocal button{padding:9px 14px;border-radius:12px;background:var(--panel2);font-weight:600;font-size:14px}
+.barraLocal button:active{background:var(--panel)}
+#btnCarpeta{color:var(--oro)}
+.tema.apretado{background:var(--panel2)}
+.soltar{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(20,23,27,.86);border:3px dashed var(--acento);font-size:20px;font-weight:650}
+.soltar.ver{display:flex}
 .lista{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 6px calc(12px + var(--sa-b))}
 .grupoArt{position:sticky;top:0;z-index:1;background:var(--fondo);color:var(--gris);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:12px 10px 5px}
 .tema{display:flex;align-items:center;gap:12px;width:100%;padding:8px 8px;border-radius:12px;text-align:left}
@@ -137,9 +147,13 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 
 .mezcla{display:flex;gap:3px;padding:2px 8px 6px;height:clamp(118px,21dvh,190px);flex:none}
 .canal{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;background:var(--panel);border-radius:10px;padding:5px 2px 4px;transition:opacity .2s}
-.canal.master{flex:.9 1 0;margin-left:4px;background:#20252c}
+.canal.master{margin-left:4px;background:#20252c}
+.bots .hueco{flex:1;height:22px}
 .canal.fueraSolo{opacity:.42}
 .nom{font-size:10.5px;font-weight:700;color:var(--c);width:100%;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px}
+.nom.sw{border:1px solid var(--c);border-radius:6px;font-size:9.5px;letter-spacing:.4px;padding:1px 0;width:calc(100% - 4px);line-height:1.25}
+.nom.sw[data-modo="mix"]{background:color-mix(in srgb,var(--c) 30%,transparent)}
+.nom.sw[data-modo="midi"]{background:var(--c);color:#111}
 .fader{flex:1;width:100%;position:relative;touch-action:none;margin:4px 0}
 .riel{position:absolute;left:50%;top:6px;bottom:6px;width:4px;margin-left:-2px;border-radius:3px;background:rgba(255,255,255,.1)}
 .rell{position:absolute;left:0;right:0;bottom:0;border-radius:3px;background:var(--c);opacity:.9}
@@ -173,7 +187,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 #cargBarra{height:100%;width:0;background:var(--texto);transition:width .2s}
 .hoja{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:30}
 .hoja.ver{display:flex}
-.hojaCaja{width:min(520px,100%);background:var(--panel);border-radius:18px 18px 0 0;padding:14px 14px calc(14px + var(--sa-b));display:flex;flex-direction:column;gap:6px;max-height:85dvh}
+.hojaCaja{width:min(520px,100%);background:var(--panel);border-radius:18px 18px 0 0;padding:14px 14px calc(14px + var(--sa-b));display:flex;flex-direction:column;gap:6px;max-height:85dvh;overflow-y:auto}
 .hojaTit{display:flex;flex-direction:column;padding:4px 6px 8px;font-weight:700}
 .hojaTit .gris{font-weight:400;font-size:13px}
 .hojaCaja>button{text-align:left;padding:13px 14px;border-radius:12px;background:var(--panel2);display:flex;flex-direction:column}
@@ -188,6 +202,115 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 /* como app de pantalla de inicio: iOS difumina la franja de la hora; la cabecera baja un poco para quedar nítida */
 @media (display-mode: standalone){ .pantalla{padding-top:calc(var(--sa-t) + 12px)} }
 html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
+
+/* ══ TABLETAS Y COMPUTADORAS (iPad, tabletas Android, navegador en Windows/Mac): lo mismo, a la escala de la pantalla ══ */
+/* ── editor de acordes y arreglos (solo tableta / computadora) ── */
+.soloGrande{display:none}
+.editor{position:fixed;inset:0;z-index:25;background:var(--fondo);display:none;flex-direction:column;padding:var(--sa-t) var(--sa-r) var(--sa-b) var(--sa-l)}
+.editor.ver{display:flex}
+.edCab{display:flex;align-items:center;gap:10px;padding:10px 16px;flex:none;border-bottom:1px solid var(--linea)}
+.edTit{flex:1;min-width:0}
+#edTit{font-weight:700;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#edDonde{color:var(--gris);font-size:13px}
+.edBot{padding:9px 16px;border-radius:12px;background:var(--panel2);font-weight:650;font-size:15px;flex:none}
+.edBot:disabled{opacity:.35}
+.edBot.redondo{width:42px;height:42px;padding:0;font-size:20px}
+.edBot.grande2{width:52px;height:52px;font-size:20px;background:var(--texto);color:#111}
+.edBot.listo{background:var(--verde);color:#08240f}
+.edBot.on{background:var(--oro);color:#111}
+.edArrCaja{display:flex;align-items:center;gap:10px;padding:10px 16px;flex:none}
+.edArr{position:relative;flex:1;height:38px;border-radius:9px;background:var(--panel);overflow:hidden;cursor:pointer}
+.edBloque{position:absolute;top:3px;bottom:3px;border-radius:7px;color:#fff;font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;border:2px solid transparent}
+.edBloque.sel{border-color:#fff}
+.edBloque.ok::after{content:" ✓"}
+.edCabezal{position:absolute;top:0;bottom:0;width:2px;background:var(--oro);pointer-events:none}
+.edHoja{flex:1;min-height:0;overflow-y:auto;padding:4px 16px 12px;-webkit-overflow-scrolling:touch}
+.edFila{display:grid;grid-template-columns:110px repeat(4,1fr);gap:6px;margin-bottom:6px}
+.edSec{color:var(--c,var(--gris));font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.5px;padding-top:12px;overflow:hidden;text-overflow:ellipsis}
+.edComp{position:relative;min-height:62px;border-radius:10px;background:var(--panel);display:flex;align-items:center;cursor:pointer;border:2px solid transparent}
+.edComp.vacio{background:none;cursor:default}
+.edComp.actual{background:#26313c}
+.edComp.sel{border-color:var(--acorde)}
+.edNum{position:absolute;top:3px;left:7px;font-size:10px;color:var(--tenue)}
+.edAc{flex:1;padding:14px 12px 8px;font-size:22px;font-weight:700;color:var(--acorde);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.edAc.dos{word-spacing:18px}
+.edAc .viene{color:var(--tenue);font-weight:500}
+.edPulsos{flex:1;display:grid;height:100%;align-self:stretch;padding:16px 4px 4px;gap:3px}
+.edPul{display:flex;align-items:center;justify-content:center;border-radius:7px;background:rgba(255,255,255,.04);font-size:17px;font-weight:700;color:var(--acorde);white-space:nowrap;overflow:hidden;min-width:0;border:2px solid transparent}
+.edPul.viene{color:var(--tenue);font-weight:500}
+.edPul.sel{border-color:var(--acorde)}
+.edPanel{flex:none;max-height:42dvh;overflow-y:auto;padding:10px 16px;border-top:1px solid var(--linea);background:var(--panel);display:flex;flex-direction:column;gap:8px}
+.edAyuda{color:var(--gris);font-size:14px;padding:6px 0}
+.edFilaP{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.edDonde{font-weight:800;font-size:15px;margin-right:6px}
+.edEt{color:var(--gris);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-right:2px;min-width:44px}
+.edChip{padding:7px 11px;border-radius:9px;background:var(--panel2);font-size:14px;font-weight:600}
+.edChip.nota{min-width:40px}
+.edChip.on{background:var(--texto);color:#111}
+.edChip.rojo{color:#ff8a80}
+.edAcBot{padding:7px 12px;border-radius:9px;background:#1f3446;color:var(--acorde);font-size:16px;font-weight:750}
+.edPoner{margin-left:auto;padding:9px 18px;border-radius:10px;background:var(--acorde);color:#0b1b29;font-weight:800;font-size:15px}
+.edPoner:disabled{background:var(--panel2);color:var(--tenue)}
+.edColor{width:30px;height:30px;border-radius:50%;border:3px solid transparent}
+.edColor.on{border-color:#fff}
+.edTrans{display:flex;align-items:center;gap:12px;padding:10px 16px;flex:none;border-top:1px solid var(--linea)}
+.edT{font-variant-numeric:tabular-nums;color:var(--gris)}
+.edNota{margin-left:auto;color:var(--tenue);font-size:12px}
+@media (min-width:700px) and (min-height:600px){
+  .soloGrande{display:block}
+  html,body{font-size:17px}
+  .cab{padding:14px 24px 10px 26px}
+  .logoChico{width:34px;height:34px;border-radius:9px}
+  .marca{font-size:24px}
+  .chips{padding:2px 26px 12px}
+  .buscar{padding:0 26px 12px}
+  .buscar input{font-size:17px;padding:13px 16px}
+  .lista{padding:0 max(18px,calc((100% - 900px)/2)) 24px}
+  .chips,.buscar{padding-left:max(26px,calc((100% - 880px)/2));padding-right:max(26px,calc((100% - 880px)/2))}
+  .grupoArt{font-size:13px;padding:16px 10px 6px}
+  .mini{width:56px;height:56px;border-radius:10px}
+  .tit{font-size:17px}.sub{font-size:14px}
+
+  .rcab{height:68px;padding:8px 14px 8px 10px;gap:12px}
+  #btnVolver{font-size:40px}
+  #rTit{font-size:21px}#rArt{font-size:15px}
+  .tono button{width:48px;height:46px;font-size:26px}
+  .tonoCaja{min-width:40px;font-size:19px}
+  .icono{width:46px;height:46px;font-size:28px;line-height:46px}
+  .ahora{padding:6px 28px 10px}
+  #seccion{font-size:14px}
+  .pulsos{gap:7px}.pulsos i{width:12px;height:12px}.pulsos i:first-child{width:14px;height:14px}
+  .acAhora{font-size:52px}
+  .acProx{font-size:24px}
+  .key{font-size:15px}
+  .tele{padding:0 30px;font-size:clamp(26px,3.7vw,58px)}
+  .barra{height:38px;width:calc(100% - 48px);margin:4px 24px 0}
+  .transporte{gap:20px;padding:10px 16px}
+  .tbot{width:56px;height:56px;font-size:26px}
+  #btnCuenta{font-size:11px}
+  .play{width:74px;height:74px}
+  .play .tri{left:29px;top:21px;border-left-width:23px;border-top-width:16px;border-bottom-width:16px}
+  .play .bars{left:25px;top:24px;width:24px;height:26px;border-left-width:8px;border-right-width:8px}
+  .tiempo{font-size:13px;right:24px}
+  .mezcla{gap:6px;padding:4px 18px 14px;height:clamp(200px,27vh,340px)}
+  .canal{border-radius:14px;padding:9px 4px 7px}
+  .nom{font-size:13px}
+  .nom.sw{font-size:11px}
+  .riel{width:6px;margin-left:-3px}
+  .per{width:34px;height:16px;margin-left:-17px;border-radius:5px}
+  .per::after{top:7px;left:6px;right:6px}
+  .db{font-size:12px;height:16px}
+  .bots button,.bots .hueco{height:30px;font-size:13px}
+  .hojaCaja{border-radius:18px;margin-bottom:24px}
+}
+/* tableta acostada o computadora: letra grande a la izquierda, controles a la derecha */
+@media (min-width:700px) and (min-height:600px) and (orientation:landscape){
+  .izq{flex:1.9}
+  .der{flex:1;max-width:560px;min-width:380px;padding:6px 0 10px}
+  .tele{font-size:clamp(26px,2.9vw,56px)}
+  .mezcla{height:auto}
+}
+@media (hover:hover){ button:hover{filter:brightness(1.15)} .tema:hover{background:var(--panel)} .fader{cursor:ns-resize} }
 </style>
 </head>
 <body>
@@ -198,7 +321,9 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <h1>YouSTEM</h1>
     <p class="lema">Tus stems, tu letra y tus acordes,<br>en el bolsillo.</p>
     <button id="btnEntrar" class="grande">Entrar con Microsoft</button>
-    <p class="nota">Usá la misma cuenta de OneDrive donde YouSTEM guarda tu biblioteca. Solo lee: nunca cambia nada de tu nube.</p>
+    <p class="nota">Usá la misma cuenta de OneDrive donde YouSTEM guarda tu biblioteca.</p>
+    <button id="btnSinCuenta" class="grande sec">Usar sin cuenta</button>
+    <p class="nota">Abrí archivos .youstem que te pasaron (WhatsApp, AirDrop, Archivos…): quedan guardados en este dispositivo. Podés conectar Microsoft después desde el menú ⋯.</p>
     <p class="nota chica" id="version"></p>
   </div>
 </section>
@@ -212,6 +337,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
   </header>
   <nav id="libs" class="chips"></nav>
   <div class="buscar"><input id="q" type="search" placeholder="Buscar canción o artista" autocomplete="off" autocorrect="off" spellcheck="false"></div>
+  <div id="barraLocal" class="barraLocal" style="display:none"><button id="btnImportar">＋ Importar .youstem</button><button id="btnCarpeta" style="display:none"></button></div>
   <div id="estadoBib" class="estado" style="display:none"></div>
   <div id="lista" class="lista"></div>
 </section>
@@ -225,6 +351,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
       <div class="tonoCaja" id="tonoVal" title="Tocar = tono de la Mac">0</div>
       <button id="tonoMas" aria-label="Subir tono">+</button>
     </div>
+    <button id="btnEditar" class="icono soloGrande" aria-label="Editar acordes y arreglos" title="Editar acordes y arreglos">✎</button>
     <button id="btnMenu2" class="icono" aria-label="Menú">⋯</button>
   </header>
   <div class="rcuerpo">
@@ -250,11 +377,31 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
   </div>
 </section>
 
+<section id="pEd" class="editor">
+  <header class="edCab">
+    <button id="edCancelar" class="edBot">Cancelar</button>
+    <div class="edTit"><div id="edTit"></div><div id="edDonde"></div></div>
+    <button id="edDeshacer" class="edBot redondo" title="Deshacer (⌘Z)">↶</button>
+    <button id="edRehacer" class="edBot redondo" title="Rehacer (⌘⇧Z)">↷</button>
+    <button id="edListo" class="edBot listo">Listo ✓</button>
+  </header>
+  <div class="edArrCaja"><div id="edArr" class="edArr"></div><button id="edSecNueva" class="edBot">＋ Sección</button></div>
+  <div id="edHoja" class="edHoja"></div>
+  <div id="edPanel" class="edPanel"></div>
+  <div class="edTrans"><button id="edPlay" class="edBot redondo grande2">▶</button><button id="edRep" class="edBot">⟲ Repetir el compás</button><span id="edTiempo" class="edT"></span><span class="edNota">El pulso se arregla en la Mac · el click suena mientras editás</span></div>
+</section>
+
 <div id="cargando" class="cargando"><div class="cargCaja"><div class="giro"></div><div id="cargTxt"></div><div class="cargRiel"><div id="cargBarra"></div></div></div></div>
 
 <div id="menu" class="hoja">
   <div class="hojaCaja">
     <div class="hojaTit"><span id="menuVersion"></span><span id="menuUsuario" class="gris"></span></div>
+    <button id="menuImportar">Importar .youstem o correcciones (.youstemcorr)</button>
+    <button id="menuCarpeta" style="display:none">Carpeta de canciones…<span id="menuCarpetaNombre" class="gris"></span></button>
+    <button id="menuConectar">Conectar con Microsoft (OneDrive)</button>
+    <button id="menuEditar">✎ Editar acordes y arreglos</button>
+    <button id="menuEnviar">Enviar correcciones (.youstemcorr)</button>
+    <button id="menuDescartar">Descartar mis correcciones de esta canción</button>
     <button id="menuMac">Volver a la mezcla y el tono de la Mac</button>
     <button id="menuCuenta">Cuenta: 1 compás</button>
     <button id="menuRecargar">Recargar la biblioteca</button>
@@ -266,6 +413,8 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 </div>
 <div id="panelReg" class="hoja reg"><div class="hojaCaja"><pre id="registro"></pre><div class="fila2"><button id="regCopiar">Copiar</button><button id="regCerrar">Cerrar</button></div></div></div>
 <div id="aviso" class="aviso"></div>
+<input id="archivoImp" type="file" multiple style="display:none">
+<div id="soltar" class="soltar"><div>Soltá acá los .youstem o .youstemcorr</div></div>
 
 <script type="text/plain" id="codigoWorklet">// YouSTEM web — motor de audio (AudioWorklet).
 // Mezcla las pistas (Int16 en memoria, para que entren en el iPhone), suma el click y la cuenta,
@@ -336,8 +485,11 @@ class YouStem extends AudioWorkletProcessor {
   mensaje(m) {
     switch (m.t) {
       case 'vaciar': this.pistas = []; this.largo = 0; this.pos = 0; this.sonando = false; this.reiniciarTono(); break;
-      case 'pista': this.pistas[m.i] = { L: m.L, R: m.R, len: m.len, ctl: m.i, reg: [], g: 0 };
+      case 'pista': this.pistas[m.i] = { L: m.L, R: m.R, len: m.len, ctl: m.i, reg: [], g: 0, M: null, gm: 0, pa: 1, pm: 0 };
                     this.largo = Math.max(this.largo, m.len); break;
+      // (voz → MIDI) la melodía va al lado del audio de la pista; el switch reparte el fader (pa = audio, pm = melodía)
+      case 'melodia': if (this.pistas[m.i]) this.pistas[m.i].M = m.M; break;
+      case 'pesos': if (this.pistas[m.i]) { this.pistas[m.i].pa = m.pa; this.pistas[m.i].pm = m.pm; } break;
       case 'regiones': if (this.pistas[m.i]) this.pistas[m.i].reg = m.reg; break;
       case 'ctl': this.ctl.set(m.g); break;
       case 'master': this.master = m.v; break;
@@ -397,16 +549,26 @@ class YouStem extends AudioWorkletProcessor {
           if (r[0] > cur) segFin = Math.min(segFin, r[0]);
         }
         const objetivo = c < 0 ? 0 : ctl[c];
-        let g = p.g;
+        const M = p.M, oA = objetivo * (M ? p.pa : 1), oM = M ? objetivo * p.pm : 0;
+        let g = p.g, gm = p.gm;
         const disp = Math.min(segFin, p.len);
-        if (objetivo < 1e-5 && g < 1e-5) { p.g = 0; cur = segFin; continue; }
+        if (oA < 1e-5 && g < 1e-5 && oM < 1e-5 && gm < 1e-5) { p.g = 0; p.gm = 0; cur = segFin; continue; }
         const PL = p.L, PR = p.R, k32 = 1 / 32768;
-        for (let s = cur; s < disp; s++) {
-          g += (objetivo - g) * 0.004;
-          const j = off + (s - p0);
-          L[j] += PL[s] * k32 * g; R[j] += PR[s] * k32 * g;
+        if (M) {
+          for (let s = cur; s < disp; s++) {
+            g += (oA - g) * 0.004; gm += (oM - gm) * 0.004;
+            const j = off + (s - p0), mm = M[s] * k32 * gm;
+            L[j] += PL[s] * k32 * g + mm; R[j] += PR[s] * k32 * g + mm;
+          }
+        } else {
+          for (let s = cur; s < disp; s++) {
+            g += (oA - g) * 0.004;
+            const j = off + (s - p0);
+            L[j] += PL[s] * k32 * g; R[j] += PR[s] * k32 * g;
+          }
         }
-        if (disp < segFin) g = objetivo;
+        if (disp < segFin) { g = oA; gm = oM; }
+        p.gm = gm;
         p.g = g; cur = segFin;
       }
     }
@@ -567,7 +729,7 @@ const Modelo = (() => {
         if (Array.isArray(ed.cambiosTono)) for (const p of ed.cambiosTono) if (Array.isArray(p) && p.length >= 2) a.cambiosTono.push([num(p[0]), String(p[1])]);
         a.cambiosTono.sort((x, y) => x[0] - y[0]);
         if (Array.isArray(ed.arreglo)) for (const x of ed.arreglo) if (x && typeof x === 'object') {
-          const b = { t: num(x.t), fin: num(x.fin), nombre: String(x.nombre ?? ''), color: Math.trunc(num(x.color)), compas: Math.trunc(num(x.compas)), ok: !!x.ok };
+          const b = { t: num(x.t), fin: num(x.fin), nombre: String(x.nombre ?? ''), color: Math.trunc(num(x.color)), compas: Math.trunc(num(x.compas)), ok: !!x.ok, cortar: !!x.cortar };
           if (b.fin > b.t) a.arreglo.push(b);
         }
         a.arreglo.sort((x, y) => x.t - y.t);
@@ -957,7 +1119,7 @@ const Modelo = (() => {
   // escritura linda: ♯ ♭ reales
   const lindo = n => (n || '').replace(/(^|\/)([A-G])#/g, '$1$2♯').replace(/(^|\/)([A-G])b/g, '$1$2♭');
 
-  return { grado, tonoTranspuesto, Analisis, acordesPorCompas, letraDeJson, etiquetaSeccion, ajustesDeJson, idGrupo, transponer, usaBemoles, lindo, esSilencio, claseNota };
+  return { BORRADO, fmt3, grado, tonoTranspuesto, Analisis, acordesPorCompas, letraDeJson, etiquetaSeccion, ajustesDeJson, idGrupo, transponer, usaBemoles, lindo, esSilencio, claseNota };
 })();
 
 // ── Nube: entrar con Microsoft (PKCE, sin librerías) y leer OneDrive con Graph ──
@@ -965,7 +1127,9 @@ const Modelo = (() => {
 const Nube = (() => {
   const CLIENTE = 'd9be6058-d517-45c5-88e0-16d7d8ae2d0c';
   const AUTORIDAD = 'https://login.microsoftonline.com/consumers/oauth2/v2.0';
-  const ALCANCES = 'openid profile offline_access User.Read Files.Read.All';
+  // (0.3.0) escribir en TU OneDrive (guardar correcciones) se pide aparte, una sola vez, cuando hace falta
+  const quiereEscribir = () => { try { return localStorage.getItem('ys.escribir') === '1'; } catch { return false; } };
+  const alcances = () => 'openid profile offline_access User.Read Files.Read.All' + (quiereEscribir() ? ' Files.ReadWrite' : '');
   const GRAPH = 'https://graph.microsoft.com/v1.0';
   const volver = () => location.origin + location.pathname.replace(/index\.html$/, '');
   const LS = 'ys.sesion';
@@ -980,14 +1144,14 @@ const Nube = (() => {
     const reto = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verif)));
     sessionStorage.setItem('ys.pkce', JSON.stringify({ verif, estado }));
     const q = new URLSearchParams({ client_id: CLIENTE, response_type: 'code', redirect_uri: volver(), response_mode: 'query',
-      scope: ALCANCES, code_challenge: reto, code_challenge_method: 'S256', state: estado, prompt: silencioso ? 'none' : 'select_account' });
+      scope: alcances(), code_challenge: reto, code_challenge_method: 'S256', state: estado, prompt: silencioso ? 'none' : 'select_account' });
     if (silencioso) sessionStorage.setItem('ys.silencioso', '1');
     location.assign(AUTORIDAD + '/authorize?' + q);
   }
 
   async function pedirToken(campos) {
     const r = await fetch(AUTORIDAD + '/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ client_id: CLIENTE, scope: ALCANCES, ...campos }) });
+      body: new URLSearchParams({ client_id: CLIENTE, scope: alcances(), ...campos }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok || !j.access_token) throw new Error(j.error_description || j.error || ('token ' + r.status));
     const s = { at: j.access_token, rt: j.refresh_token || (sesion() || {}).rt, vence: Date.now() + (j.expires_in - 120) * 1000 };
@@ -1163,21 +1327,321 @@ const Nube = (() => {
     return buf;
   }
   async function enCache(clave) { try { const c = await caches.open(CACHE); const r = await c.match(clave); return r ? r.arrayBuffer() : null; } catch { return null; } }
+  async function ponerCache(clave, texto, etag) { try { const c = await caches.open(CACHE); await c.put(clave, new Response(texto, { headers: { 'x-etag': etag || '', 'content-type': 'application/octet-stream' } })); } catch {} }
   async function guardarManifiesto(clave, m) { try { const c = await caches.open(CACHE); await c.put(clave, new Response(JSON.stringify(m))); } catch {} }
   async function idsGuardados() {
     const s = new Set();
     try { const c = await caches.open(CACHE); for (const r of await c.keys()) { const m = /cache\.youstem\/([^/]+)\/([^/]+)\/manifiesto$/.exec(r.url); if (m) s.add(decodeURIComponent(m[1]) + '|' + decodeURIComponent(m[2])); } } catch {}
     return s;
   }
-  async function borrarTodo() { await caches.delete(CACHE); }
+  // las copias de OneDrive; lo importado al dispositivo ('local') no se toca: no hay de dónde volver a bajarlo
+  // ── escribir (solo en TU carpeta): un archivo chico de una vez (PUT …:/content) ──
+  async function leerJson(raiz, ruta) {
+    const r = await g(rutaItem(raiz, ruta) + '/content');
+    if (!r.ok) { const e = new Error(ruta + ' → ' + r.status); e.status = r.status; throw e; }
+    return r.json();
+  }
+  async function escribir(raiz, ruta, texto) {
+    const r = await g(rutaItem(raiz, ruta) + '/content', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: texto });
+    if (!r.ok) { const e = new Error('no pude guardar ' + ruta + ' (' + r.status + ')'); e.status = r.status; e.sinPermiso = r.status === 401 || r.status === 403; throw e; }
+    return r.json().catch(() => ({}));
+  }
+  function pedirEscritura() { try { localStorage.setItem('ys.escribir', '1'); } catch {} return entrar(); }
+
+  async function borrarTodo() {
+    try { const c = await caches.open(CACHE); for (const r of await c.keys()) if (!r.url.startsWith('https://cache.youstem/local/')) await c.delete(r); } catch {}
+  }
   async function espacio() { try { const e = await navigator.storage.estimate(); return e.usage || 0; } catch { return 0; } }
 
   return { entrar, atenderVuelta, conectado, salir, token, yo, bibliotecas, catalogo, catalogoGuardado, archivosDe, bajar, enCache,
-           guardarManifiesto, idsGuardados, borrarTodo, espacio, claveCache, CLIENTE };
+           guardarManifiesto, idsGuardados, borrarTodo, espacio, claveCache, CLIENTE, leerJson, escribir, ponerCache, pedirEscritura, quiereEscribir, rutaItem };
+})();
+
+// ── Local: usar sin nube. Importar .youstem / .youstemcorr, guardar en el dispositivo, carpeta en la computadora ──
+
+// lector de zip mínimo: lee solo las entradas que hacen falta (un .youstem puede pesar cientos de MB)
+const Zip = {
+  async abrir(archivo) {
+    const tam = archivo.size, cola = Math.min(tam, 66000);
+    const fin = new DataView(await archivo.slice(tam - cola).arrayBuffer());
+    let e = -1;
+    for (let i = cola - 22; i >= 0; i--) if (fin.getUint32(i, true) === 0x06054b50) { e = i; break; }
+    if (e < 0) throw new Error('No es un archivo de YouSTEM (zip roto o incompleto).');
+    let n = fin.getUint16(e + 10, true), cdTam = fin.getUint32(e + 12, true), cdOff = fin.getUint32(e + 16, true);
+    if ((n === 0xffff || cdOff === 0xffffffff) && e >= 20 && fin.getUint32(e - 20, true) === 0x07064b50) {   // zip64
+      const off64 = Number(fin.getBigUint64(e - 20 + 8, true));
+      const z = new DataView(await archivo.slice(off64, off64 + 56).arrayBuffer());
+      n = Number(z.getBigUint64(32, true)); cdTam = Number(z.getBigUint64(40, true)); cdOff = Number(z.getBigUint64(48, true));
+    }
+    const cd = new DataView(await archivo.slice(cdOff, cdOff + cdTam).arrayBuffer());
+    const dec = new TextDecoder(), entradas = {};
+    let p = 0;
+    for (let k = 0; k < n && p + 46 <= cd.byteLength; k++) {
+      if (cd.getUint32(p, true) !== 0x02014b50) break;
+      const metodo = cd.getUint16(p + 10, true);
+      let comp = cd.getUint32(p + 20, true), real = cd.getUint32(p + 24, true), off = cd.getUint32(p + 42, true);
+      const ln = cd.getUint16(p + 28, true), le = cd.getUint16(p + 30, true), lc = cd.getUint16(p + 32, true);
+      const nombre = dec.decode(new Uint8Array(cd.buffer, cd.byteOffset + p + 46, ln));
+      // extra zip64 con tamaños/offset grandes
+      let q = p + 46 + ln; const qf = q + le;
+      while (q + 4 <= qf) {
+        const id = cd.getUint16(q, true), sz = cd.getUint16(q + 2, true);
+        if (id === 1) { let r = q + 4; if (real === 0xffffffff) { real = Number(cd.getBigUint64(r, true)); r += 8; } if (comp === 0xffffffff) { comp = Number(cd.getBigUint64(r, true)); r += 8; } if (off === 0xffffffff) off = Number(cd.getBigUint64(r, true)); }
+        q += 4 + sz;
+      }
+      entradas[nombre] = { nombre, metodo, comp, real, off };
+      p += 46 + ln + le + lc;
+    }
+    return { archivo, entradas };
+  },
+  async leer(z, ent) {
+    const h = new DataView(await z.archivo.slice(ent.off, ent.off + 30).arrayBuffer());
+    if (h.getUint32(0, true) !== 0x04034b50) throw new Error('zip dañado: ' + ent.nombre);
+    const ini = ent.off + 30 + h.getUint16(26, true) + h.getUint16(28, true);
+    const blob = z.archivo.slice(ini, ini + ent.comp);
+    if (ent.metodo === 0) return blob.arrayBuffer();
+    if (ent.metodo === 8) return new Response(blob.stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();
+    throw new Error('compresión no soportada en ' + ent.nombre);
+  },
+  // armar un zip sin comprimir (los .youstemcorr son chicos)
+  armar(archivos) {
+    const T = Zip._crcT || (Zip._crcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })());
+    const crc = d => { let c = 0xffffffff; for (let i = 0; i < d.length; i++) c = T[(c ^ d[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+    const enc = new TextEncoder(), partes = [], centro = []; let off = 0;
+    const ahora = new Date(), dt = ((ahora.getHours() << 11) | (ahora.getMinutes() << 5) | (ahora.getSeconds() >> 1)), dd = (((ahora.getFullYear() - 1980) << 9) | ((ahora.getMonth() + 1) << 5) | ahora.getDate());
+    for (const a of archivos) {
+      const nom = enc.encode(a.nombre), d = typeof a.datos === 'string' ? enc.encode(a.datos) : a.datos, c = crc(d);
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
+      h.setUint16(10, dt, true); h.setUint16(12, dd, true); h.setUint32(14, c, true); h.setUint32(18, d.length, true); h.setUint32(22, d.length, true);
+      h.setUint16(26, nom.length, true); h.setUint16(28, 0, true);
+      partes.push(h.buffer, nom, d);
+      const cd = new DataView(new ArrayBuffer(46));
+      cd.setUint32(0, 0x02014b50, true); cd.setUint16(4, 20, true); cd.setUint16(6, 20, true); cd.setUint16(8, 0x0800, true); cd.setUint16(10, 0, true);
+      cd.setUint16(12, dt, true); cd.setUint16(14, dd, true); cd.setUint32(16, c, true); cd.setUint32(20, d.length, true); cd.setUint32(24, d.length, true);
+      cd.setUint16(28, nom.length, true); cd.setUint32(42, off, true);
+      centro.push(cd.buffer, nom);
+      off += 30 + nom.length + d.length;
+    }
+    const tamCd = centro.reduce((s, x) => s + x.byteLength, 0);
+    const fin = new DataView(new ArrayBuffer(22));
+    fin.setUint32(0, 0x06054b50, true); fin.setUint16(8, archivos.length, true); fin.setUint16(10, archivos.length, true);
+    fin.setUint32(12, tamCd, true); fin.setUint32(16, off, true);
+    return new Blob([...partes, ...centro, fin.buffer], { type: 'application/zip' });
+  },
+  async texto(z, nombre) { const e = z.entradas[nombre]; return e ? new TextDecoder().decode(await this.leer(z, e)) : null; }
+};
+
+// mini base de datos (para recordar la carpeta de la computadora)
+const IDB = {
+  db: null,
+  async abrir() {
+    if (this.db) return this.db;
+    this.db = await new Promise((ok, mal) => { const r = indexedDB.open('youstem', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error); });
+    return this.db;
+  },
+  async get(k) { const db = await this.abrir(); return new Promise((ok, mal) => { const r = db.transaction('kv').objectStore('kv').get(k); r.onsuccess = () => ok(r.result); r.onerror = () => mal(r.error); }); },
+  async set(k, v) { const db = await this.abrir(); return new Promise((ok, mal) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = () => ok(); t.onerror = () => mal(t.error); }); },
+  async del(k) { const db = await this.abrir(); return new Promise(ok => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').delete(k); t.oncomplete = () => ok(); }); }
+};
+
+const Local = (() => {
+  const LIB = { clave: 'local', nombre: 'En este dispositivo', carpeta: 'En este dispositivo', local: true, raices: [] };
+  const CAT = 'ys.loc.cat', VISTOS = 'ys.loc.vistos';
+  const leerCat = () => { try { return JSON.parse(localStorage.getItem(CAT) || '{}'); } catch { return {}; } };
+  const grabarCat = c => { try { localStorage.setItem(CAT, JSON.stringify(c)); } catch {} };
+  const clave = (id, rel) => Nube.claveCache('local', id, rel);
+  async function poner(id, rel, buf) {
+    const c = await caches.open('youstem-canciones-v1');
+    await c.put(clave(id, rel), new Response(buf, { headers: { 'x-etag': 'local', 'content-type': 'application/octet-stream' } }));
+  }
+  const CORREGIBLE = n => /\.(json|txt)$/i.test(n) && !['ajustes.json', 'edicion-stems.json', 'cancion.json'].includes(n) && !/\(.*\d{4}-\d\d-\d\d.*\)\./.test(n);
+
+  function lista() {
+    const c = leerCat();
+    return Object.values(c).map(x => ({ ...x, raiz: null, local: true }));
+  }
+  function tiene(id) { return !!leerCat()[id]; }
+
+  // ── .youstem: cancion.json + <id>/… ; se guarda la mejor calidad + los datos (nunca original ni video) ──
+  async function leerYoustem(archivo) {
+    const z = await Zip.abrir(archivo);
+    const manTxt = await Zip.texto(z, 'cancion.json');
+    if (!manTxt) throw new Error('no es un .youstem (falta cancion.json).');
+    const man = JSON.parse(manTxt), c = man.cancion || {};
+    const id = c.id || (Object.keys(z.entradas).find(n => n.includes('/')) || '').split('/')[0];
+    if (!id) throw new Error('no dice de qué canción es.');
+    return { z, c, id, titulo: c.titulo || id, nombre: archivo.name };
+  }
+  async function importarYoustem(leido, avance) {
+    const { z, c, id, nombre } = leido;
+    try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
+    const nombres = Object.keys(z.entradas);
+    const pre = id + '/';
+    const rels = nombres.filter(n => n.startsWith(pre) && !n.endsWith('/')).map(n => n.slice(pre.length));
+    // calidad: editado > máxima > mejor > rápida (el original y el video nunca se guardan)
+    let dir = null;
+    for (const d of ['pistas-editado', 'pistas-maximo', 'pistas-mejor', 'pistas-rapido'])
+      if (rels.some(r => r.startsWith(d + '/') && /\.(mp3|flac|wav|m4a)$/i.test(r))) { dir = d; break; }
+    if (!dir) throw new Error('no trae stems separados (solo el original): separala primero en la Mac.');
+    const enDir = rels.filter(r => r.startsWith(dir + '/'));
+    const bases = new Set(enDir.filter(r => /\.mp3$/i.test(r)).map(r => r.replace(/\.[^.]+$/, '')));
+    // solo una copia por stem: si está en MP3, el FLAC no se guarda
+    const audio = enDir.filter(r => r.endsWith('/stems.json') || (/\.(mp3|flac|wav|m4a)$/i.test(r) && (/\.mp3$/i.test(r) || !bases.has(r.replace(/\.[^.]+$/, '')))));
+    const datos = rels.filter(r => !r.includes('/') && (/\.(json|txt)$/i.test(r) || r === 'miniatura.jpg') && !/\(.*\)\.json$/.test(r));
+    let hecho = 0; const total = [...audio, ...datos].reduce((s, r) => s + (z.entradas[pre + r].comp || 0), 0) || 1;
+    for (const r of [...datos, ...audio]) {
+      const buf = await Zip.leer(z, z.entradas[pre + r]);
+      await poner(id, r, buf);
+      hecho += z.entradas[pre + r].comp || 0; avance && avance(hecho / total);
+    }
+    // la mezcla viaja en cancion.json (el índice de la Mac): se guarda como ajustes.json si no vino aparte
+    if (!datos.includes('ajustes.json') && c.ajustes)
+      await poner(id, 'ajustes.json', new TextEncoder().encode(JSON.stringify({ titulo: c.titulo, artista: c.artista, album: c.album || '', ajustes: c.ajustes })));
+    const raiz = [...new Set([...datos, ...(c.ajustes ? ['ajustes.json'] : [])])].map(name => ({ name }));
+    const dirG = dir, pistas = audio.map(r => ({ name: r.slice(dir.length + 1) }));
+    await poner(id, 'manifiesto', new TextEncoder().encode(JSON.stringify({ raiz, pistas, dir: dirG })));
+    const cat = leerCat();
+    cat[id] = { id, titulo: c.titulo || id, artista: c.artista || '', album: c.album || '', tonalidad: c.tonalidad || '', bpm: c.bpm || 0,
+                duracion: c.duracion || 0, nivel: dir.replace('pistas-', ''), huella: c.huella || '', importado: Date.now(), miniatura: datos.includes('miniatura.jpg') };
+    grabarCat(cat);
+    return cat[id];
+  }
+
+  // ── .youstemcorr: correccion.json + los archivos corregibles (sin carpetas) ──
+  async function leerCorreccion(archivo) {
+    const z = await Zip.abrir(archivo);
+    const meta = JSON.parse((await Zip.texto(z, 'correccion.json')) || 'null');
+    if (!meta || !meta.id) throw new Error('no es un archivo de correcciones de YouSTEM.');
+    const archivos = Object.keys(z.entradas).filter(n => !n.includes('/') && !n.startsWith('.') && n !== 'correccion.json' && CORREGIBLE(n));
+    return { z, meta, archivos };
+  }
+  async function aplicarCorreccion(corr, id) {
+    for (const n of corr.archivos) await poner(id, n, await Zip.leer(corr.z, corr.z.entradas[n]));
+    // que el manifiesto conozca los archivos nuevos (p. ej. voz-midi.json que antes no había)
+    const m = await Nube.enCache(clave(id, 'manifiesto'));
+    if (m) {
+      const man = JSON.parse(new TextDecoder().decode(m));
+      for (const n of corr.archivos) if (!man.raiz.some(x => x.name === n)) man.raiz.push({ name: n });
+      await poner(id, 'manifiesto', new TextEncoder().encode(JSON.stringify(man)));
+    }
+    const cat = leerCat(); if (cat[id]) { cat[id].corregido = Date.now(); grabarCat(cat); }
+  }
+  // ¿a qué canción del dispositivo va? por id, o por huella (la misma canción importada con otro id)
+  function destinoCorreccion(meta) {
+    const cat = leerCat();
+    if (cat[meta.id]) return meta.id;
+    if (meta.huella) { const x = Object.values(cat).find(v => v.huella && v.huella === meta.huella); if (x) return x.id; }
+    return null;
+  }
+
+  async function borrar(libClave, id) {
+    try {
+      const c = await caches.open('youstem-canciones-v1');
+      const pre = `https://cache.youstem/${encodeURIComponent(libClave)}/${encodeURIComponent(id)}/`;
+      for (const r of await c.keys()) if (r.url.startsWith(pre)) await c.delete(r);
+    } catch {}
+    if (libClave === 'local') { const cat = leerCat(); delete cat[id]; grabarCat(cat); }
+    try { for (const k of Object.keys(localStorage)) if (k === 'ys.local.' + libClave + '|' + id) localStorage.removeItem(k); } catch {}
+  }
+
+  async function miniatura(id) {
+    const b = await Nube.enCache(clave(id, 'miniatura.jpg'));
+    return b ? URL.createObjectURL(new Blob([b], { type: 'image/jpeg' })) : null;
+  }
+
+  // ── carpeta de la computadora (Chrome/Edge): se elige una vez y se revisa al abrir ──
+  const hayCarpetas = () => typeof window.showDirectoryPicker === 'function' && !matchMedia('(pointer: coarse)').matches;
+  async function elegirCarpeta() { const h = await window.showDirectoryPicker({ id: 'youstem', mode: 'read' }); await IDB.set('carpeta', h); return h; }
+  async function carpeta() { try { return await IDB.get('carpeta'); } catch { return null; } }
+  async function olvidarCarpeta() { await IDB.del('carpeta'); }
+  async function archivosDeCarpeta(h) {
+    const res = [];
+    const recorrer = async (d, prof) => {
+      for await (const [n, e] of d.entries()) {
+        if (e.kind === 'file' && /\.youstem(corr)?$/i.test(n)) res.push(await e.getFile());
+        else if (e.kind === 'directory' && prof < 2) await recorrer(e, prof + 1);
+      }
+    };
+    await recorrer(h, 0);
+    let vistos = {}; try { vistos = JSON.parse(localStorage.getItem(VISTOS) || '{}'); } catch {}
+    return res.filter(f => vistos[f.name] !== f.size + ':' + f.lastModified);
+  }
+  function marcarVisto(f) { let v = {}; try { v = JSON.parse(localStorage.getItem(VISTOS) || '{}'); } catch {} v[f.name] = f.size + ':' + f.lastModified; try { localStorage.setItem(VISTOS, JSON.stringify(v)); } catch {} }
+
+  async function guardarArchivo(id, rel, texto) { await poner(id, rel, new TextEncoder().encode(texto)); const cat = leerCat(); if (cat[id]) { cat[id].corregido = Date.now(); grabarCat(cat); } }
+  const datosDe = id => leerCat()[id] || null;
+  return { LIB, lista, tiene, guardarArchivo, datosDe, leerYoustem, importarYoustem, destinoCorreccion, leerCorreccion, aplicarCorreccion, borrar, miniatura,
+           hayCarpetas, elegirCarpeta, carpeta, olvidarCarpeta, archivosDeCarpeta, marcarVisto };
+})();
+
+// ── Voz → MIDI: la melodía de voz-midi.json sonando como flauta, al mismo nivel que el canto ──
+// (en la Mac es el programa 73 del banco GeneralUser; acá se sintetiza: no hay banco de 30 MB en el celular)
+const Melodia = (() => {
+  function leer(j) {
+    if (!j || !Array.isArray(j.notas)) return null;
+    const notas = [];
+    for (const x of j.notas) if (Array.isArray(x) && x.length >= 3 && x[1] > x[0] && x[2] >= 0 && x[2] <= 127) notas.push([+x[0], +x[1], +x[2]]);
+    return notas.length ? { notas, cents: +j.afinacionCents || 0 } : null;
+  }
+
+  // una nota: armónicos de flauta, soplido al ataque, vibrato que entra de a poco, cola de 0,15 s
+  const ARM = [1, 0.32, 0.12, 0.05];
+  const VIB_F = 5.2;
+  const ATAQUE = 0.045, SOLTAR = 0.15, TN = 4096;
+  const TABLA = (() => { const t = new Float32Array(TN + 1); for (let i = 0; i <= TN; i++) { let v = 0; for (let h = 0; h < ARM.length; h++) v += ARM[h] * Math.sin(2 * Math.PI * i / TN * (h + 1)); t[i] = v; } return t; })();
+  const SENO = (() => { const t = new Float32Array(TN + 1); for (let i = 0; i <= TN; i++) t[i] = Math.sin(2 * Math.PI * i / TN); return t; })();
+  function nota(out, sr, a, b, f, amp, semilla) {
+    const i0 = Math.max(0, Math.round(a * sr)), i1 = Math.round(b * sr), iFin = Math.min(out.length, i1 + Math.round(SOLTAR * sr));
+    if (iFin <= i0) return;
+    const dur = (i1 - i0) / sr, nyq = sr * 0.45;
+    let fase = 0, ruido = 0, azar = semilla | 0 || 1;
+    const usarTabla = f * ARM.length < nyq, paso = TN * f / sr, pasoVib = TN * VIB_F / sr;
+    let fv = 0;
+    for (let i = i0; i < iFin; i++) {
+      const t = (i - i0) / sr;
+      // envolvente
+      let env = t < ATAQUE ? Math.sin(t / ATAQUE * Math.PI / 2) : 1 - 0.08 * Math.min(1, (t - ATAQUE) / 1.5);
+      if (i >= i1) env *= Math.exp(-((i - i1) / sr) / (SOLTAR / 4));
+      // vibrato: después de 0,3 s, crece en 0,4 s
+      let vib = 0;
+      if (dur > 0.35 && t > 0.3) { fv += pasoVib; if (fv >= TN) fv -= TN; vib = Math.min(1, (t - 0.3) / 0.4) * 0.0035 * SENO[fv | 0]; }
+      fase += paso * (1 + vib); if (fase >= TN) fase -= TN;
+      let v;
+      if (usarTabla) { const j = fase | 0, fr = fase - j; v = TABLA[j] + (TABLA[j + 1] - TABLA[j]) * fr; }
+      else { v = 0; const ph = fase / TN * 2 * Math.PI; for (let h = 0; h < ARM.length; h++) if (f * (h + 1) < nyq) v += ARM[h] * Math.sin(ph * (h + 1)); }
+      // soplido: ruido filtrado, más fuerte en el ataque
+      azar ^= azar << 13; azar ^= azar >>> 17; azar ^= azar << 5;
+      ruido += ((azar / 2147483648) - ruido) * 0.18;
+      const soplo = ruido * (0.05 + 0.5 * Math.exp(-t / 0.025));
+      const x = (v * 0.66 + soplo) * env * amp * 32767;
+      const y = out[i] + x;
+      out[i] = y > 32767 ? 32767 : y < -32768 ? -32768 : y;
+    }
+  }
+
+  // largo = muestras de la pista de voz; a0/a1 = canales de la voz (para igualar el nivel); comp = compensación de la pista
+  function renderizar(m, sr, largo, a0, a1, comp = 1) {
+    const out = new Int16Array(largo);
+    const desafinar = Math.pow(2, m.cents / 1200);
+    m.notas.forEach((n, j) => nota(out, sr, n[0], n[1], 440 * Math.pow(2, (n[2] - 69) / 12) * desafinar, 0.25, 0x9e3779b1 ^ (j * 2654435761)));
+    // mismo nivel: RMS del canto y de la melodía en los tramos con nota (como la Mac)
+    let sV = 0, sM = 0;
+    for (const n of m.notas) {
+      const a = Math.max(0, Math.min(largo, Math.round(n[0] * sr))), b = Math.max(0, Math.min(largo, Math.round(n[1] * sr)));
+      for (let i = a; i < b; i += 4) { const v = (a0[i] + a1[i]) * 0.5 * comp, mm = out[i] / 32768; sV += v * v; sM += mm * mm; }
+    }
+    const k = sM > 1e-9 ? Math.max(0.05, Math.min(8, Math.sqrt(sV / sM))) : 1;
+    if (Math.abs(k - 1) > 1e-3) for (let i = 0; i < largo; i++) if (out[i]) { const y = out[i] * k; out[i] = y > 32767 ? 32767 : y < -32768 ? -32768 : y; }
+    return { datos: out, k };
+  }
+  return { leer, renderizar };
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.0.4';
+const VERSION = '0.3.0';
+const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
+const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const fmtT = s => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), x = Math.floor(s % 60); return m + ':' + String(x).padStart(2, '0'); };
@@ -1256,35 +1720,64 @@ async function arrancar() {
   try {
     if (await Nube.atenderVuelta()) { anotar('sesión iniciada'); sessionStorage.removeItem('ys.intentoSilencioso'); }
   } catch (e) { anotar('login', e); aviso('No pude iniciar sesión: ' + e.message, 6000); }
-  if (!Nube.conectado()) { pantalla('pLogin'); return; }
+  if (Nube.conectado()) Pref.set('sinCuenta', false);
+  if (!Nube.conectado() && !Pref.get('sinCuenta', false) && !Local.lista().length) { pantalla('pLogin'); return; }
   pantalla('pBib');
   Bib.iniciar();
 }
 
 $('#btnEntrar').onclick = () => Nube.entrar();
+$('#btnSinCuenta').onclick = () => { Pref.set('sinCuenta', true); pantalla('pBib'); Bib.iniciar(); };
 
 // ══════════════════════ Biblioteca ══════════════════════
 const Bib = {
   libs: [], actual: null, canciones: [], miniaturas: {}, guardadas: new Set(),
+  // las de OneDrive (si hay cuenta) + "En este dispositivo" (si no hay cuenta o si ya importaste algo)
+  conLocal(libs) { return (!Nube.conectado() || Local.lista().length) ? [...libs, Local.LIB] : libs; },
   async iniciar() {
+    this.revisarCarpeta();
+    if (!Nube.conectado()) {
+      this.libs = [Local.LIB]; this.dibujarChips(); this.elegir(Local.LIB);
+      $('#menuUsuario').textContent = 'Sin cuenta de Microsoft';
+      return;
+    }
     const libsViejas = Pref.get('libs', null);
-    if (libsViejas) { this.libs = libsViejas; this.dibujarChips(); }
+    if (libsViejas) { this.libs = this.conLocal(libsViejas); this.dibujarChips(); }
     const elegida = Pref.get('lib', 'mia');
-    if (libsViejas) this.elegir(libsViejas.find(l => l.clave === elegida) || libsViejas[0], true);
+    if (libsViejas) this.elegir(this.libs.find(l => l.clave === elegida) || this.libs[0], true);
     try {
-      Nube.yo().then(u => { $('#menuUsuario').textContent = u.displayName || u.userPrincipalName || ''; }).catch(() => {});
-      this.libs = await Nube.bibliotecas();
-      anotar('bibliotecas', this.libs.map(l => l.carpeta + (l.mia ? ' (tuya)' : '')).join(', '));
-      Pref.set('libs', this.libs);
-      if (!this.libs.length) { this.estado('No encontré tu carpeta de YouSTEM en este OneDrive. ¿Entraste con la misma cuenta que usás en la Mac?'); this.dibujarChips(); return; }
+      Nube.yo().then(u => { $('#menuUsuario').textContent = u.displayName || u.userPrincipalName || ''; if (u.displayName) Pref.set('yo', u.displayName); }).catch(() => {});
+      const nube = await Nube.bibliotecas();
+      anotar('bibliotecas', nube.map(l => l.carpeta + (l.mia ? ' (tuya)' : '')).join(', '));
+      Pref.set('libs', nube);
+      this.libs = this.conLocal(nube);
       this.dibujarChips();
+      if (!nube.length && !this.libs.length) { this.estado('No encontré tu carpeta de YouSTEM en este OneDrive. ¿Entraste con la misma cuenta que usás en la Mac?'); return; }
+      if (!nube.length) aviso('No encontré tu carpeta de YouSTEM en este OneDrive.', 5000);
       this.elegir(this.libs.find(l => l.clave === (this.actual && this.actual.clave)) || this.libs.find(l => l.clave === elegida) || this.libs[0]);
+      subirPendientes().catch(e => anotar('pendientes', e));
     } catch (e) {
       anotar('bibliotecas', e);
       if (e.sinSesion) { sesionVencida(); return; }
-      if (!libsViejas) this.estado('No pude leer OneDrive (' + e.message + '). Revisá la conexión y tocá Recargar en el menú.');
+      if (!libsViejas) { this.libs = this.conLocal([]); this.dibujarChips(); if (this.libs.length) this.elegir(this.libs[0]); this.estado('No pude leer OneDrive (' + e.message + '). Revisá la conexión y tocá Recargar en el menú.'); }
       else aviso('Sin conexión: muestro lo que ya conocía.');
     }
+  },
+  asegurarLocal() { if (!this.libs.some(l => l.local)) { this.libs = [...this.libs, Local.LIB]; } this.dibujarChips(); },
+  // carpeta de la computadora: si el navegador ya dio permiso, se revisa sola; si no, aparece un botón (hace falta un toque)
+  async revisarCarpeta(conToque) {
+    if (!Local.hayCarpetas()) return;
+    const h = await Local.carpeta(); const b = $('#btnCarpeta');
+    if (!h) { b.style.display = 'none'; return; }
+    let per = 'prompt';
+    try { per = await h.queryPermission({ mode: 'read' }); if (per !== 'granted' && conToque) per = await h.requestPermission({ mode: 'read' }); } catch (e) { anotar('carpeta', e); }
+    if (per !== 'granted') { b.textContent = '📁 Buscar canciones nuevas en «' + h.name + '»'; b.style.display = ''; b.onclick = () => this.revisarCarpeta(true); return; }
+    b.style.display = 'none';
+    try {
+      const nuevos = await Local.archivosDeCarpeta(h);
+      anotar('carpeta', h.name, nuevos.length + ' archivos nuevos');
+      if (nuevos.length) await importar(nuevos, true);
+    } catch (e) { anotar('carpeta', e); aviso('No pude leer la carpeta: ' + e.message, 5000); }
   },
   dibujarChips() {
     const n = $('#libs'); n.innerHTML = '';
@@ -1297,6 +1790,12 @@ const Bib = {
   async elegir(lib, soloCache) {
     if (!lib) return;
     this.actual = lib; Pref.set('lib', lib.clave); this.dibujarChips();
+    $('#barraLocal').style.display = lib.local ? '' : 'none';
+    if (lib.local) {
+      this.canciones = Local.lista(); this.miniaturas = {}; this.estado(''); this.dibujar();
+      for (const c of this.canciones) if (c.miniatura) Local.miniatura(c.id).then(u => { if (u && this.actual === lib) { this.miniaturas[c.id] = u; this.dibujar(); } });
+      return;
+    }
     const cache = Nube.catalogoGuardado(lib);
     this.guardadas = await Nube.idsGuardados();
     if (cache) { this.canciones = cache; this.dibujar(); }
@@ -1336,15 +1835,37 @@ const Bib = {
       f.appendChild(tx);
       const ic = el('div', 'iconos');
       if (c.privada) ic.appendChild(el('span', 'ic', '🔒'));
-      if (this.guardadas.has(this.actual.clave + '|' + c.id)) ic.appendChild(el('span', 'ic guard', '●'));
+      if (!this.actual.local && this.guardadas.has(this.actual.clave + '|' + c.id)) ic.appendChild(el('span', 'ic guard', '●'));
       f.appendChild(ic);
-      f.onclick = () => abrirCancion(c, this.actual);
+      const lib = this.actual;
+      let largo = null, hecho = false;
+      const soltar = () => { clearTimeout(largo); largo = null; f.classList.remove('apretado'); };
+      f.addEventListener('pointerdown', () => { hecho = false; f.classList.add('apretado'); largo = setTimeout(() => { soltar(); hecho = true; if (navigator.vibrate) navigator.vibrate(15); this.preguntarBorrar(c, lib); }, 600); });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => f.addEventListener(t, soltar));
+      f.addEventListener('contextmenu', e => { e.preventDefault(); if (!hecho) { soltar(); hecho = true; this.preguntarBorrar(c, lib); } });
+      f.onclick = () => { if (hecho) { hecho = false; return; } abrirCancion(c, lib); };
       cont.appendChild(f);
     }
     if (!lista.length && this.canciones.length) this.estado('Nada coincide con “' + q + '”.');
+    else if (!this.canciones.length && this.actual && this.actual.local) this.estado('Todavía no hay canciones en ' + EQUIPO + '. Tocá «Importar .youstem» y elegí los archivos que te pasaron (podés elegir varios).');
     else if (!this.canciones.length) { if (!$('#estadoBib').textContent) this.estado('Esta biblioteca todavía no tiene canciones en calidad Máxima.'); }
     else this.estado('');
     $('#cuenta').textContent = this.canciones.length ? lista.length + ' de ' + this.canciones.length : '';
+  },
+  // mantener apretada una canción: borrarla del dispositivo (de a una)
+  async preguntarBorrar(c, lib) {
+    const t = '«' + (c.titulo || c.id) + '»';
+    if (lib.local) { if (!confirm('¿Borrar ' + t + ' ' + DE_EQUIPO() + '? Para volver a tenerla hay que importar el .youstem otra vez.')) return; }
+    else {
+      if (!this.guardadas.has(lib.clave + '|' + c.id)) { aviso(t + ' no está guardada en ' + EQUIPO + '.'); return; }
+      if (!confirm('¿Borrar la copia de ' + t + ' guardada en ' + EQUIPO + '? Sigue en OneDrive.')) return;
+    }
+    if (Rep.cancion && Rep.cancion.id === c.id && Rep.lib && Rep.lib.clave === lib.clave) { Rep.parar(); Rep.cancion = null; }
+    await Local.borrar(lib.clave, c.id);
+    this.guardadas.delete(lib.clave + '|' + c.id);
+    anotar('borrada', lib.clave, c.id);
+    if (lib.local) this.canciones = Local.lista();
+    this.dibujar(); aviso('Borrada: ' + t);
   }
 };
 $('#q').addEventListener('input', () => Bib.dibujar());
@@ -1366,7 +1887,11 @@ async function abrirCancion(c, lib) {
     cargando('Abriendo ' + (c.titulo || c.id) + '…');
     const clave = rel => Nube.claveCache(lib.clave, c.id, rel);
     let man;
-    try {
+    if (lib.local) {
+      const m = await Nube.enCache(clave('manifiesto'));
+      if (!m) throw new Error('Esta canción ya no está en ' + EQUIPO + ': importala de nuevo.');
+      man = JSON.parse(new TextDecoder().decode(m)); man.offline = true; man.local = true;
+    } else try {
       const a = await Nube.archivosDe(c);
       man = { raiz: a.raiz, pistas: a.pistas, dir: a.dirPistas };
       Nube.guardarManifiesto(clave('manifiesto'), { raiz: a.raiz.map(x => ({ name: x.name })), pistas: a.pistas.map(x => ({ name: x.name })), dir: a.dirPistas });
@@ -1383,7 +1908,10 @@ async function abrirCancion(c, lib) {
       if (!man.raiz.find(x => x.name === n)) return null;
       try { return JSON.parse(new TextDecoder().decode(await Nube.bajar(item(man.raiz, n), clave(n)))); } catch (e) { anotar(n, e); return null; }
     };
-    const [anJ, leJ, ajJ] = await Promise.all([json('analisis.json'), json('letra.json'), json('ajustes.json')]);
+    let [anJ, leJ, ajJ, vmJ] = await Promise.all([json('analisis.json'), json('letra.json'), json('ajustes.json'), json('voz-midi.json')]);
+    const notasVoz = Melodia.leer(vmJ);
+    const edPend = edicionGuardada(lib, c.id);   // tus correcciones guardadas en el dispositivo (de un colega, o esperando subir)
+    if (edPend && anJ) anJ = mezclarEdiciones(anJ, edPend.ed);
 
     // qué pistas suenan: stems.json (Editar stems) o las seis de siempre
     let pistas = [];
@@ -1398,7 +1926,7 @@ async function abrirCancion(c, lib) {
       } catch (e) { anotar('stems.json', e); }
     }
     if (!pistas.length) for (const id of ['voz', 'bajo', 'bateria', 'guitarra', 'piano', 'otros']) { const f = archivoDe(id); if (f) pistas.push({ id, nombre: NOMBRES[id], f }); }
-    if (!pistas.length) throw new Error('No encontré las pistas Máxima de esta canción en OneDrive.');
+    if (!pistas.length) throw new Error(lib.local ? 'Faltan las pistas de esta canción: importala de nuevo.' : 'No encontré las pistas Máxima de esta canción en OneDrive.');
 
     // bajar (o leer del iPhone) y decodificar de a una: así entra en memoria
     const total = pistas.reduce((s, p) => s + (p.f.size || 0), 0) || 1;
@@ -1421,14 +1949,26 @@ async function abrirCancion(c, lib) {
         x = a1[j] * k * 32767; R[j] = x > 32767 ? 32767 : x < -32768 ? -32768 : x;
       }
       Audio.enviar({ t: 'pista', i, L, R, len: n }, [L.buffer, R.buffer]);
-      cargadas.push({ ...p, largo: n / Audio.sr });
+      let mel = false;
+      if (p.id === 'voz' && notasVoz) {   // voz → MIDI: la melodía (flauta) al lado de la voz, al mismo nivel que el canto
+        try {
+          cargando('Armando la melodía de la voz…', Math.min(1, hecho / total));
+          const t0 = performance.now();
+          const M = Melodia.renderizar(notasVoz, Audio.sr, n, a0, a1, k);
+          Audio.enviar({ t: 'melodia', i, M: M.datos }, [M.datos.buffer]);
+          mel = true;
+          anotar('voz-midi', notasVoz.notas.length + ' notas, ' + notasVoz.cents.toFixed(1) + ' c, nivel x' + M.k.toFixed(2) + ', ' + Math.round(performance.now() - t0) + ' ms');
+        } catch (e) { anotar('voz-midi', e); }
+      }
+      cargadas.push({ ...p, largo: n / Audio.sr, mel });
     }
-    Nube.guardarManifiesto(clave('manifiesto'), { raiz: man.raiz.map(x => ({ name: x.name })), pistas: man.pistas.map(x => ({ name: x.name })), dir: man.dir });
+    if (!man.local) Nube.guardarManifiesto(clave('manifiesto'), { raiz: man.raiz.map(x => ({ name: x.name })), pistas: man.pistas.map(x => ({ name: x.name })), dir: man.dir });
     Bib.guardadas.add(lib.clave + '|' + c.id);
     if (turno !== abriendo) return;
     cargando(null);
+    Rep.anJson = anJ;
     Rep.mostrar(c, lib, cargadas, Modelo.Analisis.deJson(anJ), Modelo.letraDeJson(leJ), Modelo.ajustesDeJson(ajJ || {}));
-    if (man.offline) aviso('Sin conexión: suena la copia guardada en el iPhone.');
+    if (man.offline && !man.local) aviso('Sin conexión: suena la copia guardada en ' + EQUIPO + '.');
   } catch (e) {
     anotar('abrir', c.id, e);
     cargando(null);
@@ -1462,6 +2002,7 @@ const Rep = {
     // (0.0.1, fabao) SIEMPRE a 440, automático y sin botón: la afinación medida de la grabación se lleva a La 440
     this.centsRef = an.afinacionHz > 300 && an.afinacionHz < 500 ? 1200 * Math.log2(440 / an.afinacionHz) : 0;
     this.armarFilas();
+    this.enviarPesos();
     this.armarRegiones();
     this.armarClick();
     this.tono = Math.round(this.aj.tono || 0);
@@ -1486,7 +2027,7 @@ const Rep = {
     Object.assign(a.ganancias, l.ganancias || {});
     if (l.mutes) a.mutes = new Set(l.mutes);
     if (l.solos) a.solos = new Set(l.solos);
-    for (const k of ['tono', 'loop', 'cicloIni', 'cicloFin', 'cuenta', 'clickEncendido', 'master']) if (k in l) a[k] = l[k];
+    for (const k of ['tono', 'loop', 'cicloIni', 'cicloFin', 'cuenta', 'clickEncendido', 'master', 'vozMidi']) if (k in l) a[k] = l[k];
     a.local = true;
     return a;
   },
@@ -1495,7 +2036,7 @@ const Rep = {
     for (const f of this.filas) { if (f.tipo === 'master') continue; g[f.id] = f.gan; if (f.mute) m.push(f.id); if (f.solo) s.push(f.id); }
     const click = this.filas.find(f => f.tipo === 'click');
     const l = { ganancias: g, mutes: m, solos: s, tono: this.tono, loop: a.loop, cicloIni: a.cicloIni, cicloFin: a.cicloFin, cuenta: a.cuenta,
-                clickEncendido: click ? !click.mute : a.clickEncendido, master: a.master };
+                clickEncendido: click ? !click.mute : a.clickEncendido, master: a.master, vozMidi: a.vozMidi };
     try { localStorage.setItem(this.claveLocal(), JSON.stringify(l)); } catch {}
   },
   volverALaMac() {
@@ -1554,6 +2095,11 @@ const Rep = {
       else if (f.tipo === 'master') { this.aj.master = f.gan; Audio.enviar({ t: 'master', v: f.gan }); }
     }
     Audio.enviar({ t: 'ctl', g });
+  },
+  // switch MIDI·MIX·VOZ de la voz (como en la Mac: arriba melodía, medio las dos, abajo la voz)
+  enviarPesos() {
+    const modo = this.aj.vozMidi || 'voz';
+    this.pistas.forEach((p, i) => { if (p.mel) Audio.enviar({ t: 'pesos', i, pa: modo === 'midi' ? 0 : 1, pm: modo === 'voz' ? 0 : 1 }); });
   },
   armarRegiones() {
     const sr = Audio.sr, porPista = {};
@@ -1847,13 +2393,23 @@ const Rep = {
     const m = $('#mezcla'); m.innerHTML = '';
     for (const f of this.filas) {
       const c = el('div', 'canal ' + f.tipo); c.style.setProperty('--c', f.color);
-      c.appendChild(el('div', 'nom', f.nombre));
+      const conMel = (f.tipo === 'pista' && this.pistas[f.pista].mel) || (f.tipo === 'grupo' && f.miembros.some(i => this.pistas[i].mel));
+      if (conMel) {
+        const MODOS = { voz: 'VOZ', mix: 'MIX', midi: 'MIDI' }, SIG = { voz: 'mix', mix: 'midi', midi: 'voz' };
+        const sw = el('button', 'nom sw');
+        const pintarSw = () => { const m = this.aj.vozMidi || 'voz'; sw.textContent = MODOS[m]; sw.dataset.modo = m; };
+        sw.onclick = () => { this.aj.vozMidi = SIG[this.aj.vozMidi || 'voz']; pintarSw(); this.enviarPesos(); this.guardarLocal();
+          aviso({ voz: f.nombre + ': la voz', mix: f.nombre + ': voz + melodía MIDI', midi: f.nombre + ': solo la melodía MIDI' }[this.aj.vozMidi], 1400); };
+        sw.title = 'Voz → MIDI: VOZ · MIX · MIDI';
+        pintarSw(); c.appendChild(sw);
+      } else c.appendChild(el('div', 'nom', f.nombre));
       const fad = el('div', 'fader'); const riel = el('div', 'riel'); const rell = el('div', 'rell'); const per = el('div', 'per'); const cero = el('div', 'cero');
       riel.appendChild(rell); riel.appendChild(cero); riel.appendChild(per); fad.appendChild(riel); c.appendChild(fad);
       const db = el('div', 'db'); c.appendChild(db);
       const bots = el('div', 'bots');
       let bm = null, bs = null;
       if (f.tipo !== 'master') { bm = el('button', 'm', 'M'); bots.appendChild(bm); }
+      else bots.appendChild(el('span', 'hueco'));   // el master ocupa lo mismo que los demás: fader del mismo tamaño
       if (f.tipo !== 'master' && f.tipo !== 'click') { bs = el('button', 's', 'S'); bots.appendChild(bs); }
       c.appendChild(bots);
       const pintar = () => {
@@ -1929,9 +2485,20 @@ addEventListener('orientationchange', () => setTimeout(() => Rep.cancion && Rep.
 async function abrirMenu() {
   $('#menu').classList.add('ver');
   const n = await Nube.espacio();
-  $('#menuEspacio').textContent = n ? (n / 1048576).toFixed(0) + ' MB guardados en el iPhone' : '';
+  $('#menuEspacio').textContent = n ? (n / 1048576).toFixed(0) + ' MB en total en ' + EQUIPO : '';
+  const con = Nube.conectado();
+  $('#menuConectar').style.display = con ? 'none' : '';
+  $('#menuSalir').style.display = con ? '' : 'none';
+  $('#menuBorrar').style.display = con ? '' : 'none';
+  $('#menuRecargar').style.display = con ? '' : 'none';
+  $('#menuCarpeta').style.display = Local.hayCarpetas() ? '' : 'none';
+  if (Local.hayCarpetas()) Local.carpeta().then(h => $('#menuCarpetaNombre').textContent = h ? ' · ' + h.name : ' · ninguna');
   $('#menuCuenta').textContent = 'Cuenta: ' + Pref.get('cuentaCompases', 1) + (Pref.get('cuentaCompases', 1) === 1 ? ' compás' : ' compases');
-  $('#menuMac').style.display = Rep.cancion && $('#pRep').classList.contains('activa') ? '' : 'none';
+  const enRep = !!Rep.cancion && $('#pRep').classList.contains('activa');
+  $('#menuMac').style.display = enRep ? '' : 'none';
+  $('#menuEditar').style.display = enRep && Editor.puede() ? '' : 'none';
+  $('#menuEnviar').style.display = enRep && !Rep.lib.mia ? '' : 'none';
+  $('#menuDescartar').style.display = enRep && !Rep.lib.local && edicionGuardada(Rep.lib, Rep.cancion.id) ? '' : 'none';
 }
 const cerrarMenu = () => $('#menu').classList.remove('ver');
 $('#btnMenu').onclick = abrirMenu; $('#btnMenu2').onclick = abrirMenu;
@@ -1941,14 +2508,100 @@ $('#menuRecargar').onclick = () => { cerrarMenu(); pantalla('pBib'); Bib.iniciar
 $('#menuCuenta').onclick = () => { Pref.set('cuentaCompases', Pref.get('cuentaCompases', 1) === 1 ? 2 : 1); abrirMenu(); };
 $('#menuMac').onclick = () => { cerrarMenu(); Rep.volverALaMac(); };
 $('#menuBorrar').onclick = async () => {
-  if (!confirm('¿Borrar del iPhone todas las canciones guardadas? Siguen en tu OneDrive.')) return;
-  await Nube.borrarTodo(); Bib.guardadas = new Set(); Bib.dibujar(); abrirMenu(); aviso('Listo: el iPhone quedó liviano.');
+  if (!confirm('¿Borrar ' + DE_EQUIPO() + ' las copias de OneDrive guardadas? Siguen en tu OneDrive. Las importadas no se tocan.')) return;
+  await Nube.borrarTodo(); Bib.guardadas = new Set(); Bib.dibujar(); abrirMenu(); aviso('Listo: quedó liviano.');
 };
+$('#menuEditar').onclick = () => { cerrarMenu(); Editor.abrir(); };
+$('#btnEditar').onclick = () => Editor.abrir();
+$('#menuEnviar').onclick = () => { cerrarMenu(); enviarCorrecciones(); };
+$('#menuDescartar').onclick = () => {
+  const c = Rep.cancion, lib = Rep.lib;
+  const p = edicionGuardada(lib, c.id);
+  if (!confirm(p && p.subir ? '¿Descartar la corrección que todavía no se subió a OneDrive?' : '¿Descartar tus correcciones de «' + (c.titulo || c.id) + '» y volver a lo de ' + lib.nombre + '?')) return;
+  try { localStorage.removeItem('ys.ed.' + lib.clave + '|' + c.id); } catch {}
+  cerrarMenu(); abrirCancion(c, lib);
+};
+$('#menuConectar').onclick = () => { cerrarMenu(); Nube.entrar(); };
+$('#menuImportar').onclick = () => { cerrarMenu(); $('#archivoImp').click(); };
+$('#btnImportar').onclick = () => $('#archivoImp').click();
+$('#archivoImp').onchange = e => { const f = [...e.target.files]; e.target.value = ''; if (f.length) importar(f); };
+$('#menuCarpeta').onclick = async () => {
+  cerrarMenu();
+  try { const h = await Local.elegirCarpeta(); aviso('Carpeta: ' + h.name); Bib.revisarCarpeta(true); }
+  catch (e) { if (e.name !== 'AbortError') aviso('No pude usar esa carpeta: ' + e.message, 5000); }
+};
+// computadora: arrastrar archivos a la ventana
+(() => {
+  let n = 0; const s = $('#soltar');
+  const hayArch = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+  addEventListener('dragenter', e => { if (!hayArch(e)) return; e.preventDefault(); n++; s.classList.add('ver'); });
+  addEventListener('dragleave', e => { if (!hayArch(e)) return; if (--n <= 0) { n = 0; s.classList.remove('ver'); } });
+  addEventListener('dragover', e => { if (hayArch(e)) e.preventDefault(); });
+  addEventListener('drop', e => { if (!hayArch(e)) return; e.preventDefault(); n = 0; s.classList.remove('ver'); const f = [...e.dataTransfer.files]; if (f.length) importar(f); });
+})();
+
+// ══════════════════════ Importar .youstem / .youstemcorr ══════════════════════
+let importando = false;
+async function importar(archivos, deCarpeta) {
+  if (importando) { aviso('Ya estoy importando: esperá que termine.'); return; }
+  importando = true;
+  const res = { nuevas: [], estaban: [], corr: 0, errores: [] };
+  try {
+    for (let k = 0; k < archivos.length; k++) {
+      const f = archivos[k], de = archivos.length > 1 ? ` (${k + 1} de ${archivos.length})` : '';
+      try {
+        cargando('Leyendo ' + f.name + de + '…');
+        const z = await Zip.abrir(f);
+        if (z.entradas['correccion.json']) {
+          const corr = await Local.leerCorreccion(f);
+          const id = Local.destinoCorreccion(corr.meta);
+          const t = corr.meta.titulo || corr.meta.id;
+          if (!id) { res.errores.push('«' + t + '»: esa canción no está en ' + EQUIPO + ' (importá primero el .youstem)'); continue; }
+          if (!corr.archivos.length) { res.errores.push(f.name + ': no trae nada para corregir'); continue; }
+          cargando(null);
+          const cuando = corr.meta.fecha ? new Date(+corr.meta.fecha).toLocaleString('es') : '';
+          if (!confirm(`Correcciones de ${corr.meta.quien || 'alguien'}${cuando ? ' (' + cuando + ')' : ''} para «${t}»:\n${corr.archivos.join(', ')}\n\n¿Aplicarlas? Reemplazan los acordes/letra/arreglos que tenías de esa canción.`)) { if (deCarpeta) Local.marcarVisto(f); continue; }
+          await Local.aplicarCorreccion(corr, id);
+          res.corr++; anotar('corrección aplicada', id, corr.archivos.join(','));
+        } else if (z.entradas['cancion.json']) {
+          const leido = await Local.leerYoustem(f);
+          if (Local.tiene(leido.id)) { res.estaban.push(leido.titulo); if (deCarpeta) Local.marcarVisto(f); continue; }
+          await Local.importarYoustem(leido, fr => cargando('Importando «' + leido.titulo + '»' + de + '…', fr));
+          res.nuevas.push(leido.titulo); anotar('importada', leido.id, leido.titulo);
+        } else { res.errores.push(f.name + ': no es un archivo de YouSTEM'); continue; }
+        if (deCarpeta) Local.marcarVisto(f);
+      } catch (e) {
+        anotar('importar', f.name, e);
+        res.errores.push(f.name + ': ' + (/quota|space|espacio/i.test(e.message || '') || e.name === 'QuotaExceededError' ? 'No hay lugar en ' + EQUIPO + ' para ' + f.name : (e.message || String(e))));
+      }
+    }
+  } finally { importando = false; cargando(null); }
+  const partes = [];
+  if (res.nuevas.length) partes.push(res.nuevas.length === 1 ? 'Importada: «' + res.nuevas[0] + '»' : res.nuevas.length + ' canciones importadas');
+  if (res.estaban.length) partes.push(res.estaban.length === 1 ? '«' + res.estaban[0] + '» ya estaba' : res.estaban.length + ' ya estaban');
+  if (res.corr) partes.push(res.corr === 1 ? 'Corrección aplicada' : res.corr + ' correcciones aplicadas');
+  if (partes.length) aviso(partes.join(' · '), 5000);
+  if (res.errores.length) setTimeout(() => alert(res.errores.join('\n')), partes.length ? 300 : 0);
+  if (res.nuevas.length || res.corr || res.estaban.length) {
+    if (!$('#pBib').classList.contains('activa') && !$('#pRep').classList.contains('activa')) pantalla('pBib');
+    Bib.asegurarLocal();
+    if (res.nuevas.length || !Bib.actual) Bib.elegir(Local.LIB); else if (Bib.actual.local) Bib.elegir(Local.LIB);
+    if (res.corr && Rep.cancion && Rep.lib && Rep.lib.local && $('#pRep').classList.contains('activa')) aviso('Corrección aplicada: volvé a abrir la canción para verla.', 5000);
+  }
+}
 $('#menuRegistro').onclick = () => { $('#registro').textContent = REG.join('\n') || '(vacío)'; $('#panelReg').classList.add('ver'); };
 $('#regCerrar').onclick = () => $('#panelReg').classList.remove('ver');
 $('#regCopiar').onclick = async () => { try { await navigator.clipboard.writeText(REG.join('\n')); aviso('Registro copiado'); } catch { aviso('No pude copiar'); } };
-$('#menuSalir').onclick = () => { if (!confirm('¿Cerrar sesión de Microsoft en YouSTEM?')) return; Nube.salir(); cerrarMenu(); Rep.parar(); pantalla('pLogin'); };
+$('#menuSalir').onclick = () => {
+  if (!confirm('¿Cerrar sesión de Microsoft en YouSTEM?')) return;
+  Nube.salir(); cerrarMenu(); Rep.parar();
+  if (Local.lista().length) { pantalla('pBib'); Bib.iniciar(); } else { Pref.set('sinCuenta', false); pantalla('pLogin'); }
+};
 
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Space' || e.target.closest('input, textarea') || !$('#pRep').classList.contains('activa')) return;
+  e.preventDefault(); Audio.sonando ? Rep.pausa() : Rep.tocar();
+});
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 ['gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
 // (0.0.3) LA PANTALLA SE MIDE SOLA. Siempre se usa el área que el iPhone realmente muestra (nada de suponer el alto
@@ -1975,6 +2628,543 @@ function ajustarAlto() {
 ajustarAlto(); addEventListener('resize', ajustarAlto); addEventListener('orientationchange', () => setTimeout(ajustarAlto, 250));
 try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
 arrancar();
+
+// ── Editor de acordes y arreglos (solo tableta / computadora) ──
+// El pulso NO se toca acá (lo arregla en la Mac quien carga la canción): todo cae en la grilla que ya está,
+// con el click sonando. Lo que cambia en analisis.json es SOLO ediciones.acordes / tiempos / nuevos / arreglo,
+// en el mismo formato que escribe la Mac.
+const Editor = (() => {
+  const NOMBRES_SEC = ['Intro', 'Verso', 'Pre-coro', 'Coro', 'Puente', 'Solo', 'Interludio', 'Final'];
+  const CALIDADES = [['', 'mayor'], ['m', 'm'], ['7', '7'], ['maj7', 'maj7'], ['m7', 'm7'], ['sus4', 'sus4'], ['sus2', 'sus2'], ['6', '6'], ['m6', 'm6'],
+                     ['9', '9'], ['add9', 'add9'], ['m9', 'm9'], ['dim', 'dim'], ['dim7', 'dim7'], ['m7b5', 'm7♭5'], ['aug', 'aug'], ['7sus4', '7sus4'], ['13', '13']];
+  const SOST = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'], BEM = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+  const puede = () => matchMedia('(min-width: 700px) and (min-height: 600px)').matches;
+  const clon = x => JSON.parse(JSON.stringify(x));
+
+  const E = {
+    abierto: false, an: null, foto: null, pila: [], rehacerP: [], sel: null, bloque: -1, partidos: new Set(), hoja: null,
+    raiz: '', bajo: '', calidad: '', conBajo: false, repetir: false,
+
+    puede,
+    destino() { const l = Rep.lib; return l.local ? 'local' : l.mia ? 'nube' : 'colega'; },
+
+    // ── estado editable (para deshacer, cancelar y guardar) ──
+    estado() { const a = this.an; return clon({ ed: a.acordesEditados, ti: a.tiemposEditados, nu: a.acordesNuevos, arr: a.arreglo }); },
+    poner(e) {
+      const a = this.an; a.acordesEditados = clon(e.ed); a.tiemposEditados = clon(e.ti); a.acordesNuevos = clon(e.nu); a.arreglo = clon(e.arr);
+      a._ce = null; a._be = null;
+    },
+    apilar() { this.pila.push(this.estado()); if (this.pila.length > 200) this.pila.shift(); this.rehacerP = []; },
+    deshacer() { if (!this.pila.length) return; this.rehacerP.push(this.estado()); this.poner(this.pila.pop()); this.dibujar(); },
+    rehacer() { if (!this.rehacerP.length) return; this.pila.push(this.estado()); this.poner(this.rehacerP.pop()); this.dibujar(); },
+    hayCambios() { return JSON.stringify(this.estado()) !== JSON.stringify(this.foto); },
+    edicionesJson() {
+      const a = this.an;
+      return {
+        acordes: { ...a.acordesEditados }, tiempos: { ...a.tiemposEditados },
+        nuevos: a.acordesNuevos.map(x => [x.t, x.fin, x.nombre]),
+        arreglo: a.arreglo.map(b => ({ t: b.t, fin: b.fin, nombre: b.nombre, color: b.color | 0, compas: b.compas | 0, ok: !!b.ok, cortar: !!b.cortar }))
+      };
+    },
+
+    // ── la hoja: compases (los del pulso que ya está), acordes por pulso, filas de 4, secciones (como la Mac) ──
+    armarHoja() {
+      const an = this.an, acordes = an.acordesAlPulso(), beats = an.beatsEfectivos(), inicios = an.compasesEfectivos();
+      const vista = acordes.map(a => ({ ...a }));
+      for (let k = 1; k < vista.length; k++) if (vista[k].sigue) { let j = k - 1; while (j > 0 && vista[j].sigue) j--; vista[j].fin = Math.max(vista[j].fin, vista[k].fin); }
+      const secciones = an.arreglo.slice().sort((x, y) => x.t - y.t).filter(b => b.fin > b.t).map(b => ({ nombre: (b.nombre || '').trim() || 'Sección', t0: b.t, t1: b.fin, color: b.color }));
+      const n = inicios.length, durUlt = n > 1 ? Math.max(0.2, inicios[n - 1] - inicios[n - 2]) : 2;
+      const compases = [];
+      for (let i = 0; i < n; i++) {
+        const c = { t0: inicios[i], t1: i + 1 < n ? inicios[i + 1] : Math.min(Rep.dur, inicios[i] + durUlt), items: [], seccion: -1, repite: false, bt: [] };
+        if (c.t1 <= c.t0 + 0.05) continue;
+        for (const b of beats) if (b >= c.t0 - 0.03 && b < c.t1 - 0.03) c.bt.push(b);
+        c.pulsos = Math.max(1, Math.min(12, c.bt.length || Math.max(2, an.compasN)));
+        if (!c.bt.length) for (let p = 0; p < c.pulsos; p++) c.bt.push(c.t0 + (c.t1 - c.t0) * p / c.pulsos);
+        const tm = c.t0 + (c.t1 - c.t0) * 0.3;
+        secciones.forEach((s, k) => { if (c.seccion < 0 && tm >= s.t0 && tm < s.t1) c.seccion = k; });
+        for (let k = 0; k < vista.length; k++) {
+          const a = vista[k];
+          if (a.fin <= c.t0 + 0.03 || a.t >= c.t1 - 0.03) continue;
+          if (!a.nombre || a.nombre === Modelo.BORRADO || a.sigue) continue;
+          const ini = Math.max(a.t, c.t0);
+          const p = Math.max(0, Math.min(c.pulsos - 1, Math.round((ini - c.t0) / (c.t1 - c.t0) * c.pulsos)));
+          const adentro = a.t >= c.t0 - 0.03;
+          if (c.items.length && c.items[c.items.length - 1].pulso >= p) { if (a.t > c.t0) c.items[c.items.length - 1] = { k, nombre: a.nombre, pulso: c.items[c.items.length - 1].pulso, t: a.t, adentro }; continue; }
+          c.items.push({ k, nombre: a.nombre, pulso: p, t: a.t, adentro });
+        }
+        compases.push(c);
+      }
+      for (let i = 1; i < compases.length; i++) {
+        const c = compases[i], p = compases[i - 1];
+        c.repite = c.items.length === 1 && c.items[0].pulso === 0 && p.items.length === 1 && p.items[0].nombre === c.items[0].nombre && p.seccion === c.seccion && !Modelo.esSilencio(c.items[0].nombre);
+      }
+      const filas = []; let f = null;
+      compases.forEach((c, i) => {
+        const cambio = secciones.length && (i === 0 || c.seccion !== compases[i - 1].seccion);
+        if (f && (f.compases.length >= 4 || cambio)) { filas.push(f); f = null; }
+        if (!f) f = { compases: [], seccion: c.seccion, primera: !!cambio && c.seccion >= 0 };
+        f.compases.push(i);
+      });
+      if (f) filas.push(f);
+      this.hoja = { compases, filas, secciones, vista };
+    },
+    compasEn(t) { const c = this.hoja.compases; if (!c.length || t < c[0].t0) return -1; let lo = 0, hi = c.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (c[m].t0 <= t) lo = m; else hi = m - 1; } return lo; },
+    enCuadrantes(c, i) {
+      if (this.partidos.has(i) || (this.sel && this.sel.c === i && !this.sel.entero)) return true;
+      const n = c.items.length; if (n <= 1) return false;
+      return !(n === 2 && c.pulsos % 2 === 0 && c.items[0].pulso === 0 && c.items[1].pulso === c.pulsos / 2);
+    },
+
+    // ── las operaciones (las mismas de la hoja de la Mac) ──
+    borrarEdicion(m, t) { const a = this.an; delete m[a.claveDe(t)]; delete m[a.claveBeat(t)]; delete m[Modelo.fmt3(t)]; },
+    // los acordes que EMPIEZAN en [t0, t1) se reemplazan por estos [t, nombre] (MainComponent · onReemplazarTramo)
+    reemplazarTramo(t0, t1, nuevos) {
+      const an = this.an, efectivos = an.acordesEfectivos(), vista = an.acordesAlPulso();
+      const tV = k => k < vista.length ? vista[k].t : efectivos[k].t;
+      const usado = new Array(efectivos.length).fill(false), nuevosABorrar = [], agregar = [];
+      for (const nv of nuevos) {
+        let match = -1;
+        for (let k = 0; k < efectivos.length; k++) if (!usado[k] && tV(k) >= t0 - 0.03 && tV(k) < t1 - 0.03 && Math.abs(tV(k) - nv[0]) < 0.06) { match = k; break; }
+        if (match < 0) { agregar.push(nv); continue; }
+        usado[match] = true;
+        const e = efectivos[match];
+        if (e.tOrig < -1.5) { const i = Math.round(-e.tOrig - 2); if (an.acordesNuevos[i]) an.acordesNuevos[i].nombre = nv[1]; }
+        else { this.borrarEdicion(an.acordesEditados, e.tOrig); an.acordesEditados[an.claveDe(e.tOrig)] = nv[1]; }
+      }
+      for (let k = 0; k < efectivos.length; k++) {
+        const e = efectivos[k];
+        if (usado[k] || tV(k) < t0 - 0.03 || tV(k) >= t1 - 0.03) continue;
+        if (e.tOrig < -1.5) nuevosABorrar.push(Math.round(-e.tOrig - 2));
+        else { this.borrarEdicion(an.acordesEditados, e.tOrig); an.acordesEditados[an.claveDe(e.tOrig)] = Modelo.BORRADO; }
+      }
+      nuevosABorrar.sort((x, y) => y - x).forEach(i => { if (i >= 0 && i < an.acordesNuevos.length) an.acordesNuevos.splice(i, 1); });
+      for (const nv of agregar) an.acordesNuevos.push({ t: nv[0], fin: nv[0] + 0.5, nombre: nv[1], bajo: '', tOrig: -1, tuyo: true, sigue: false });
+      an.acordesNuevos.sort((x, y) => x.t - y.t);
+    },
+    borrarIdx(k) {   // un acorde entero (el que viene sonando de antes)
+      const an = this.an, e = an.acordesEfectivos()[k]; if (!e) return;
+      if (e.tOrig < -1.5) { const i = Math.round(-e.tOrig - 2); if (i >= 0 && i < an.acordesNuevos.length) an.acordesNuevos.splice(i, 1); }
+      else { this.borrarEdicion(an.acordesEditados, e.tOrig); an.acordesEditados[an.claveDe(e.tOrig)] = Modelo.BORRADO; }
+    },
+    listaDe(c) { return c.items.filter(x => x.adentro).map(x => [this.hoja.vista[x.k].t, x.nombre, x.pulso]); },
+    ponerAcorde(nombre) {
+      const s = this.sel; if (!s) return;
+      const c = this.hoja.compases[s.c]; if (!c) return;
+      this.apilar();
+      if (s.entero) this.reemplazarTramo(c.t0, c.t1, [[c.t0, nombre]]);
+      else {
+        const l = this.listaDe(c).filter(x => x[2] !== s.p).map(x => [x[0], x[1]]);
+        l.push([c.bt[s.p], nombre]); l.sort((x, y) => x[0] - y[0]);
+        this.reemplazarTramo(c.t0, c.t1, l);
+      }
+      this.dibujar();
+      if (!s.entero) this.avanzar();
+    },
+    borrar() {
+      const s = this.sel; if (!s) return;
+      const c = this.hoja.compases[s.c]; if (!c) return;
+      this.apilar();
+      if (s.entero) {
+        if (c.items.some(x => x.adentro)) this.reemplazarTramo(c.t0, c.t1, []);
+        else if (c.items[0]) this.borrarIdx(c.items[0].k);
+      } else {
+        const it = c.items.find(x => x.pulso === s.p);
+        if (it && it.adentro) this.reemplazarTramo(c.t0, c.t1, this.listaDe(c).filter(x => x[2] !== s.p).map(x => [x[0], x[1]]));
+        else if (it) this.borrarIdx(it.k);
+      }
+      this.dibujar();
+    },
+    partir() {
+      const s = this.sel; if (!s) return;
+      const i = s.c, c = this.hoja.compases[i]; if (!c) return;
+      const p = Math.max(1, Math.floor(c.pulsos / 2));
+      this.partidos.add(i);
+      // como la Mac: la segunda mitad arranca con el mismo acorde, para renombrarlo después
+      const sonando = c.items.filter(x => x.pulso < p).pop();
+      if (sonando && !c.items.some(x => x.pulso === p)) {
+        this.apilar();
+        const l = this.listaDe(c).map(x => [x[0], x[1]]); l.push([c.bt[p], sonando.nombre]); l.sort((x, y) => x[0] - y[0]);
+        this.reemplazarTramo(c.t0, c.t1, l);
+      }
+      this.sel = { c: i, p, entero: false };
+      this.dibujar();
+    },
+    avanzar() {   // después de poner un acorde en un tiempo, el cursor pasa al tiempo siguiente
+      const s = this.sel, c = this.hoja.compases[s.c];
+      if (s.p + 1 < c.pulsos) this.sel = { c: s.c, p: s.p + 1, entero: false };
+      this.dibujarSel();
+    },
+
+    // ── nombres: se muestran en el tono que suena; se guardan en el de la grabación ──
+    mostrar(n, t) { return Modelo.esSilencio(n) ? 'N.C.' : Rep.nombreAcorde(n, t); },
+    aInterno(n) { return Modelo.transponer(n, -Rep.tono, Modelo.tonoTranspuesto(this.an.tonalidad, 0).bemol); },
+    notas() { return Rep.bemol ? BEM : SOST; },
+
+    // ── abrir / cerrar ──
+    abrir() {
+      const R = Rep;
+      if (!R.cancion) return;
+      if (!puede()) { aviso('El editor es para tableta o computadora (pantalla más grande).'); return; }
+      if (!R.an.valido) { aviso('Esta canción no tiene pulso todavía: se arregla en la Mac.', 5000); return; }
+      const c = R.cancion;
+      if (c.listaParaVivo && !confirm('«' + (c.titulo || c.id) + '» tiene las correcciones BLOQUEADAS en la Mac (acordes, letra y pulso ya curados).\n\n¿La editás igual?')) return;
+      this.an = R.an; this.foto = this.estado(); this.pila = []; this.rehacerP = [];
+      this.sel = null; this.bloque = -1; this.partidos = new Set(); this.repetir = false;
+      const fc = R.filas.find(f => f.tipo === 'click');
+      this.clickAntes = fc ? fc.mute : null;
+      if (fc && fc.mute) { fc.mute = false; fc.pintar && fc.pintar(); R.enviarControles(); }
+      $('#edTit').textContent = 'Editar · ' + (c.titulo || c.id);
+      $('#edDonde').textContent = { nube: 'Se guarda en tu OneDrive', local: 'Se guarda en ' + EQUIPO, colega: 'De ' + R.lib.nombre + ': se guarda en ' + EQUIPO + ' y se lo podés enviar' }[this.destino()];
+      $('#pEd').classList.add('ver'); this.abierto = true;
+      this.dibujar(); this.cuadro();
+      anotar('editor: abierto', c.id, this.destino());
+    },
+    cerrar() {
+      const R = Rep;
+      this.abierto = false; $('#pEd').classList.remove('ver');
+      const fc = R.filas.find(f => f.tipo === 'click');
+      if (fc && this.clickAntes != null && fc.mute !== this.clickAntes) { fc.mute = this.clickAntes; fc.pintar && fc.pintar(); R.enviarControles(); }
+      R.aplicarLoop();
+      R.armarTele(); R.medir(); R.iAc = -2;
+    },
+    cancelar() {
+      if (this.hayCambios() && !confirm('¿Descartar los cambios?')) return;
+      this.poner(this.foto); this.cerrar();
+    },
+    async listo() {
+      if (!this.hayCambios()) { this.cerrar(); return; }
+      const ed = this.edicionesJson();
+      this.cerrar();
+      await guardarEdiciones(Rep.cancion, Rep.lib, ed);
+    },
+
+    // ── dibujo ──
+    dibujar() {
+      this.armarHoja();
+      const H = this.hoja, cont = $('#edHoja'), scroll = cont.scrollTop;
+      cont.innerHTML = '';
+      const actual = this.compasEn(Audio.ahora());
+      for (const f of H.filas) {
+        const fila = el('div', 'edFila');
+        const sec = H.secciones[f.seccion];
+        const et = el('div', 'edSec', f.primera && sec ? sec.nombre : '');
+        if (f.primera && sec) et.style.setProperty('--c', PALETA_ARR[Math.max(0, Math.min(5, sec.color | 0))]);
+        fila.appendChild(et);
+        for (const i of f.compases) fila.appendChild(this.celda(i, i === actual));
+        for (let k = f.compases.length; k < 4; k++) fila.appendChild(el('div', 'edComp vacio'));
+        cont.appendChild(fila);
+      }
+      cont.scrollTop = scroll;
+      this.dibujarArr(); this.dibujarSel();
+      $('#edDeshacer').disabled = !this.pila.length; $('#edRehacer').disabled = !this.rehacerP.length;
+    },
+    celda(i, actual) {
+      const c = this.hoja.compases[i], d = el('div', 'edComp' + (actual ? ' actual' : ''));
+      d.dataset.i = i;
+      d.appendChild(el('span', 'edNum', String(i + 1)));
+      if (this.enCuadrantes(c, i)) {
+        const g = el('div', 'edPulsos'); g.style.gridTemplateColumns = `repeat(${c.pulsos}, 1fr)`;
+        for (let p = 0; p < c.pulsos; p++) {
+          const it = c.items.find(x => x.pulso === p);
+          const q = el('div', 'edPul' + (it && !it.adentro ? ' viene' : ''), it ? this.mostrar(it.nombre, c.bt[p]) : '·');
+          q.dataset.p = p; g.appendChild(q);
+        }
+        d.appendChild(g);
+      } else {
+        const it = c.items[0], ac = el('div', 'edAc' + (c.items[1] ? ' dos' : ''));
+        if (it && c.repite) ac.textContent = '%';
+        else c.items.slice(0, 2).forEach((x, k) => ac.appendChild(el('span', x.adentro ? '' : 'viene', (k ? ' ' : '') + this.mostrar(x.nombre, c.bt[x.pulso]))));
+        d.appendChild(ac);
+      }
+      return d;
+    },
+    dibujarSel() {
+      document.querySelectorAll('#edHoja .sel').forEach(x => x.classList.remove('sel'));
+      const s = this.sel;
+      if (s) {
+        const d = document.querySelector(`#edHoja .edComp[data-i="${s.c}"]`);
+        if (d) {
+          if (s.entero) d.classList.add('sel');
+          else { const q = d.querySelector(`.edPul[data-p="${s.p}"]`); if (q) q.classList.add('sel'); else d.classList.add('sel'); }
+        }
+      }
+      this.dibujarPanel();
+    },
+    dibujarArr() {
+      const r = $('#edArr'); r.innerHTML = '';
+      const dur = Rep.dur || 1;
+      this.an.arreglo.forEach((b, k) => {
+        const d = el('button', 'edBloque' + (k === this.bloque ? ' sel' : '') + (b.ok ? ' ok' : ''), b.nombre || 'Sección');
+        d.style.left = (b.t / dur * 100) + '%'; d.style.width = Math.max(0.4, (b.fin - b.t) / dur * 100) + '%';
+        d.style.background = PALETA_ARR[Math.max(0, Math.min(5, b.color | 0))];
+        d.onclick = e => { e.stopPropagation(); this.bloque = k; this.dibujarArr(); this.dibujarPanel(); Rep.ir(b.t); };
+        r.appendChild(d);
+      });
+      const cab = el('div', 'edCabezal'); cab.id = 'edCabezal'; r.appendChild(cab);
+    },
+
+    // ── panel de abajo: la paleta (acorde) o la sección elegida ──
+    dibujarPanel() {
+      const P = $('#edPanel'); P.innerHTML = '';
+      if (this.bloque >= 0 && this.an.arreglo[this.bloque]) { this.panelSeccion(P); return; }
+      const s = this.sel;
+      if (!s) { P.appendChild(el('div', 'edAyuda', 'Tocá un compás para cambiarle el acorde (o un tiempo, si está partido). Tocá una sección de la franja de arriba para nombrarla o moverla. El pulso no se toca acá: lo arregla la Mac.')); return; }
+      const c = this.hoja.compases[s.c];
+      // fila 1: dónde
+      const f1 = el('div', 'edFilaP');
+      f1.appendChild(el('span', 'edDonde', 'Compás ' + (s.c + 1)));
+      const bEnt = el('button', 'edChip' + (s.entero ? ' on' : ''), 'Entero'); bEnt.onclick = () => { this.sel = { c: s.c, p: 0, entero: true }; this.partidos.delete(s.c); this.dibujar(); };
+      f1.appendChild(bEnt);
+      for (let p = 0; p < c.pulsos; p++) { const b = el('button', 'edChip' + (!s.entero && s.p === p ? ' on' : ''), 'T' + (p + 1)); b.onclick = () => { this.sel = { c: s.c, p, entero: false }; this.dibujar(); Rep.ir(c.bt[p]); }; f1.appendChild(b); }
+      const bPar = el('button', 'edChip', 'Partir ½'); bPar.onclick = () => this.partir(); f1.appendChild(bPar);
+      const bBor = el('button', 'edChip rojo', '∅ Borrar'); bBor.onclick = () => this.borrar(); f1.appendChild(bBor);
+      const bSil = el('button', 'edChip', 'N.C. Silencio'); bSil.onclick = () => this.ponerAcorde('N.C.'); f1.appendChild(bSil);
+      P.appendChild(f1);
+      // fila 2: los de la canción (los más usados primero)
+      const usados = {};
+      for (const a of this.an.acordesEfectivos()) { if (!a.nombre || a.nombre === Modelo.BORRADO || Modelo.esSilencio(a.nombre)) continue; usados[a.nombre] = (usados[a.nombre] || 0) + Math.max(0.1, a.fin - a.t); }
+      const f2 = el('div', 'edFilaP edDeLa');
+      f2.appendChild(el('span', 'edEt', 'De la canción'));
+      Object.keys(usados).sort((x, y) => usados[y] - usados[x]).slice(0, 18).forEach(n => {
+        const b = el('button', 'edAcBot', this.mostrar(n, c.t0)); b.onclick = () => this.ponerAcorde(n); f2.appendChild(b);
+      });
+      P.appendChild(f2);
+      // fila 3-4: armar uno (nota + tipo + bajo)
+      const notas = this.notas(), f3 = el('div', 'edFilaP');
+      f3.appendChild(el('span', 'edEt', 'Nota'));
+      notas.forEach(n => { const b = el('button', 'edChip nota' + (this.raiz === n ? ' on' : ''), Modelo.lindo(n)); b.onclick = () => { this.raiz = n; this.dibujarPanel(); }; f3.appendChild(b); });
+      P.appendChild(f3);
+      const f4 = el('div', 'edFilaP');
+      f4.appendChild(el('span', 'edEt', 'Tipo'));
+      CALIDADES.forEach(([q, t]) => { const b = el('button', 'edChip' + (this.calidad === q ? ' on' : ''), t); b.onclick = () => { this.calidad = q; this.dibujarPanel(); }; f4.appendChild(b); });
+      P.appendChild(f4);
+      const f5 = el('div', 'edFilaP');
+      const bB = el('button', 'edChip' + (this.conBajo ? ' on' : ''), '/ Bajo'); bB.onclick = () => { this.conBajo = !this.conBajo; if (!this.conBajo) this.bajo = ''; this.dibujarPanel(); }; f5.appendChild(bB);
+      if (this.conBajo) notas.forEach(n => { const b = el('button', 'edChip nota' + (this.bajo === n ? ' on' : ''), Modelo.lindo(n)); b.onclick = () => { this.bajo = n; this.dibujarPanel(); }; f5.appendChild(b); });
+      const armado = this.raiz ? this.raiz + this.calidad + (this.conBajo && this.bajo && this.bajo !== this.raiz ? '/' + this.bajo : '') : '';
+      const poner = el('button', 'edPoner', armado ? 'Poner ' + Modelo.lindo(armado) : 'Elegí una nota');
+      poner.disabled = !armado;
+      poner.onclick = () => this.ponerAcorde(this.aInterno(armado));
+      f5.appendChild(poner);
+      P.appendChild(f5);
+    },
+    panelSeccion(P) {
+      const k = this.bloque, b = this.an.arreglo[k];
+      const f1 = el('div', 'edFilaP');
+      f1.appendChild(el('span', 'edDonde', b.nombre || 'Sección'));
+      NOMBRES_SEC.forEach(n => { const x = el('button', 'edChip' + (b.nombre === n ? ' on' : ''), n); x.onclick = () => this.cambiarSec(s => { s.nombre = n; }); f1.appendChild(x); });
+      const otro = el('button', 'edChip', 'Otro…');
+      otro.onclick = () => { const n = prompt('Nombre de la sección', b.nombre || ''); if (n != null && n.trim()) this.cambiarSec(s => { s.nombre = n.trim().slice(0, 40); }); };
+      f1.appendChild(otro);
+      P.appendChild(f1);
+      const f2 = el('div', 'edFilaP');
+      f2.appendChild(el('span', 'edEt', 'Color'));
+      PALETA_ARR.forEach((col, i) => { const x = el('button', 'edColor' + ((b.color | 0) === i ? ' on' : '')); x.style.background = col; x.onclick = () => this.cambiarSec(s => { s.color = i; }); f2.appendChild(x); });
+      P.appendChild(f2);
+      const f3 = el('div', 'edFilaP');
+      if (b.ok) f3.appendChild(el('span', 'edEt', '✓ OK en la Mac: sus bordes no se mueven'));
+      else {
+        f3.appendChild(el('span', 'edEt', 'Empieza'));
+        const a1 = el('button', 'edChip', '◀ un compás'); a1.onclick = () => this.moverBorde(k, true, -1); f3.appendChild(a1);
+        const a2 = el('button', 'edChip', 'un compás ▶'); a2.onclick = () => this.moverBorde(k, true, +1); f3.appendChild(a2);
+        f3.appendChild(el('span', 'edEt', 'Termina'));
+        const z1 = el('button', 'edChip', '◀ un compás'); z1.onclick = () => this.moverBorde(k, false, -1); f3.appendChild(z1);
+        const z2 = el('button', 'edChip', 'un compás ▶'); z2.onclick = () => this.moverBorde(k, false, +1); f3.appendChild(z2);
+      }
+      const del = el('button', 'edChip rojo', 'Borrar sección'); del.onclick = () => { this.apilar(); this.an.arreglo.splice(k, 1); this.bloque = -1; this.dibujar(); };
+      f3.appendChild(del);
+      const fuera = el('button', 'edChip', 'Listo con la sección'); fuera.onclick = () => { this.bloque = -1; this.dibujarArr(); this.dibujarPanel(); };
+      f3.appendChild(fuera);
+      P.appendChild(f3);
+    },
+    cambiarSec(fn) { this.apilar(); fn(this.an.arreglo[this.bloque]); this.dibujar(); },
+    // los bordes caen en el "1" de un compás; si toca a la vecina, el borde compartido se mueve para las dos
+    bordes() { const c = this.an.compasesEfectivos().slice(); if (!c.length || Rep.dur > c[c.length - 1] + 0.05) c.push(Rep.dur); return c; },
+    moverBorde(k, izq, paso) {
+      const arr = this.an.arreglo, b = arr[k], B = this.bordes();
+      const cerca = t => { let m = 0, d = 1e9; B.forEach((x, i) => { if (Math.abs(x - t) < d) { d = Math.abs(x - t); m = i; } }); return m; };
+      const orden = arr.map((x, i) => i).sort((x, y) => arr[x].t - arr[y].t), pos = orden.indexOf(k);
+      const prev = pos > 0 ? arr[orden[pos - 1]] : null, sig = pos + 1 < orden.length ? arr[orden[pos + 1]] : null;
+      this.apilar();
+      if (izq) {
+        const i = cerca(b.t) + paso; if (i < 0 || i >= B.length) { this.pila.pop(); return; }
+        const t = B[i]; if (t >= b.fin - 0.3) { this.pila.pop(); return; }
+        if (prev && t < prev.fin - 0.01) {
+          if (prev.ok || Math.abs(prev.fin - b.t) > 0.01 || t <= prev.t + 0.3) { this.pila.pop(); aviso('Choca con «' + (prev.nombre || 'la sección anterior') + '».'); return; }
+          prev.fin = t;
+        } else if (prev && Math.abs(prev.fin - b.t) < 0.01 && !prev.ok) prev.fin = t;
+        b.t = t;
+      } else {
+        const i = cerca(b.fin) + paso; if (i < 0 || i >= B.length) { this.pila.pop(); return; }
+        const t = B[i]; if (t <= b.t + 0.3) { this.pila.pop(); return; }
+        if (sig && t > sig.t + 0.01) {
+          if (sig.ok || Math.abs(sig.t - b.fin) > 0.01 || t >= sig.fin - 0.3) { this.pila.pop(); aviso('Choca con «' + (sig.nombre || 'la sección siguiente') + '».'); return; }
+          sig.t = t;
+        } else if (sig && Math.abs(sig.t - b.fin) < 0.01 && !sig.ok) sig.t = t;
+        b.fin = t;
+      }
+      this.an._ce = null; this.an._be = null;
+      this.dibujar();
+    },
+    // ＋ Sección: desde el compás elegido. Adentro de otra sección = la parte en dos; en un hueco = hasta la próxima (máx. 8 compases)
+    nuevaSeccion() {
+      const s = this.sel;
+      const t0 = s ? this.hoja.compases[s.c].t0 : (this.hoja.compases[Math.max(0, this.compasEn(Audio.ahora()))] || { t0: 0 }).t0;
+      const arr = this.an.arreglo;
+      const dentro = arr.find(b => t0 > b.t + 0.05 && t0 < b.fin - 0.05);
+      const nombre = 'Sección ' + (arr.length + 1);
+      this.apilar();
+      if (dentro) {
+        if (dentro.ok) { this.pila.pop(); aviso('«' + dentro.nombre + '» tiene OK en la Mac: no se parte.'); return; }
+        const nb = { t: t0, fin: dentro.fin, nombre, color: arr.length % 6, compas: dentro.compas, ok: false, cortar: dentro.cortar };
+        dentro.fin = t0; dentro.cortar = false; arr.push(nb);
+      } else {
+        if (arr.some(b => Math.abs(b.t - t0) < 0.05)) { this.pila.pop(); aviso('Ya empieza una sección en ese compás.'); return; }
+        const B = this.bordes(); let i = B.findIndex(x => Math.abs(x - t0) < 0.05); if (i < 0) i = 0;
+        let fin = B[Math.min(B.length - 1, i + 8)];
+        for (const b of arr) if (b.t > t0 + 0.05) fin = Math.min(fin, b.t);
+        if (fin - t0 < 0.3) { this.pila.pop(); return; }
+        arr.push({ t: t0, fin, nombre, color: arr.length % 6, compas: 0, ok: false, cortar: false });
+      }
+      arr.sort((x, y) => x.t - y.t);
+      this.bloque = arr.findIndex(b => Math.abs(b.t - t0) < 0.05);
+      this.dibujar();
+    },
+
+    // ── cada cuadro: el compás que suena, el cabezal de la franja, el tiempo ──
+    cuadro() {
+      if (!this.abierto) return;
+      requestAnimationFrame(() => this.cuadro());
+      const t = Audio.ahora(), i = this.compasEn(t);
+      if (i !== this.iActual) {
+        this.iActual = i;
+        document.querySelectorAll('#edHoja .edComp.actual').forEach(x => x.classList.remove('actual'));
+        const d = document.querySelector(`#edHoja .edComp[data-i="${i}"]`);
+        if (d) {
+          d.classList.add('actual');
+          if (Audio.sonando) { const H = $('#edHoja'), r = d.getBoundingClientRect(), h = H.getBoundingClientRect(); if (r.top < h.top + 10 || r.bottom > h.bottom - 10) H.scrollTop += r.top - h.top - h.height * 0.3; }
+        }
+      }
+      const cab = $('#edCabezal'); if (cab) cab.style.left = (t / (Rep.dur || 1) * 100) + '%';
+      $('#edTiempo').textContent = fmtT(t) + ' / ' + fmtT(Rep.dur);
+      $('#edPlay').textContent = Audio.sonando ? '❚❚' : '▶';
+    },
+    tocarCompas(e) {
+      const d = e.target.closest('.edComp'); if (!d || d.classList.contains('vacio')) return;
+      const i = +d.dataset.i, q = e.target.closest('.edPul'), c = this.hoja.compases[i];
+      this.bloque = -1;
+      if (q) { const p = +q.dataset.p; this.sel = { c: i, p, entero: false }; Rep.ir(c.bt[p]); }
+      else { this.sel = { c: i, p: 0, entero: true }; Rep.ir(c.t0); }
+      if (this.repetir) this.aplicarRepetir();
+      this.dibujarArr(); this.dibujarSel();
+    },
+    aplicarRepetir() {
+      const s = this.sel, c = s && this.hoja.compases[s.c];
+      if (this.repetir && c) Audio.enviar({ t: 'loop', on: true, a: c.t0 * Audio.sr, b: c.t1 * Audio.sr });
+      else Rep.aplicarLoop();
+      $('#edRep').classList.toggle('on', this.repetir);
+    }
+  };
+  return E;
+})();
+
+// ── guardar: lo tuyo directo en tu OneDrive; lo de colegas y lo importado, en el dispositivo ──
+const clavePend = (lib, id) => 'ys.ed.' + lib.clave + '|' + id;
+function mezclarEdiciones(base, ed) { const o = JSON.parse(JSON.stringify(base || {})); o.ediciones = { ...(o.ediciones || {}), ...ed }; return o; }
+async function guardarEdiciones(c, lib, ed) {
+  const destino = lib.local ? 'local' : lib.mia ? 'nube' : 'colega';
+  const nuevo = mezclarEdiciones(Rep.anJson, ed);
+  anotar('editor: guardar', c.id, destino, Object.keys(ed.acordes).length + ' acordes, ' + ed.nuevos.length + ' nuevos, ' + ed.arreglo.length + ' secciones');
+  if (destino === 'local') {
+    await Local.guardarArchivo(c.id, 'analisis.json', JSON.stringify(nuevo));
+    Rep.anJson = nuevo; aviso('Guardado en ' + EQUIPO + '. Para pasárselo a otro: Menú ⋯ › Enviar correcciones.', 5000);
+    return;
+  }
+  try { localStorage.setItem(clavePend(lib, c.id), JSON.stringify({ ed, fecha: Date.now(), titulo: c.titulo, raiz: c.raiz, subir: destino === 'nube' })); } catch {}
+  Rep.anJson = nuevo;
+  if (destino === 'colega') { aviso('Guardado en ' + EQUIPO + '. Para que le llegue a ' + lib.nombre + ': Menú ⋯ › Enviar correcciones.', 5500); return; }
+  await subirEdicion(lib, c.id);
+}
+// sube una corrección tuya pendiente: analisis.json (solo `ediciones`) + la fecha en el catálogo (así la Mac la baja sola)
+async function subirEdicion(lib, id, silencioso) {
+  let p; try { p = JSON.parse(localStorage.getItem(clavePend(lib, id)) || 'null'); } catch {}
+  if (!p || !p.subir) return true;
+  if (!Nube.quiereEscribir()) {
+    if (silencioso) return false;
+    if (confirm('Para guardar en tu OneDrive, Microsoft te va a pedir permiso para escribir en tu carpeta (una sola vez).\n\nMientras tanto queda guardado en ' + EQUIPO + '. ¿Seguimos?')) { Nube.pedirEscritura(); return false; }
+    aviso('Quedó guardado en ' + EQUIPO + ': se sube cuando des el permiso.', 5000); return false;
+  }
+  const ruta = 'canciones/' + id + '/analisis.json';
+  try {
+    if (!silencioso) cargando('Guardando en tu OneDrive…');
+    const fresco = await Nube.leerJson(p.raiz, ruta);
+    const nuevo = mezclarEdiciones(fresco, p.ed), texto = JSON.stringify(nuevo, null, 2);
+    const it = await Nube.escribir(p.raiz, ruta, texto);
+    try {
+      const cat = await Nube.leerJson(p.raiz, 'catalogo/' + id + '.json');
+      cat.editado = Date.now(); cat.archivos = { ...(cat.archivos || {}), 'analisis.json': new TextEncoder().encode(texto).length };
+      await Nube.escribir(p.raiz, 'catalogo/' + id + '.json', JSON.stringify(cat, null, 2));
+    } catch (e) { anotar('catálogo (fecha de edición)', e); }
+    await Nube.ponerCache(Nube.claveCache(lib.clave, id, 'analisis.json'), texto, it.eTag || '');
+    localStorage.removeItem(clavePend(lib, id));
+    if (Rep.cancion && Rep.cancion.id === id && Rep.lib && Rep.lib.clave === lib.clave) Rep.anJson = nuevo;
+    anotar('editor: subido a OneDrive', id);
+    if (!silencioso) aviso('Guardado en tu OneDrive: la Mac lo baja sola.', 4000);
+    return true;
+  } catch (e) {
+    anotar('editor: subir', id, e);
+    if (e.sinPermiso && !silencioso) {
+      if (confirm('OneDrive no me dejó escribir. ¿Pedimos el permiso de nuevo a Microsoft?\n(Mientras tanto queda guardado en ' + EQUIPO + '.)')) Nube.pedirEscritura();
+    } else if (!silencioso) aviso('No pude guardar en OneDrive (' + e.message + '). Quedó en ' + EQUIPO + ' y lo vuelvo a intentar al abrir.', 6000);
+    return false;
+  } finally { if (!silencioso) cargando(null); }
+}
+async function subirPendientes() {
+  if (!Nube.conectado() || !Nube.quiereEscribir()) return;
+  const mia = (Bib.libs || []).find(l => l.mia); if (!mia) return;
+  for (const k of Object.keys(localStorage)) {
+    if (!k.startsWith('ys.ed.' + mia.clave + '|')) continue;
+    const id = k.slice(('ys.ed.' + mia.clave + '|').length);
+    const ok = await subirEdicion(mia, id, true);
+    if (ok) aviso('Se subió a tu OneDrive la corrección que había quedado pendiente.', 4000);
+  }
+}
+// lo guardado en el dispositivo (colega / pendiente de subir) se aplica al abrir
+function edicionGuardada(lib, id) { try { const p = JSON.parse(localStorage.getItem(clavePend(lib, id)) || 'null'); return p && p.ed ? p : null; } catch { return null; } }
+
+// ── Enviar correcciones: un .youstemcorr como el de la Mac (solo analisis.json + quién y cuándo) ──
+async function enviarCorrecciones() {
+  const c = Rep.cancion; if (!c) return;
+  const quien = Pref.get('yo', '') || 'YouSTEM web';
+  const meta = { formato: 1, id: c.id, titulo: c.titulo || c.id, artista: c.artista || '', quien, fecha: Date.now(), huella: c.huella || '', base: c.editado || 0 };
+  const blob = Zip.armar([{ nombre: 'analisis.json', datos: JSON.stringify(Rep.anJson, null, 2) }, { nombre: 'correccion.json', datos: JSON.stringify(meta, null, 2) }]);
+  const nombre = ((c.titulo || c.id) + ' (correcciones de ' + quien + ')').replace(/[\\/:*?"<>|]/g, '-') + '.youstemcorr';
+  const f = new File([blob], nombre, { type: 'application/octet-stream' });
+  anotar('enviar correcciones', c.id, f.size + ' bytes');
+  try { if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: nombre }); return; } } catch (e) { if (e.name === 'AbortError') return; anotar('compartir', e); }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+  aviso('Listo: ' + nombre, 4000);
+}
+
+$('#edCancelar').onclick = () => Editor.cancelar();
+$('#edListo').onclick = () => Editor.listo();
+$('#edDeshacer').onclick = () => Editor.deshacer();
+$('#edRehacer').onclick = () => Editor.rehacer();
+$('#edHoja').addEventListener('click', e => Editor.tocarCompas(e));
+$('#edSecNueva').onclick = () => Editor.nuevaSeccion();
+$('#edArr').addEventListener('click', e => { const r = $('#edArr').getBoundingClientRect(); Rep.ir((e.clientX - r.left) / r.width * Rep.dur); Editor.bloque = -1; Editor.dibujarArr(); Editor.dibujarPanel(); });
+$('#edPlay').onclick = () => { if (Audio.sonando) Rep.pausa(); else { Rep.reanudar = true; Rep.tocar(); } };
+$('#edRep').onclick = () => { if (!Editor.sel) { aviso('Elegí un compás primero.'); return; } Editor.repetir = !Editor.repetir; Editor.aplicarRepetir(); };
+document.addEventListener('keydown', e => {
+  if (!Editor.abierto || e.target.closest('input, textarea')) return;
+  const cmd = e.metaKey || e.ctrlKey;
+  if (cmd && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? Editor.rehacer() : Editor.deshacer(); }
+  else if (e.code === 'Space') { e.preventDefault(); e.stopImmediatePropagation(); $('#edPlay').click(); }
+  else if (e.key === 'Escape') Editor.cancelar();
+  else if ((e.key === 'Backspace' || e.key === 'Delete') && Editor.sel) { e.preventDefault(); Editor.borrar(); }
+}, true);
 </script>
 </body>
 </html>
