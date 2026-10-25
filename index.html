@@ -351,6 +351,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
       <div class="tonoCaja" id="tonoVal" title="Tocar = tono de la Mac">0</div>
       <button id="tonoMas" aria-label="Subir tono">+</button>
     </div>
+    <button id="btnCompartir" class="icono" aria-label="Compartir la canción" title="Compartir la canción (.youstem)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M8 10H6.5A1.5 1.5 0 0 0 5 11.5v8A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-8a1.5 1.5 0 0 0-1.5-1.5H16"/></svg></button>
     <button id="btnEditar" class="icono soloGrande" aria-label="Editar acordes y arreglos" title="Editar acordes y arreglos">✎</button>
     <button id="btnMenu2" class="icono" aria-label="Menú">⋯</button>
   </header>
@@ -409,6 +410,21 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="menuRegistro">Ver registro</button>
     <button id="menuSalir" class="rojo">Cerrar sesión</button>
     <button id="menuCerrar" class="cerrar">Cerrar</button>
+  </div>
+</div>
+<div id="acciones" class="hoja">
+  <div class="hojaCaja">
+    <div class="hojaTit"><span id="accTit"></span><span id="accSub" class="gris"></span></div>
+    <button id="accCompartir">Compartir la canción (.youstem)</button>
+    <button id="accBorrar" class="rojo"></button>
+    <button id="accCerrar" class="cerrar">Cancelar</button>
+  </div>
+</div>
+<div id="listoCompartir" class="hoja">
+  <div class="hojaCaja">
+    <div class="hojaTit"><span id="lcTit"></span><span id="lcSub" class="gris"></span></div>
+    <button id="lcEnviar" class="grande">Enviar</button>
+    <button id="lcCerrar" class="cerrar">Cancelar</button>
   </div>
 </div>
 <div id="panelReg" class="hoja reg"><div class="hojaCaja"><pre id="registro"></pre><div class="fila2"><button id="regCopiar">Copiar</button><button id="regCerrar">Cerrar</button></div></div></div>
@@ -1639,7 +1655,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.3.0';
+const VERSION = '0.3.1';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -1840,9 +1856,9 @@ const Bib = {
       const lib = this.actual;
       let largo = null, hecho = false;
       const soltar = () => { clearTimeout(largo); largo = null; f.classList.remove('apretado'); };
-      f.addEventListener('pointerdown', () => { hecho = false; f.classList.add('apretado'); largo = setTimeout(() => { soltar(); hecho = true; if (navigator.vibrate) navigator.vibrate(15); this.preguntarBorrar(c, lib); }, 600); });
+      f.addEventListener('pointerdown', () => { hecho = false; f.classList.add('apretado'); largo = setTimeout(() => { soltar(); hecho = true; if (navigator.vibrate) navigator.vibrate(15); this.acciones(c, lib); }, 600); });
       ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => f.addEventListener(t, soltar));
-      f.addEventListener('contextmenu', e => { e.preventDefault(); if (!hecho) { soltar(); hecho = true; this.preguntarBorrar(c, lib); } });
+      f.addEventListener('contextmenu', e => { e.preventDefault(); if (!hecho) { soltar(); hecho = true; this.acciones(c, lib); } });
       f.onclick = () => { if (hecho) { hecho = false; return; } abrirCancion(c, lib); };
       cont.appendChild(f);
     }
@@ -1852,7 +1868,16 @@ const Bib = {
     else this.estado('');
     $('#cuenta').textContent = this.canciones.length ? lista.length + ' de ' + this.canciones.length : '';
   },
-  // mantener apretada una canción: borrarla del dispositivo (de a una)
+  // mantener apretada una canción: compartirla o borrarla
+  acciones(c, lib) {
+    const guardada = lib.local || this.guardadas.has(lib.clave + '|' + c.id);
+    $('#accTit').textContent = c.titulo || c.id; $('#accSub').textContent = c.artista || '';
+    $('#accBorrar').textContent = lib.local ? 'Borrar de ' + EQUIPO : 'Borrar la copia guardada en ' + EQUIPO;
+    $('#accBorrar').style.display = guardada ? '' : 'none';
+    $('#accCompartir').onclick = () => { $('#acciones').classList.remove('ver'); compartirCancion(c, lib); };
+    $('#accBorrar').onclick = () => { $('#acciones').classList.remove('ver'); this.preguntarBorrar(c, lib); };
+    $('#acciones').classList.add('ver');
+  },
   async preguntarBorrar(c, lib) {
     const t = '«' + (c.titulo || c.id) + '»';
     if (lib.local) { if (!confirm('¿Borrar ' + t + ' ' + DE_EQUIPO() + '? Para volver a tenerla hay que importar el .youstem otra vez.')) return; }
@@ -2463,10 +2488,12 @@ Audio.alTerminar = () => { Rep.reanudar = false; Rep.refrescarBotones(); pantall
 
 // barra: tocar = ir ahí; mantener apretado sobre una parte del arreglo = repetir esa parte
 (() => {
-  const cv = $('#barra'); let tLargo = null, x0 = 0, arrastrando = false;
+  // (0.3.1) solo con el botón apretado / el dedo apoyado: con el mouse, pasar por encima NO mueve nada
+  const cv = $('#barra'); let tLargo = null, x0 = 0, arrastrando = false, apretado = false;
   const seg = e => { const r = cv.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * Rep.dur; };
   cv.addEventListener('pointerdown', e => {
-    cv.setPointerCapture(e.pointerId); x0 = e.clientX; arrastrando = false;
+    if (e.button > 0) return;
+    cv.setPointerCapture(e.pointerId); x0 = e.clientX; arrastrando = false; apretado = true;
     const s = seg(e);
     tLargo = setTimeout(() => {
       tLargo = null;
@@ -2474,8 +2501,9 @@ Audio.alTerminar = () => { Rep.reanudar = false; Rep.refrescarBotones(); pantall
       if (b) { Rep.aj.cicloIni = b.t; Rep.aj.cicloFin = b.fin; Rep.aj.loop = true; Rep.aplicarLoop(); Rep.guardarLocal(); aviso('Repitiendo: ' + (b.nombre || 'esta parte')); if (navigator.vibrate) navigator.vibrate(20); }
     }, 550);
   });
-  cv.addEventListener('pointermove', e => { if (Math.abs(e.clientX - x0) > 8) { arrastrando = true; if (tLargo) { clearTimeout(tLargo); tLargo = null; } Rep.ir(seg(e)); } });
-  cv.addEventListener('pointerup', e => { if (tLargo) { clearTimeout(tLargo); tLargo = null; Rep.reanudar = true; Rep.ir(seg(e)); } else if (arrastrando) Rep.reanudar = true; });
+  cv.addEventListener('pointermove', e => { if (!apretado) return; if (Math.abs(e.clientX - x0) > 8) { arrastrando = true; if (tLargo) { clearTimeout(tLargo); tLargo = null; } Rep.ir(seg(e)); } });
+  cv.addEventListener('pointercancel', () => { apretado = false; if (tLargo) { clearTimeout(tLargo); tLargo = null; } });
+  cv.addEventListener('pointerup', e => { if (!apretado) return; apretado = false; if (tLargo) { clearTimeout(tLargo); tLargo = null; Rep.reanudar = true; Rep.ir(seg(e)); } else if (arrastrando) Rep.reanudar = true; });
 })();
 
 addEventListener('resize', () => { if (Rep.cancion) requestAnimationFrame(() => Rep.medir()); });
@@ -2521,6 +2549,78 @@ $('#menuDescartar').onclick = () => {
   try { localStorage.removeItem('ys.ed.' + lib.clave + '|' + c.id); } catch {}
   cerrarMenu(); abrirCancion(c, lib);
 };
+$('#accCerrar').onclick = () => $('#acciones').classList.remove('ver');
+$('#acciones').addEventListener('click', e => { if (e.target.id === 'acciones') $('#acciones').classList.remove('ver'); });
+$('#btnCompartir').onclick = () => Rep.cancion && compartirCancion(Rep.cancion, Rep.lib);
+
+// ══════════════════════ Compartir una canción guardada: arma el .youstem (como el de la Mac) desde lo que hay en el dispositivo ══════════════════════
+async function compartirCancion(c, lib) {
+  const clave = rel => Nube.claveCache(lib.clave, c.id, rel);
+  const leer = async rel => { const b = await Nube.enCache(clave(rel)); return b ? new Uint8Array(b) : null; };
+  try {
+    cargando('Preparando «' + (c.titulo || c.id) + '»…');
+    const m = await leer('manifiesto');
+    if (!m) throw new Error('Esta canción todavía no está guardada en ' + EQUIPO + ': abrila una vez (con conexión) y después la compartís.');
+    const man = JSON.parse(new TextDecoder().decode(m));
+    const archivos = [], faltan = [];
+    // datos de la canción (la mezcla NO va como archivo: viaja en cancion.json, como en la Mac)
+    for (const x of man.raiz) {
+      if (x.name === 'ajustes.json' || !/\.(json|txt|jpg)$/i.test(x.name)) continue;
+      const d = await leer(x.name); if (d) archivos.push({ nombre: c.id + '/' + x.name, datos: d });
+    }
+    // tus correcciones guardadas acá (de un colega o esperando subir) viajan adentro
+    const pend = edicionGuardada(lib, c.id);
+    if (pend) { const i = archivos.findIndex(a => a.nombre === c.id + '/analisis.json'); if (i >= 0) archivos[i].datos = new TextEncoder().encode(JSON.stringify(mezclarEdiciones(JSON.parse(new TextDecoder().decode(archivos[i].datos)), pend.ed), null, 2)); }
+    if (!archivos.some(a => a.nombre.endsWith('/miniatura.jpg'))) {
+      let d = await leer('miniatura.jpg');
+      const url = !d && !lib.local && Bib.miniaturas[c.id];   // la de OneDrive (catalogo/miniaturas), si hay conexión
+      if (url) try { const r = await fetch(url); if (r.ok) d = new Uint8Array(await r.arrayBuffer()); } catch {}
+      if (d) archivos.push({ nombre: c.id + '/miniatura.jpg', datos: d });
+    }
+    // pistas: solo las que suenan (un archivo por stem, MP3 si hay) + stems.json
+    const aud = man.pistas.filter(x => /\.(mp3|flac|m4a|wav)$/i.test(x.name));
+    const bases = new Set(aud.filter(x => /\.mp3$/i.test(x.name)).map(x => x.name.replace(/\.[^.]+$/, '')));
+    for (const x of man.pistas) {
+      const esAudio = /\.(mp3|flac|m4a|wav)$/i.test(x.name);
+      if (!esAudio && x.name !== 'stems.json') continue;
+      if (esAudio && !/\.mp3$/i.test(x.name) && bases.has(x.name.replace(/\.[^.]+$/, ''))) continue;
+      const d = await leer(man.dir + '/' + x.name);
+      if (d) archivos.push({ nombre: c.id + '/' + man.dir + '/' + x.name, datos: d }); else if (esAudio) faltan.push(x.name);
+    }
+    if (faltan.length || !archivos.some(a => /\.(mp3|flac|m4a|wav)$/i.test(a.nombre)))
+      throw new Error('Faltan pistas guardadas en ' + EQUIPO + ' (' + (faltan.join(', ') || 'todas') + '): abrila una vez con conexión y probá de nuevo.');
+    let ajustes = {};
+    try { const a = await leer('ajustes.json'); if (a) { const j = JSON.parse(new TextDecoder().decode(a)); ajustes = j && j.ajustes && typeof j.ajustes === 'object' ? j.ajustes : (j || {}); } } catch {}
+    const nivel = (man.dir || '').replace(/^pistas-/, '') || c.nivel || 'maximo';
+    const ficha = { id: c.id, titulo: c.titulo || c.id, artista: c.artista || '', album: c.album || '', url: c.url || '', fuente: c.fuente || '',
+                    duracion: c.duracion || 0, nivel, nivelPreferido: '', bpm: c.bpm || 0, tonalidad: c.tonalidad || '', huella: c.huella || '',
+                    agregado: Date.now(), ajustes };
+    archivos.unshift({ nombre: 'cancion.json', datos: JSON.stringify({ formato: nivel === 'editado' ? 2 : 1, analisisVersion: 5, cancion: ficha }) });
+    const nombre = ((c.artista ? c.artista.trim() + ' - ' : '') + (c.titulo || c.id).trim()).replace(/[\\/:*?"<>|]/g, '-') + '.youstem';
+    const f = new File([Zip.armar(archivos)], nombre, { type: 'application/octet-stream' });
+    anotar('compartir', c.id, (f.size / 1048576).toFixed(1) + ' MB', archivos.length + ' archivos');
+    cargando(null);
+    await mandarArchivo(f);
+  } catch (e) { cargando(null); anotar('compartir', c.id, e); aviso(e.message || String(e), 6000); }
+}
+// la hoja de compartir del sistema (WhatsApp, AirDrop, Archivos, Mail…); sin ella (computadora), se descarga
+async function mandarArchivo(f) {
+  const puede = navigator.canShare && navigator.canShare({ files: [f] });
+  if (!puede) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000); aviso('Descargado: ' + f.name, 4000); return;
+  }
+  try { await navigator.share({ files: [f] }); }
+  catch (e) {
+    if (e.name === 'AbortError') return;
+    // armarlo tardó y el teléfono ya no lo toma como "tu toque": un toque más y sale
+    $('#lcTit').textContent = f.name; $('#lcSub').textContent = (f.size / 1048576).toFixed(1) + ' MB · listo para enviar';
+    $('#lcEnviar').onclick = async () => { $('#listoCompartir').classList.remove('ver'); try { await navigator.share({ files: [f] }); } catch (e2) { if (e2.name !== 'AbortError') aviso('No se pudo compartir: ' + e2.message, 5000); } };
+    $('#listoCompartir').classList.add('ver');
+  }
+}
+$('#lcCerrar').onclick = () => $('#listoCompartir').classList.remove('ver');
+
 $('#menuConectar').onclick = () => { cerrarMenu(); Nube.entrar(); };
 $('#menuImportar').onclick = () => { cerrarMenu(); $('#archivoImp').click(); };
 $('#btnImportar').onclick = () => $('#archivoImp').click();
