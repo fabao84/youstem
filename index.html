@@ -51,6 +51,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .chips::-webkit-scrollbar{display:none}
 .chip{padding:7px 14px;border-radius:999px;background:var(--panel2);color:var(--gris);font-weight:600;white-space:nowrap;font-size:14px}
 .chip.on{background:var(--texto);color:#111}
+.chip.suave{background:#3a4350;color:var(--texto)}
+.ic.deLib{color:var(--gris);font-size:11px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .buscar{padding:0 14px 8px;flex:none}
 .buscar input{-webkit-user-select:text;user-select:text;width:100%;padding:11px 14px;border-radius:12px;border:0;background:var(--panel2);color:var(--texto);font:inherit;font-size:16px;outline:none}
 .estado{padding:28px 24px;color:var(--gris);text-align:center}
@@ -1662,7 +1664,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.3.3';
+const VERSION = '0.3.4';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -1754,39 +1756,37 @@ $('#btnSinCuenta').onclick = () => { Pref.set('sinCuenta', true); pantalla('pBib
 
 // ══════════════════════ Biblioteca ══════════════════════
 const Bib = {
-  libs: [], actual: null, canciones: [], miniaturas: {}, guardadas: new Set(),
+  libs: [], vistas: [], sel: new Set(), porLib: {}, miniaturas: {}, guardadas: new Set(),
   // las de OneDrive (si hay cuenta) + "En este dispositivo" (si no hay cuenta o si ya importaste algo)
   conLocal(libs) { return (!Nube.conectado() || Local.lista().length) ? [...libs, Local.LIB] : libs; },
   async iniciar() {
     this.revisarCarpeta();
     if (!Nube.conectado()) {
-      this.libs = [Local.LIB]; this.dibujarChips(); this.elegir(Local.LIB);
+      this.libs = [Local.LIB]; this.armarVistas(); this.cargarTodo();
       $('#menuUsuario').textContent = 'Sin cuenta de Microsoft';
       return;
     }
     const libsViejas = Pref.get('libs', null);
-    if (libsViejas) { this.libs = this.conLocal(libsViejas); this.dibujarChips(); }
-    const elegida = Pref.get('lib', 'mia');
-    if (libsViejas) this.elegir(this.libs.find(l => l.clave === elegida) || this.libs[0], true);
+    if (libsViejas) { this.libs = this.conLocal(libsViejas); this.armarVistas(); this.cargarTodo(true); }
     try {
       Nube.yo().then(u => { $('#menuUsuario').textContent = u.displayName || u.userPrincipalName || ''; if (u.displayName) Pref.set('yo', u.displayName); }).catch(() => {});
       const nube = await Nube.bibliotecas();
       anotar('bibliotecas', nube.map(l => l.carpeta + (l.mia ? ' (tuya)' : '')).join(', '), '· en la raíz:', Nube.bibliotecas.vistas || 'nada');
       Pref.set('libs', nube);
       this.libs = this.conLocal(nube);
-      this.dibujarChips();
+      this.armarVistas();
       if (!nube.length && !this.libs.length) { this.estado('No encontré tu carpeta de YouSTEM en este OneDrive. ¿Entraste con la misma cuenta que usás en la Mac?'); return; }
       if (!nube.length) aviso('No encontré tu carpeta de YouSTEM en este OneDrive.', 5000);
-      this.elegir(this.libs.find(l => l.clave === (this.actual && this.actual.clave)) || this.libs.find(l => l.clave === elegida) || this.libs[0]);
+      this.cargarTodo();
       subirPendientes().catch(e => anotar('pendientes', e));
     } catch (e) {
       anotar('bibliotecas', e);
       if (e.sinSesion) { sesionVencida(); return; }
-      if (!libsViejas) { this.libs = this.conLocal([]); this.dibujarChips(); if (this.libs.length) this.elegir(this.libs[0]); this.estado('No pude leer OneDrive (' + e.message + '). Revisá la conexión y tocá Recargar en el menú.'); }
+      if (!libsViejas) { this.libs = this.conLocal([]); this.armarVistas(); this.cargarTodo(); this.estado('No pude leer OneDrive (' + e.message + '). Revisá la conexión y tocá Recargar en el menú.'); }
       else aviso('Sin conexión: muestro lo que ya conocía.');
     }
   },
-  asegurarLocal() { if (!this.libs.some(l => l.local)) { this.libs = [...this.libs, Local.LIB]; } this.dibujarChips(); },
+  asegurarLocal() { if (!this.libs.some(l => l.local)) { this.libs = [...this.libs, Local.LIB]; this.armarVistas(); } },
   // carpeta de la computadora: si el navegador ya dio permiso, se revisa sola; si no, aparece un botón (hace falta un toque)
   async revisarCarpeta(conToque) {
     if (!Local.hayCarpetas()) return;
@@ -1802,53 +1802,99 @@ const Bib = {
       if (nuevos.length) await importar(nuevos, true);
     } catch (e) { anotar('carpeta', e); aviso('No pude leer la carpeta: ' + e.message, 5000); }
   },
+
+  // (0.3.4) pestañas: lo tuyo dividido en Privadas y Compartidas, después cada colega, después el dispositivo.
+  // Tocar = solo esa; mantener apretada (o ⌘/Ctrl + clic) = sumarla o sacarla; "Todas" = todas juntas.
+  armarVistas() {
+    const v = [];
+    for (const l of this.libs) {
+      if (l.mia && l.raices.length > 1) {
+        v.push({ id: 'priv', nombre: '🔒 Privadas', lib: l, filtro: c => !!c.privada });
+        v.push({ id: 'comp', nombre: 'Compartidas', lib: l, filtro: c => !c.privada });
+      } else if (l.mia) v.push({ id: l.raices[0] && l.raices[0].privada ? 'priv' : 'comp', nombre: l.raices[0] && l.raices[0].privada ? '🔒 Privadas' : 'Mías', lib: l, filtro: () => true });
+      else v.push({ id: l.clave, nombre: l.nombre, lib: l, filtro: () => true });
+    }
+    this.vistas = v;
+    let sel = Pref.get('vistas', null);
+    if (!Array.isArray(sel)) sel = v.map(x => x.id);   // la primera vez: Todas
+    this.sel = new Set(sel.filter(id => v.some(x => x.id === id)));
+    if (!this.sel.size && v.length) this.sel.add(v[0].id);
+    this.dibujarChips();
+  },
+  get actual() { const v = this.vistas.find(x => this.sel.has(x.id)); return v ? v.lib : null; },
   dibujarChips() {
     const n = $('#libs'); n.innerHTML = '';
-    for (const l of this.libs) {
-      const b = el('button', 'chip' + (this.actual && this.actual.clave === l.clave ? ' on' : ''), l.nombre);
-      b.onclick = () => this.elegir(l); n.appendChild(b);
+    const todas = this.vistas.length > 1 && this.vistas.every(v => this.sel.has(v.id));
+    if (this.vistas.length > 2) { const t = el('button', 'chip' + (todas ? ' on' : ''), 'Todas'); t.onclick = () => this.elegir(this.vistas.map(v => v.id)); n.appendChild(t); }
+    for (const v of this.vistas) {
+      const b = el('button', 'chip' + (!todas && this.sel.has(v.id) ? ' on' : '') + (todas ? ' suave' : ''), v.nombre);
+      let largo = null, hecho = false;
+      b.addEventListener('pointerdown', () => { hecho = false; largo = setTimeout(() => { hecho = true; if (navigator.vibrate) navigator.vibrate(12); this.sumar(v.id); }, 500); });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => b.addEventListener(t, () => clearTimeout(largo)));
+      b.addEventListener('contextmenu', e => e.preventDefault());
+      b.onclick = e => { if (hecho) { hecho = false; return; } if (e.metaKey || e.ctrlKey) this.sumar(v.id); else this.elegir([v.id]); };
+      n.appendChild(b);
     }
-    n.style.display = this.libs.length > 1 ? '' : 'none';
+    n.style.display = this.vistas.length > 1 ? '' : 'none';
+    const on = n.querySelector('.chip.on'); if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   },
-  async elegir(lib, soloCache) {
-    if (!lib) return;
-    this.actual = lib; Pref.set('lib', lib.clave); this.dibujarChips();
-    $('#barraLocal').style.display = lib.local ? '' : 'none';
-    if (lib.local) {
-      this.canciones = Local.lista(); this.miniaturas = {}; this.estado(''); this.dibujar();
-      for (const c of this.canciones) if (c.miniatura) Local.miniatura(c.id).then(u => { if (u && this.actual === lib) { this.miniaturas[c.id] = u; this.dibujar(); } });
-      return;
-    }
-    const cache = Nube.catalogoGuardado(lib);
+  sumar(id) {
+    const s = new Set(this.sel);
+    if (s.has(id) && s.size > 1) s.delete(id); else s.add(id);
+    Pref.set('vioSumar', true);
+    this.elegir([...s]);
+  },
+  elegir(ids) {
+    this.sel = new Set(ids); Pref.set('vistas', [...this.sel]);
+    if (ids.length === 1 && !Pref.get('vioSumar', false) && this.vistas.length > 1 && !this.avisoSumar) { this.avisoSumar = true; aviso('Tip: mantené apretada otra pestaña para sumarla (ver varias juntas).', 4000); }
+    this.dibujarChips(); this.dibujar();
+  },
+  // lee el catálogo de TODAS las bibliotecas (lo guardado primero, después lo de la nube): cambiar de pestaña y buscar es instantáneo
+  async cargarTodo(soloCache) {
     this.guardadas = await Nube.idsGuardados();
-    if (cache) { this.canciones = cache; this.dibujar(); }
-    else { this.canciones = []; this.dibujar(); this.estado('Leyendo tu biblioteca…'); }
-    if (soloCache) return;
-    try {
-      const { canciones, miniaturas } = await Nube.catalogo(lib, (a, b) => { if (!cache) this.estado(`Leyendo tu biblioteca… ${a} de ${b}`); });
-      if (this.actual !== lib) return;
-      this.canciones = canciones; this.miniaturas = miniaturas; this.dibujar();
-      anotar('catálogo', lib.carpeta, canciones.length + ' con Máxima');
-    } catch (e) {
-      anotar('catálogo', e);
-      if (!cache) this.estado('No pude leer el catálogo: ' + e.message);
+    for (const l of this.libs) {
+      if (l.local) { this.porLib[l.clave] = Local.lista(); for (const c of this.porLib[l.clave]) if (c.miniatura && !this.miniaturas['local|' + c.id]) Local.miniatura(c.id).then(u => { if (u) { this.miniaturas['local|' + c.id] = u; this.dibujar(); } }); continue; }
+      const cache = Nube.catalogoGuardado(l); if (cache) this.porLib[l.clave] = cache;
     }
+    this.dibujar();
+    if (soloCache) return;
+    await Promise.all(this.libs.filter(l => !l.local).map(async l => {
+      try {
+        const { canciones, miniaturas } = await Nube.catalogo(l, (a, b) => { if (!this.porLib[l.clave] && this.seVe(l)) this.estado(`Leyendo ${l.nombre === 'Mías' ? 'tu biblioteca' : l.nombre}… ${a} de ${b}`); });
+        this.porLib[l.clave] = canciones;
+        for (const id in miniaturas) this.miniaturas[l.clave + '|' + id] = miniaturas[id];
+        anotar('catálogo', l.carpeta, canciones.length + ' con Máxima');
+      } catch (e) { anotar('catálogo', l.carpeta, e); if (!this.porLib[l.clave]) this.porLib[l.clave] = []; this.error = 'No pude leer «' + l.carpeta + '»: ' + e.message; }
+      this.dibujar();
+    }));
   },
+  seVe(l) { return this.vistas.some(v => v.lib === l && this.sel.has(v.id)); },
+  recargarLocal() { this.porLib.local = Local.lista(); this.dibujar(); },
   estado(t) { $('#estadoBib').textContent = t || ''; $('#estadoBib').style.display = t ? '' : 'none'; },
   dibujar() {
-    const q = ($('#q').value || '').trim().toLowerCase();
-    const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const q = ($('#q').value || '').trim();
+    const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const qq = norm(q);
-    const lista = this.canciones.filter(c => !qq || norm(c.titulo + ' ' + c.artista + ' ' + (c.album || '')).includes(qq));
+    const coincide = c => !qq || norm(c.titulo + ' ' + c.artista + ' ' + (c.album || '')).includes(qq);
+    const elegidas = this.vistas.filter(v => this.sel.has(v.id));
+    const varias = new Set(elegidas.map(v => v.lib)).size > 1;
+    const todos = [], vistos = new Set();
+    let cargando = false;
+    for (const v of elegidas) {
+      const cs = this.porLib[v.lib.clave]; if (!cs) { cargando = true; continue; }
+      for (const c of cs) if (v.filtro(c) && !vistos.has(v.lib.clave + '|' + c.id)) { vistos.add(v.lib.clave + '|' + c.id); todos.push({ c, lib: v.lib }); }
+    }
+    const lista = todos.filter(x => coincide(x.c));
     const col = new Intl.Collator('es', { numeric: true, sensitivity: 'base' });
-    lista.sort((a, b) => col.compare(a.artista || '', b.artista || '') || col.compare(a.album || '', b.album || '') || col.compare(a.titulo || '', b.titulo || ''));
+    lista.sort((a, b) => col.compare(a.c.artista || '', b.c.artista || '') || col.compare(a.c.album || '', b.c.album || '') || col.compare(a.c.titulo || '', b.c.titulo || ''));
+    $('#barraLocal').style.display = elegidas.some(v => v.lib.local) ? '' : 'none';
     const cont = $('#lista'); cont.innerHTML = '';
     let artista = null;
-    for (const c of lista) {
+    for (const { c, lib } of lista) {
       if (!qq && (c.artista || '') !== artista) { artista = c.artista || ''; cont.appendChild(el('div', 'grupoArt', artista || 'Sin artista')); }
       const f = el('button', 'tema');
       const mini = el('div', 'mini');
-      const url = this.miniaturas[c.id];
+      const url = this.miniaturas[(lib.local ? 'local' : lib.clave) + '|' + c.id];
       if (url) { const im = new Image(); im.loading = 'lazy'; im.src = url; im.onerror = () => im.remove(); mini.appendChild(im); }
       f.appendChild(mini);
       const tx = el('div', 'tx');
@@ -1857,10 +1903,10 @@ const Bib = {
       tx.appendChild(el('div', 'sub', sub));
       f.appendChild(tx);
       const ic = el('div', 'iconos');
-      if (c.privada) ic.appendChild(el('span', 'ic', '🔒'));
-      if (!this.actual.local && this.guardadas.has(this.actual.clave + '|' + c.id)) ic.appendChild(el('span', 'ic guard', '●'));
+      if (varias) ic.appendChild(el('span', 'ic deLib', lib.local ? '📱' : lib.mia ? (c.privada ? '🔒' : 'mía') : lib.nombre));
+      else if (c.privada) ic.appendChild(el('span', 'ic', '🔒'));
+      if (!lib.local && this.guardadas.has(lib.clave + '|' + c.id)) ic.appendChild(el('span', 'ic guard', '●'));
       f.appendChild(ic);
-      const lib = this.actual;
       let largo = null, hecho = false;
       const soltar = () => { clearTimeout(largo); largo = null; f.classList.remove('apretado'); };
       f.addEventListener('pointerdown', () => { hecho = false; f.classList.add('apretado'); largo = setTimeout(() => { soltar(); hecho = true; if (navigator.vibrate) navigator.vibrate(15); this.acciones(c, lib); }, 600); });
@@ -1869,11 +1915,17 @@ const Bib = {
       f.onclick = () => { if (hecho) { hecho = false; return; } abrirCancion(c, lib); };
       cont.appendChild(f);
     }
-    if (!lista.length && this.canciones.length) this.estado('Nada coincide con “' + q + '”.');
-    else if (!this.canciones.length && this.actual && this.actual.local) this.estado('Todavía no hay canciones en ' + EQUIPO + '. Tocá «Importar .youstem» y elegí los archivos que te pasaron (podés elegir varios).');
-    else if (!this.canciones.length) { if (!$('#estadoBib').textContent) this.estado('Esta biblioteca todavía no tiene canciones en calidad Máxima.'); }
-    else this.estado('');
-    $('#cuenta').textContent = this.canciones.length ? lista.length + ' de ' + this.canciones.length : '';
+    // el buscador busca en las pestañas elegidas; si hay en otras, lo avisa
+    let otras = 0;
+    if (qq && this.vistas.length > elegidas.length)
+      for (const v of this.vistas) if (!this.sel.has(v.id)) for (const c of this.porLib[v.lib.clave] || []) if (v.filtro(c) && coincide(c)) otras++;
+    const soloLocal = elegidas.length === 1 && elegidas[0].lib.local;
+    if (qq && !lista.length) this.estado('Nada coincide con “' + q + '” acá.' + (otras ? ' En otras pestañas hay ' + otras + ': tocá «Todas».' : ''));
+    else if (!todos.length && cargando) this.estado('Leyendo tu biblioteca…');
+    else if (!todos.length && soloLocal) this.estado('Todavía no hay canciones en ' + EQUIPO + '. Tocá «Importar .youstem» y elegí los archivos que te pasaron (podés elegir varios).');
+    else if (!todos.length) this.estado(this.error || (elegidas.some(v => v.id === 'priv') && elegidas.length === 1 ? 'No tenés canciones privadas en calidad Máxima.' : 'Acá todavía no hay canciones en calidad Máxima.'));
+    else this.estado(qq && otras ? 'También hay ' + otras + ' en otras pestañas (tocá «Todas»).' : '');
+    $('#cuenta').textContent = todos.length ? lista.length + ' de ' + todos.length : '';
   },
   // mantener apretada una canción: compartirla o borrarla
   acciones(c, lib) {
@@ -1896,7 +1948,7 @@ const Bib = {
     await Local.borrar(lib.clave, c.id);
     this.guardadas.delete(lib.clave + '|' + c.id);
     anotar('borrada', lib.clave, c.id);
-    if (lib.local) this.canciones = Local.lista();
+    if (lib.local) this.porLib.local = Local.lista();
     this.dibujar(); aviso('Borrada: ' + t);
   }
 };
@@ -2692,7 +2744,7 @@ async function importar(archivos, deCarpeta) {
   if (res.nuevas.length || res.corr || res.estaban.length) {
     if (!$('#pBib').classList.contains('activa') && !$('#pRep').classList.contains('activa')) pantalla('pBib');
     Bib.asegurarLocal();
-    if (res.nuevas.length || !Bib.actual) Bib.elegir(Local.LIB); else if (Bib.actual.local) Bib.elegir(Local.LIB);
+    Bib.recargarLocal(); if (res.nuevas.length) Bib.elegir(['local']);
     if (res.corr && Rep.cancion && Rep.lib && Rep.lib.local && $('#pRep').classList.contains('activa')) aviso('Corrección aplicada: volvé a abrir la canción para verla.', 5000);
   }
 }
