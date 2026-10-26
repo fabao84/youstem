@@ -53,7 +53,13 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .chip.on{background:var(--texto);color:#111}
 .chip.suave{background:#3a4350;color:var(--texto)}
 .ic.deLib{color:var(--gris);font-size:11px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.buscar{padding:0 14px 8px;flex:none}
+.buscar{padding:0 14px 8px;flex:none;display:flex;gap:8px}
+.buscar input{flex:1;min-width:0}
+.filtroG{flex:none;padding:0 12px;border-radius:12px;background:var(--panel2);color:var(--gris);font-weight:650;font-size:13px;white-space:nowrap}
+.filtroG.on{background:var(--verde);color:#08240f}
+.bajando{display:flex;align-items:center;gap:10px;margin:0 14px 8px;padding:8px 12px;border-radius:12px;background:#1f3446;color:var(--acorde);font-size:13px;font-weight:600;flex:none}
+.bajando span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bajando button{color:var(--texto);background:var(--panel2);padding:5px 10px;border-radius:8px;font-size:13px}
 .buscar input{-webkit-user-select:text;user-select:text;width:100%;padding:11px 14px;border-radius:12px;border:0;background:var(--panel2);color:var(--texto);font:inherit;font-size:16px;outline:none}
 .estado{padding:28px 24px;color:var(--gris);text-align:center}
 .barraLocal{display:flex;gap:8px;padding:0 14px 8px;flex:none;flex-wrap:wrap}
@@ -374,7 +380,8 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="btnMenu" class="icono" aria-label="Menú">⋯</button>
   </header>
   <nav id="libs" class="chips"></nav>
-  <div class="buscar"><input id="q" type="search" placeholder="Buscar canción o artista" autocomplete="off" autocorrect="off" spellcheck="false"></div>
+  <div class="buscar"><input id="q" type="search" placeholder="Buscar canción o artista" autocomplete="off" autocorrect="off" spellcheck="false"><button id="btnGuardadas" class="filtroG" title="Solo las guardadas en el teléfono (sin conexión)">⬇ Guardadas</button></div>
+  <div id="bajando" class="bajando" style="display:none"><span id="bajTxt"></span><button id="bajCortar">Detener</button></div>
   <div id="barraLocal" class="barraLocal" style="display:none"><button id="btnImportar">＋ Importar .youstem</button><button id="btnCarpeta" style="display:none"></button></div>
   <div id="estadoBib" class="estado" style="display:none"></div>
   <div id="lista" class="lista"></div>
@@ -447,6 +454,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="menuMac">Volver a la mezcla y el tono de la Mac</button>
     <button id="menuCuenta">Cuenta: 1 compás</button>
     <button id="menuRecargar">Recargar la biblioteca</button>
+    <button id="menuBajarLista">⬇ Guardar las de la lista (para sin conexión)</button>
     <button id="menuBorrar">Borrar canciones guardadas en el iPhone<span id="menuEspacio" class="gris"></span></button>
     <button id="menuRegistro">Ver registro</button>
     <button id="menuSalir" class="rojo">Cerrar sesión</button>
@@ -457,6 +465,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
   <div class="hojaCaja">
     <div class="hojaTit"><span id="accTit"></span><span id="accSub" class="gris"></span></div>
     <button id="accCompartir">Compartir la canción (.youstem)</button>
+    <button id="accGuardar">⬇ Guardar para sin conexión</button>
     <button id="accPrivada"></button>
     <button id="accBorrar" class="rojo"></button>
     <button id="accCerrar" class="cerrar">Cancelar</button>
@@ -1406,7 +1415,7 @@ const Nube = (() => {
       if (datos.nivel !== 'maximo' && datos.nivel !== 'editado') continue;
       const previa = vistas[datos.id];
       if (previa && (previa.editado || 0) >= (datos.editado || 0)) continue;
-      vistas[datos.id] = { ...datos, raiz, privada };
+      vistas[datos.id] = { ...datos, raiz, privada: typeof datos.privadaPedida === 'boolean' ? datos.privadaPedida : privada, privadaCarpeta: privada };   // (0.3.13) lo pedido manda (protocolo 1.4.5)
     }
     return Object.values(vistas);
   }
@@ -1475,21 +1484,28 @@ const Nube = (() => {
     if (!r.ok) { const e = new Error('no pude crear ' + nombre + ' (' + r.status + ')'); e.sinPermiso = r.status === 401 || r.status === 403; throw e; }
     return (await r.json()).id;
   }
+  // sin reemplazar: si en el destino ya hay algo (409), se deja; la Mac junta las dos en la próxima sincronización
   async function moverItem(it, destId) {
-    const r = await g(`/drives/${it.parentReference.driveId}/items/${it.id}?@microsoft.graph.conflictBehavior=replace`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parentReference: { id: destId }, name: it.name }) });
+    const r = await g(`/drives/${it.parentReference.driveId}/items/${it.id}?@microsoft.graph.conflictBehavior=fail`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parentReference: { id: destId }, name: it.name }) });
+    if (r.status === 409) return false;
     if (!r.ok) { const e = new Error('no pude mover ' + it.name + ' (' + r.status + ')'); e.status = r.status; e.sinPermiso = r.status === 401 || r.status === 403; throw e; }
+    return true;
   }
+  // protocolo de privadas (Mac 1.4.5, claude/YouSTEM-protocolo-privadas-web.md):
+  // 1) la ficha EN SU LUGAR dice lo pedido (privadaPedida + privadaCambio) · 2) carpeta · 3) miniatura · 4) la ficha, última.
+  // Si algo se corta a mitad de camino no se deshace nada: la próxima sincronización de una Mac termina la mudanza.
   async function moverCancion(id, desde, hasta) {
-    const cat = await itemEn(desde, 'catalogo/' + id + '.json');
-    if (!cat) throw new Error('no está en esa carpeta (¿ya se movió?)');
+    const ruta = 'catalogo/' + id + '.json';
+    if (!(await itemEn(desde, ruta))) throw new Error('no está en esa carpeta (¿ya se movió?)');
+    const datos = await leerJson(desde, ruta);
+    datos.privadaPedida = !!hasta.privada; datos.privadaCambio = Date.now(); delete datos.privada;
+    await escribir(desde, ruta, JSON.stringify(datos));
     const dir = await itemEn(desde, 'canciones/' + id);
     if (dir) await moverItem(dir, await carpetaEn(hasta, 'canciones'));
     const mini = await itemEn(desde, 'miniaturas/' + id + '.jpg');
     if (mini) await moverItem(mini, await carpetaEn(hasta, 'miniaturas'));
-    const datos = await leerJson(desde, 'catalogo/' + id + '.json');
-    datos.privadaCambio = Date.now(); delete datos.privada;
-    await escribir(desde, 'catalogo/' + id + '.json', JSON.stringify(datos));
-    await moverItem(await itemEn(desde, 'catalogo/' + id + '.json'), await carpetaEn(hasta, 'catalogo'));
+    const ficha = await itemEn(desde, ruta);
+    if (ficha) await moverItem(ficha, await carpetaEn(hasta, 'catalogo'));
   }
   function pedirEscritura() { try { localStorage.setItem('ys.escribir', '1'); } catch {} return entrar(); }
 
@@ -1784,7 +1800,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.3.12';
+const VERSION = '0.3.13';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2041,7 +2057,11 @@ const Bib = {
       const cs = this.porLib[v.lib.clave]; if (!cs) { cargando = true; continue; }
       for (const c of cs) if (v.filtro(c) && !vistos.has(v.lib.clave + '|' + c.id)) { vistos.add(v.lib.clave + '|' + c.id); todos.push({ c, lib: v.lib }); }
     }
-    const lista = todos.filter(x => coincide(x.c));
+    const soloGuardadas = Pref.get('soloGuardadas', false);
+    const guardada = x => x.lib.local || this.guardadas.has(x.lib.clave + '|' + x.c.id);
+    const lista = todos.filter(x => coincide(x.c) && (!soloGuardadas || guardada(x)));
+    this.listaVisible = lista;
+    $('#btnGuardadas').classList.toggle('on', soloGuardadas);
     const col = new Intl.Collator('es', { numeric: true, sensitivity: 'base' });
     lista.sort((a, b) => col.compare(a.c.artista || '', b.c.artista || '') || col.compare(a.c.album || '', b.c.album || '') || col.compare(a.c.titulo || '', b.c.titulo || ''));
     $('#barraLocal').style.display = elegidas.some(v => v.lib.local) ? '' : 'none';
@@ -2052,7 +2072,8 @@ const Bib = {
       const f = el('button', 'tema');
       const mini = el('div', 'mini');
       const url = this.miniaturas[(lib.local ? 'local' : lib.clave) + '|' + c.id];
-      if (url) { const im = new Image(); im.loading = 'lazy'; im.src = url; im.onerror = () => im.remove(); mini.appendChild(im); }
+      const deCache = () => { if (lib.local || !this.guardadas.has(lib.clave + '|' + c.id)) return; Nube.enCache(Nube.claveCache(lib.clave, c.id, 'miniatura.jpg')).then(b => { if (b) { const u = URL.createObjectURL(new Blob([b], { type: 'image/jpeg' })); this.miniaturas[lib.clave + '|' + c.id] = u; mini.innerHTML = ''; const im = new Image(); im.src = u; mini.appendChild(im); } }); };
+      if (url) { const im = new Image(); im.loading = 'lazy'; im.src = url; im.onerror = () => { im.remove(); deCache(); }; mini.appendChild(im); } else deCache();
       f.appendChild(mini);
       const tx = el('div', 'tx');
       tx.appendChild(el('div', 'tit', c.titulo || c.id));
@@ -2062,6 +2083,7 @@ const Bib = {
       const ic = el('div', 'iconos');
       if (varias) ic.appendChild(el('span', 'ic deLib', lib.local ? '📱' : lib.mia ? (c.privada ? '🔒' : 'mía') : lib.nombre));
       else if (c.privada) ic.appendChild(el('span', 'ic', '🔒'));
+      if (c.privadaCarpeta !== undefined && c.privada !== c.privadaCarpeta) ic.appendChild(el('span', 'ic deLib', 'pasando…'));
       if (!lib.local && this.guardadas.has(lib.clave + '|' + c.id)) ic.appendChild(el('span', 'ic guard', '●'));
       // (0.3.12) las opciones (compartir, privada/banda, borrar) van en el ⋯ de cada fila: mantener apretado saltaba al hacer scroll
       const mas = el('span', 'masFila', '⋯'); mas.setAttribute('role', 'button'); mas.setAttribute('aria-label', 'Opciones de la canción');
@@ -2076,7 +2098,8 @@ const Bib = {
     if (qq && this.vistas.length > elegidas.length)
       for (const v of this.vistas) if (!this.sel.has(v.id)) for (const c of this.porLib[v.lib.clave] || []) if (v.filtro(c) && coincide(c)) otras++;
     const soloLocal = elegidas.length === 1 && elegidas[0].lib.local;
-    if (qq && !lista.length) this.estado('Nada coincide con “' + q + '” acá.' + (otras ? ' En otras pestañas hay ' + otras + ': tocá «Todas».' : ''));
+    if (soloGuardadas && !lista.length && todos.length && !qq) this.estado('Ninguna de estas está guardada en ' + EQUIPO + ' todavía. Tocá ⋯ en una canción › «Guardar para sin conexión», o Menú ⋯ › «Guardar las de la lista».');
+    else if (qq && !lista.length) this.estado('Nada coincide con “' + q + '” acá.' + (otras ? ' En otras pestañas hay ' + otras + ': tocá «Todas».' : ''));
     else if (!todos.length && cargando) this.estado('Leyendo tu biblioteca…');
     else if (!todos.length && soloLocal) this.estado('Todavía no hay canciones en ' + EQUIPO + '. Tocá «Importar .youstem» y elegí los archivos que te pasaron (podés elegir varios).');
     else if (!todos.length) this.estado(this.error || (elegidas.some(v => v.id === 'priv') && elegidas.length === 1 ? 'No tenés canciones privadas en calidad Máxima.' : 'Acá todavía no hay canciones en calidad Máxima.'));
@@ -2090,6 +2113,8 @@ const Bib = {
     $('#accBorrar').textContent = lib.local ? 'Borrar de ' + EQUIPO : 'Borrar la copia guardada en ' + EQUIPO;
     $('#accBorrar').style.display = guardada ? '' : 'none';
     $('#accCompartir').onclick = () => { $('#acciones').classList.remove('ver'); compartirCancion(c, lib); };
+    $('#accGuardar').style.display = !lib.local && !guardada ? '' : 'none';
+    $('#accGuardar').onclick = () => { $('#acciones').classList.remove('ver'); Descargas.agregar([{ c, lib }]); };
     // (0.3.12) privada ↔ banda: solo lo tuyo, y solo si tenés las dos carpetas
     const puedeMover = lib.mia && lib.raices.some(r => r.privada) && lib.raices.some(r => !r.privada);
     $('#accPrivada').style.display = puedeMover ? '' : 'none';
@@ -2839,6 +2864,7 @@ async function abrirMenu() {
   $('#menuConectar').style.display = con ? 'none' : '';
   $('#menuSalir').style.display = con ? '' : 'none';
   $('#menuBorrar').style.display = con ? '' : 'none';
+  $('#menuBajarLista').style.display = con && $('#pBib').classList.contains('activa') ? '' : 'none';
   $('#menuRecargar').style.display = con ? '' : 'none';
   $('#menuCarpeta').style.display = Local.hayCarpetas() ? '' : 'none';
   if (Local.hayCarpetas()) Local.carpeta().then(h => $('#menuCarpetaNombre').textContent = h ? ' · ' + h.name : ' · ninguna');
@@ -2872,9 +2898,65 @@ $('#menuDescartar').onclick = () => {
   try { localStorage.removeItem('ys.ed.' + lib.clave + '|' + c.id); } catch {}
   cerrarMenu(); abrirCancion(c, lib);
 };
+$('#btnGuardadas').onclick = () => { Pref.set('soloGuardadas', !Pref.get('soloGuardadas', false)); Bib.dibujar(); aviso(Pref.get('soloGuardadas', false) ? 'Solo las guardadas en ' + EQUIPO + ' (se escuchan sin conexión).' : 'Todas.', 1800); };
+$('#menuBajarLista').onclick = () => {
+  cerrarMenu();
+  const faltan = (Bib.listaVisible || []).filter(x => !x.lib.local && !Bib.guardadas.has(x.lib.clave + '|' + x.c.id));
+  if (!faltan.length) { aviso('Las de la lista ya están todas guardadas en ' + EQUIPO + '.'); return; }
+  const mb = faltan.reduce((s, x) => s + Object.entries(x.c.archivos || {}).filter(([k]) => /\.mp3$/i.test(k) && k.startsWith('pistas-' + x.c.nivel + '/')).reduce((a, [, v]) => a + v, 0), 0) / 1048576;
+  if (!confirm('¿Guardar en ' + EQUIPO + ' las ' + faltan.length + ' canciones de la lista para escucharlas sin conexión?' + (mb > 1 ? '\n\nSon unos ' + Math.round(mb) + ' MB: mejor con wifi.' : ''))) return;
+  Descargas.agregar(faltan);
+};
+$('#bajCortar').onclick = () => Descargas.cortar();
 $('#accCerrar').onclick = () => $('#acciones').classList.remove('ver');
 $('#acciones').addEventListener('click', e => { if (e.target.id === 'acciones') $('#acciones').classList.remove('ver'); });
 $('#btnCompartir').onclick = () => Rep.cancion && compartirCancion(Rep.cancion, Rep.lib);
+
+// ══════════════════════ (0.3.13) Guardar para sin conexión: baja la canción entera (pistas, letra, acordes) sin abrirla ══════════════════════
+const Descargas = {
+  cola: [], activo: false, hechas: 0, total: 0, parar: false,
+  agregar(items) {
+    for (const x of items) if (!this.cola.some(y => y.c.id === x.c.id && y.lib.clave === x.lib.clave)) this.cola.push(x);
+    this.total = this.hechas + this.cola.length + (this.activo ? 1 : 0);
+    try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
+    this.pintar(); if (!this.activo) this.seguir();
+  },
+  cortar() { this.cola = []; this.parar = true; this.pintar('Deteniendo…'); },
+  pintar(txt) {
+    const b = $('#bajando');
+    if (!this.activo && !this.cola.length) { b.style.display = 'none'; return; }
+    b.style.display = '';
+    $('#bajTxt').textContent = txt || ('Guardando para sin conexión ' + Math.min(this.hechas + 1, this.total) + ' de ' + this.total + (this.actual ? ': ' + (this.actual.c.titulo || this.actual.c.id) : '') + (this.pct != null ? ' · ' + this.pct + '%' : ''));
+  },
+  async seguir() {
+    this.activo = true; this.parar = false;
+    let errores = 0;
+    while (this.cola.length && !this.parar) {
+      const x = this.cola.shift(); this.actual = x; this.pct = 0; this.pintar();
+      try { await guardarCancion(x.c, x.lib, f => { this.pct = Math.round(f * 100); this.pintar(); }); Bib.guardadas.add(x.lib.clave + '|' + x.c.id); anotar('guardada sin conexión', x.c.id); }
+      catch (e) { errores++; anotar('guardar sin conexión', x.c.id, e); if (e.sinSesion) { this.cola = []; sesionVencida(); break; } }
+      this.hechas++; Bib.dibujar();
+    }
+    const n = this.hechas - errores;
+    this.activo = false; this.actual = null; this.pct = null; this.hechas = 0; this.total = 0; this.pintar();
+    aviso((this.parar ? 'Detenido. ' : '') + (n ? n + (n === 1 ? ' canción guardada' : ' canciones guardadas') + ' en ' + EQUIPO + '.' : '') + (errores ? ' ' + errores + ' no se pudieron bajar (ver registro).' : ''), 4000);
+  }
+};
+async function guardarCancion(c, lib, avance) {
+  const a = await Nube.archivosDe(c);
+  const clave = rel => Nube.claveCache(lib.clave, c.id, rel);
+  const datos = a.raiz.filter(x => /\.(json|txt)$/i.test(x.name) || x.name === 'miniatura.jpg');
+  const mp3 = new Set(a.pistas.filter(x => /\.mp3$/i.test(x.name)).map(x => x.name.replace(/\.[^.]+$/, '')));
+  const pistas = a.pistas.filter(x => x.name === 'stems.json' || (/\.(mp3|m4a|flac|wav)$/i.test(x.name) && (/\.mp3$/i.test(x.name) || !mp3.has(x.name.replace(/\.[^.]+$/, '')))));
+  const total = [...datos, ...pistas].reduce((s, x) => s + (x.size || 0), 0) || 1;
+  let hecho = 0;
+  for (const x of datos) { await Nube.bajar(x, clave(x.name)); hecho += x.size || 0; avance && avance(hecho / total); }
+  for (const x of pistas) { const base = hecho; await Nube.bajar(x, clave(a.dirPistas + '/' + x.name), n => avance && avance(Math.min(1, (base + n) / total))); hecho += x.size || 0; }
+  // la miniatura del catálogo (para verla sin conexión)
+  const url = Bib.miniaturas[lib.clave + '|' + c.id];
+  if (url && !(await Nube.enCache(clave('miniatura.jpg')))) try { const r = await fetch(url); if (r.ok) await Nube.ponerCache(clave('miniatura.jpg'), await r.arrayBuffer(), 'mini'); } catch {}
+  await Nube.guardarManifiesto(clave('manifiesto'), { raiz: a.raiz.map(x => ({ name: x.name })), pistas: a.pistas.map(x => ({ name: x.name })), dir: a.dirPistas });
+}
 
 // ══════════════════════ (0.3.12) Privada ↔ banda: se mueve en TU OneDrive (como la Mac), sin subir ni bajar nada ══════════════════════
 async function cambiarPrivada(c, lib, aPrivada) {
@@ -2884,13 +2966,14 @@ async function cambiarPrivada(c, lib, aPrivada) {
     if (confirm('Para mover canciones en tu OneDrive, Microsoft te va a pedir permiso para escribir en tu carpeta (una sola vez). Después volvé a elegir la canción. ¿Seguimos?')) Nube.pedirEscritura();
     return;
   }
-  const desde = lib.raices.find(r => !!r.privada === !aPrivada), hasta = lib.raices.find(r => !!r.privada === aPrivada);
+  const hasta = lib.raices.find(r => !!r.privada === aPrivada);
+  const desde = (c.raiz && lib.raices.find(r => r.id === c.raiz.id)) || lib.raices.find(r => !!r.privada === !aPrivada);
   if (!desde || !hasta) { aviso('No encontré tus dos carpetas (privada y compartida).'); return; }
   try {
     cargando((aPrivada ? 'Volviendo privada ' : 'Compartiendo ') + t + '…');
     await Nube.moverCancion(c.id, desde, hasta);
     anotar('privacidad', c.id, aPrivada ? '→ privada' : '→ banda');
-    c.privada = aPrivada; c.raiz = hasta;
+    c.privada = aPrivada; c.privadaCarpeta = aPrivada; c.raiz = hasta;
     Bib.dibujar();
     aviso(aPrivada ? t + ' ahora es privada.' : t + ' ya la ve la banda.', 3500);
     Bib.cargarTodo();
