@@ -19,6 +19,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body{touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;margin:0;height:100%;background:var(--fondo);color:var(--texto);font:15px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;overflow:hidden;overscroll-behavior:none}
 body{position:fixed;left:0;right:0;top:0;bottom:0}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;touch-action:manipulation}
@@ -186,8 +187,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .izq{flex:1.35;min-width:0}
   .der{flex:1;min-width:0;padding-bottom:4px}
   .mezcla{flex:1;height:auto;min-height:0}
-  .tele{font-size:clamp(18px,3.1vw,36px)}
-  .acAhora{font-size:28px}
+  .tele{font-size:clamp(19px,5.6vmin,38px)}   /* (0.4.1) la misma letra que en vertical (el lado corto manda) */
+  .acAhora{font-size:34px}
 }
 
 /* ── capas ── */
@@ -1481,6 +1482,9 @@ const Nube = (() => {
     try { await cache.put(clave, new Response(buf.slice(0), { headers: { 'x-etag': item.eTag || '', 'content-type': 'application/octet-stream' } })); } catch {}
     return buf;
   }
+  // (0.4.1) ¿está guardado? y con qué eTag (sin leer el archivo)
+  async function hay(clave) { try { const c = await caches.open(CACHE); return !!(await c.match(clave)); } catch { return false; } }
+  async function etagCache(clave) { try { const c = await caches.open(CACHE); const r = await c.match(clave); return r ? (r.headers.get('x-etag') || '') : null; } catch { return null; } }
   async function enCache(clave) { try { const c = await caches.open(CACHE); const r = await c.match(clave); return r ? r.arrayBuffer() : null; } catch { return null; } }
   async function ponerCache(clave, texto, etag) { try { const c = await caches.open(CACHE); await c.put(clave, new Response(texto, { headers: { 'x-etag': etag || '', 'content-type': 'application/octet-stream' } })); } catch {} }
   async function guardarManifiesto(clave, m) { try { const c = await caches.open(CACHE); await c.put(clave, new Response(JSON.stringify(m))); } catch {} }
@@ -1541,7 +1545,7 @@ const Nube = (() => {
   async function espacio() { try { const e = await navigator.storage.estimate(); return e.usage || 0; } catch { return 0; } }
 
   return { entrar, atenderVuelta, conectado, salir, token, yo, bibliotecas, catalogo, catalogoGuardado, archivosDe, bajar, enCache,
-           guardarManifiesto, idsGuardados, borrarTodo, espacio, claveCache, CLIENTE, leerJson, escribir, ponerCache, moverCancion, pedirEscritura, quiereEscribir, rutaItem };
+           guardarManifiesto, idsGuardados, hay, etagCache, borrarTodo, espacio, claveCache, CLIENTE, leerJson, escribir, ponerCache, moverCancion, pedirEscritura, quiereEscribir, rutaItem };
 })();
 
 // ── Local: usar sin nube. Importar .youstem / .youstemcorr, guardar en el dispositivo, carpeta en la computadora ──
@@ -1826,7 +1830,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.4.0';
+const VERSION = '0.4.1';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2227,45 +2231,63 @@ async function abrirCancion(c, lib, op = {}) {
     cargando('Abriendo ' + (c.titulo || c.id) + '…');
     const clave = rel => Nube.claveCache(lib.clave, c.id, rel);
     let man;
+    // (0.4.1) lo que ya está guardado en el aparato se abre DIRECTO, sin preguntar a OneDrive (sin internet o con mala
+    // señal antes tardaba); si hay cambios en la nube se revisa después, con la canción ya sonando
+    const deManifiesto = async () => { const m = await Nube.enCache(clave('manifiesto')); return m ? JSON.parse(new TextDecoder().decode(m)) : null; };
     if (lib.local) {
-      const m = await Nube.enCache(clave('manifiesto'));
-      if (!m) throw new Error('Esta canción ya no está en ' + EQUIPO + ': importala de nuevo.');
-      man = JSON.parse(new TextDecoder().decode(m)); man.offline = true; man.local = true;
-    } else try {
-      const a = await Nube.archivosDe(c);
-      man = { raiz: a.raiz, pistas: a.pistas, dir: a.dirPistas };
-      Nube.guardarManifiesto(clave('manifiesto'), { raiz: a.raiz.map(x => ({ name: x.name })), pistas: a.pistas.map(x => ({ name: x.name })), dir: a.dirPistas });
-    } catch (e) {
-      anotar('lista de archivos', e);
-      if (e.sinSesion) throw e;
-      const m = await Nube.enCache(clave('manifiesto'));
-      if (!m) throw new Error('Sin conexión, y esta canción todavía no está guardada en el iPhone.');
-      man = JSON.parse(new TextDecoder().decode(m)); man.offline = true;
-    }
-    if (turno !== abriendo) return;
-    const item = (lista, n) => man.offline ? null : lista.find(x => x.name === n);
-    const json = async n => {
-      if (!man.raiz.find(x => x.name === n)) return null;
-      try { return JSON.parse(new TextDecoder().decode(await Nube.bajar(item(man.raiz, n), clave(n)))); } catch (e) { anotar(n, e); return null; }
+      man = await deManifiesto();
+      if (!man) throw new Error('Esta canción ya no está en ' + EQUIPO + ': importala de nuevo.');
+      man.offline = true; man.local = true;
+    } else if (!op.red && (man = await deManifiesto())) { man.offline = true; man.deCache = true; }
+    else man = null;
+    const deLaRed = async () => {
+      try {
+        const a = await Nube.archivosDe(c);
+        Nube.guardarManifiesto(clave('manifiesto'), { raiz: a.raiz.map(x => ({ name: x.name })), pistas: a.pistas.map(x => ({ name: x.name })), dir: a.dirPistas });
+        return { raiz: a.raiz, pistas: a.pistas, dir: a.dirPistas };
+      } catch (e) {
+        anotar('lista de archivos', e);
+        if (e.sinSesion) throw e;
+        const m = await deManifiesto();
+        if (!m) throw new Error('Sin conexión, y esta canción todavía no está guardada en ' + EQUIPO + '.');
+        m.offline = true; return m;
+      }
     };
-    let [anJ, leJ, ajJ, vmJ] = await Promise.all([json('analisis.json'), json('letra.json'), json('ajustes.json'), json('voz-midi.json')]);
+    if (!man) man = await deLaRed();
+    if (turno !== abriendo) return;
+    let anJ, leJ, ajJ, vmJ, pistas, compensacion;
+    for (let vuelta = 0; vuelta < 2; vuelta++) {
+      const item = (lista, n) => man.offline ? null : lista.find(x => x.name === n);
+      const json = async n => {
+        if (!man.raiz.find(x => x.name === n)) return null;
+        try { return JSON.parse(new TextDecoder().decode(await Nube.bajar(item(man.raiz, n), clave(n)))); } catch (e) { anotar(n, e); return null; }
+      };
+      [anJ, leJ, ajJ, vmJ] = await Promise.all([json('analisis.json'), json('letra.json'), json('ajustes.json'), json('voz-midi.json')]);
+      // qué pistas suenan: stems.json (Editar stems) o las seis de siempre
+      pistas = []; compensacion = {};
+      const audios = man.pistas.filter(x => /\.(mp3|m4a|flac|wav)$/i.test(x.name));
+      const archivoDe = base => audios.find(x => x.name.replace(/\.[^.]+$/, '') === base && /\.mp3$/i.test(x.name)) || audios.find(x => x.name.replace(/\.[^.]+$/, '') === base);
+      if (man.pistas.find(x => x.name === 'stems.json')) {
+        try {
+          const sj = JSON.parse(new TextDecoder().decode(await Nube.bajar(item(man.pistas, 'stems.json'), clave(man.dir + '/stems.json'))));
+          for (const x of sj.pistas || []) { const f = archivoDe(String(x.archivo || '').replace(/^.*\//, '').replace(/\.[^.]+$/, '')); if (f) pistas.push({ id: x.id, nombre: x.nombre || x.id, f }); }
+          compensacion = sj.compensacion || {};
+        } catch (e) { anotar('stems.json', e); }
+      }
+      if (!pistas.length) for (const id of ['voz', 'bajo', 'bateria', 'guitarra', 'piano', 'otros']) { const f = archivoDe(id); if (f) pistas.push({ id, nombre: NOMBRES[id], f }); }
+      if (!man.deCache) break;
+      // ¿está TODO guardado? si falta algo, se pide a OneDrive como antes
+      let completa = pistas.length && (anJ || !man.raiz.find(x => x.name === 'analisis.json'));
+      for (const p of pistas) if (completa && !(await Nube.hay(clave(man.dir + '/' + p.f.name)))) completa = false;
+      if (completa) { anotar('abrir', c.id, 'desde lo guardado en ' + EQUIPO); break; }
+      anotar('abrir', c.id, 'no está completa en ' + EQUIPO + ': la pido a OneDrive');
+      man = await deLaRed();
+      if (turno !== abriendo) return;
+    }
+    const item = (lista, n) => man.offline ? null : lista.find(x => x.name === n);
     const notasVoz = Melodia.leer(vmJ);
     const edPend = edicionGuardada(lib, c.id);   // tus correcciones guardadas en el dispositivo (de un colega, o esperando subir)
     if (edPend && anJ) anJ = mezclarEdiciones(anJ, edPend.ed);
-
-    // qué pistas suenan: stems.json (Editar stems) o las seis de siempre
-    let pistas = [];
-    const audios = man.pistas.filter(x => /\.(mp3|m4a|flac|wav)$/i.test(x.name));
-    const archivoDe = base => audios.find(x => x.name.replace(/\.[^.]+$/, '') === base && /\.mp3$/i.test(x.name)) || audios.find(x => x.name.replace(/\.[^.]+$/, '') === base);
-    let compensacion = {};
-    if (man.pistas.find(x => x.name === 'stems.json')) {
-      try {
-        const sj = JSON.parse(new TextDecoder().decode(await Nube.bajar(item(man.pistas, 'stems.json'), clave(man.dir + '/stems.json'))));
-        for (const x of sj.pistas || []) { const f = archivoDe(String(x.archivo || '').replace(/^.*\//, '').replace(/\.[^.]+$/, '')); if (f) pistas.push({ id: x.id, nombre: x.nombre || x.id, f }); }
-        compensacion = sj.compensacion || {};
-      } catch (e) { anotar('stems.json', e); }
-    }
-    if (!pistas.length) for (const id of ['voz', 'bajo', 'bateria', 'guitarra', 'piano', 'otros']) { const f = archivoDe(id); if (f) pistas.push({ id, nombre: NOMBRES[id], f }); }
     if (!pistas.length) throw new Error(lib.local ? 'Faltan las pistas de esta canción: importala de nuevo.' : 'No encontré las pistas Máxima de esta canción en OneDrive.');
 
     // bajar (o leer del iPhone) y decodificar de a una: así entra en memoria
@@ -2311,20 +2333,56 @@ async function abrirCancion(c, lib, op = {}) {
       await new Promise(r => setTimeout(r, 30));   // un respiro entre pista y pista (deja limpiar la memoria del decodificado)
     }
     anotar('abierta', c.id, pistas.length + ' pistas', fmtT(Math.max(...cargadas.map(x => x.largo), 0)), Math.round(memoria / 1048576) + ' MB de audio en memoria', Audio.sr + ' Hz');
-    if (!man.local) Nube.guardarManifiesto(clave('manifiesto'), { raiz: man.raiz.map(x => ({ name: x.name })), pistas: man.pistas.map(x => ({ name: x.name })), dir: man.dir });
+    if (!man.offline) Nube.guardarManifiesto(clave('manifiesto'), { raiz: man.raiz.map(x => ({ name: x.name })), pistas: man.pistas.map(x => ({ name: x.name })), dir: man.dir });
     Bib.guardadas.add(lib.clave + '|' + c.id);
     if (turno !== abriendo) return;
     cargando(null);
     Rep.anJson = anJ;
     Rep.restaurar = op;
     Rep.mostrar(c, lib, cargadas, Modelo.Analisis.deJson(anJ), Modelo.letraDeJson(leJ), Modelo.ajustesDeJson(ajJ || {}));
-    if (man.offline && !man.local) aviso('Sin conexión: suena la copia guardada en ' + EQUIPO + '.');
+    if (man.offline && !man.local && !man.deCache) aviso('Sin conexión: suena la copia guardada en ' + EQUIPO + '.');
+    if (man.deCache) setTimeout(() => ponerAlDia(c, lib, turno), 400);
   } catch (e) {
     anotar('abrir', c.id, e);
     cargando(null);
     if (e.sinSesion) { sesionVencida(); return; }
     aviso(e.message || String(e), 6000);
   }
+}
+
+// (0.4.1) después de abrir desde lo guardado: si hay conexión, se fija si en OneDrive cambió algo y lo baja.
+// Acordes, letra y secciones se actualizan en la pantalla al momento; pistas nuevas suenan la próxima vez que la abras.
+async function ponerAlDia(c, lib, turno) {
+  if (!Nube.conectado() || !navigator.onLine) return;
+  const clave = rel => Nube.claveCache(lib.clave, c.id, rel);
+  let a;
+  try { a = await Nube.archivosDe(c); } catch (e) { anotar('al día', c.id, 'sin poder revisar:', e.message || e); return; }
+  const datos = a.raiz.filter(x => /\.(json|txt)$/i.test(x.name));
+  const mp3 = new Set(a.pistas.filter(x => /\.mp3$/i.test(x.name)).map(x => x.name.replace(/\.[^.]+$/, '')));
+  const audio = a.pistas.filter(x => x.name === 'stems.json' || (/\.(mp3|m4a|flac|wav)$/i.test(x.name) && (/\.mp3$/i.test(x.name) || !mp3.has(x.name.replace(/\.[^.]+$/, '')))));
+  const cambio = async (x, rel) => { const e = await Nube.etagCache(clave(rel)); return e !== null && e !== x.eTag; };
+  const datosNuevos = [], audioNuevo = [];
+  for (const x of datos) if (await cambio(x, x.name) || (!(await Nube.hay(clave(x.name))) && /^(analisis|letra)\.json$/.test(x.name))) datosNuevos.push(x);
+  for (const x of audio) if (await cambio(x, a.dirPistas + '/' + x.name)) audioNuevo.push(x);
+  await Nube.guardarManifiesto(clave('manifiesto'), { raiz: a.raiz.map(x => ({ name: x.name })), pistas: a.pistas.map(x => ({ name: x.name })), dir: a.dirPistas });
+  if (!datosNuevos.length && !audioNuevo.length) { anotar('al día', c.id); return; }
+  anotar('al día', c.id, 'cambió:', [...datosNuevos, ...audioNuevo].map(x => x.name).join(', '));
+  try {
+    for (const x of datosNuevos) await Nube.bajar(x, clave(x.name));
+    for (const x of audioNuevo) await Nube.bajar(x, clave(a.dirPistas + '/' + x.name));
+  } catch (e) { anotar('al día', c.id, e); return; }
+  const t = '«' + (c.titulo || c.id) + '»';
+  const sigue = turno === abriendo && Rep.cancion === c && !Editor.abierto && !Corr.viendo;
+  if (sigue && datosNuevos.some(x => /^(analisis|letra)\.json$/.test(x.name))) {
+    const leer = async n => { try { const b = await Nube.enCache(clave(n)); return b ? JSON.parse(new TextDecoder().decode(b)) : null; } catch { return null; } };
+    let anJ = await leer('analisis.json'); const leJ = await leer('letra.json');
+    const p = edicionGuardada(lib, c.id); if (p && anJ) anJ = mezclarEdiciones(anJ, p.ed);
+    if (anJ) { Rep.anJson = anJ; Rep.an = Modelo.Analisis.deJson(anJ); Rep.armarClick(); }
+    if (leJ) Rep.letra = Modelo.letraDeJson(leJ);
+    Rep.armarTele(); Rep.medir(); Rep.iViene = -2; Rep.iAc = -2;
+    aviso(t + ' se actualizó (acordes/letra).', 3500);
+  }
+  if (audioNuevo.length) aviso(t + ' tiene pistas nuevas en OneDrive: ya se bajaron, suenan la próxima vez que la abras.', 5000);
 }
 
 // ══════════════════════ Reproducción ══════════════════════
