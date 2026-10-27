@@ -179,6 +179,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .bots{display:flex;gap:3px;width:100%;padding:0 2px;margin-top:3px}
 .bots button{flex:1;height:22px;border-radius:6px;background:var(--panel2);font-size:11px;font-weight:800;color:var(--gris);min-width:0}
 .bots .m.on{background:#e05a5a;color:#fff}
+.bots .m.trabado{opacity:.25;pointer-events:none}
 .bots .s.on{background:#e8c547;color:#111}
 
 /* horizontal: letra a la izquierda, mezcla a la derecha */
@@ -1830,7 +1831,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.4.1';
+const VERSION = '0.4.2';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2973,6 +2974,7 @@ const Rep = {
         cero.style.bottom = (VolDb.aPos(1) * 100) + '%';
         db.textContent = VolDb.texto(f.gan);
         bm && bm.classList.toggle('on', f.mute); bs && bs.classList.toggle('on', f.solo);
+        if (bm && bs) { bm.disabled = f.solo; bm.classList.toggle('trabado', f.solo); }   // (0.4.2) en Solo no se mutea
         c.classList.toggle('callada', f.mute);
       };
       f.pintar = pintar; pintar();
@@ -2988,7 +2990,7 @@ const Rep = {
         const soltar = () => { fad.removeEventListener('pointermove', mover); fad.removeEventListener('pointerup', soltar); fad.removeEventListener('pointercancel', soltar); this.guardarLocal(); };
         fad.addEventListener('pointermove', mover); fad.addEventListener('pointerup', soltar); fad.addEventListener('pointercancel', soltar);
       });
-      bm && (bm.onclick = () => { f.mute = !f.mute; f.muteAntes = false; pintar(); this.enviarControles(); this.guardarLocal(); });
+      bm && (bm.onclick = () => { if (f.solo && bs) return; f.mute = !f.mute; f.muteAntes = false; pintar(); this.enviarControles(); this.guardarLocal(); });
       // (0.3.10) como la Mac: Solo en una pista muteada la hace sonar (le saca el mute); al sacar el Solo vuelve al mute que tenía
       bs && (bs.onclick = () => {
         if (!f.solo) { f.solo = true; f.muteAntes = f.mute; if (f.mute) f.mute = false; }
