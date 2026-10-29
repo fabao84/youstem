@@ -1926,7 +1926,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.5.11';
+const VERSION = '0.5.12';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2606,7 +2606,7 @@ const Rep = {
     Audio.enviar({ t: 'master', v: this.aj.masterMute ? 0 : this.aj.master });
     this.armarTele();
     this.dibujarMezcla();
-    pantalla('pRep'); centrarPlay();
+    pantalla('pRep'); centrarPlay(); Medios.cancion(c, lib);
     this.pos0 = this.aj.marcaInicio >= 0 ? this.aj.marcaInicio : 0;
     const vuelve = this.restaurar || {}; this.restaurar = null;
     this.ir(vuelve.pos != null ? vuelve.pos : this.pos0);
@@ -2918,9 +2918,9 @@ const Rep = {
     if (previa) Audio.enviar(previa);   // después de "ir" (que la borra)
     Audio.enviar({ t: 'play' }); Audio.sonando = true; Audio.posCt = Audio.ctx.currentTime;
     this.reanudar = false;
-    pantallaPrendida(true); this.refrescarBotones();
+    pantallaPrendida(true); this.refrescarBotones(); Medios.estado();
   },
-  pausa() { Audio.enviar({ t: 'pausa' }); Audio.sonando = false; pantallaPrendida(false); this.refrescarBotones(); },
+  pausa() { Audio.enviar({ t: 'pausa' }); Audio.sonando = false; pantallaPrendida(false); this.refrescarBotones(); Medios.estado(); },
   parar() { if (Audio.nodo) Audio.enviar({ t: 'pausa' }); Audio.sonando = false; pantallaPrendida(false); },
   alInicio() { this.reanudar = false; this.ir(this.aj.marcaInicio >= 0 ? this.aj.marcaInicio : 0); if (Audio.sonando) this.tocar(); },
   refrescarBotones() {
@@ -3262,6 +3262,39 @@ const Rep = {
   pintarSolos() {
     const algun = this.filas.some(f => f.solo);
     [...$('#mezcla').children].forEach((c, k) => { const f = this.filas[k]; c.classList.toggle('fueraSolo', algun && !f.solo && f.tipo !== 'master' && f.tipo !== 'click'); });
+  }
+};
+
+// ══════════ (0.5.12) pantalla bloqueada / Centro de control: nombre de la canción, artista, "YouSTEM" y la miniatura ══════════
+const Medios = {
+  ok: 'mediaSession' in navigator,
+  cancion(c, lib) {
+    if (!this.ok) return;
+    try {
+      const mini = Bib.miniaturas[(lib.local ? 'local' : lib.clave) + '|' + c.id];
+      const arte = [{ src: new URL('icono.png', location.href).href, sizes: '512x512', type: 'image/png' }];
+      if (mini) arte.unshift({ src: mini, sizes: '480x360', type: 'image/jpeg' });
+      navigator.mediaSession.metadata = new MediaMetadata({ title: c.titulo || c.id, artist: c.artista || 'YouSTEM', album: 'YouSTEM', artwork: arte });
+      if (!this.listo) {
+        this.listo = true;
+        const h = (a, f) => { try { navigator.mediaSession.setActionHandler(a, f); } catch {} };
+        h('play', () => { if (Rep.cancion && !Audio.sonando) { Rep.reanudar = true; Rep.tocar(); } });
+        h('pause', () => { if (Audio.sonando) Rep.pausa(); });
+        h('previoustrack', () => Rep.cancion && Rep.alInicio());
+        h('seekbackward', e => { if (Rep.cancion) { Rep.reanudar = true; Rep.ir(Audio.ahora() - ((e && e.seekOffset) || 10)); this.estado(); } });
+        h('seekforward', e => { if (Rep.cancion) { Rep.reanudar = true; Rep.ir(Audio.ahora() + ((e && e.seekOffset) || 10)); this.estado(); } });
+        h('seekto', e => { if (Rep.cancion && e && e.seekTime != null) { Rep.reanudar = true; Rep.ir(e.seekTime); this.estado(); } });
+      }
+      this.estado();
+    } catch (e) { anotar('pantalla bloqueada', e); }
+  },
+  estado() {
+    if (!this.ok || !Rep.cancion) return;
+    try {
+      navigator.mediaSession.playbackState = Audio.sonando ? 'playing' : 'paused';
+      if (navigator.mediaSession.setPositionState && Rep.dur > 0)
+        navigator.mediaSession.setPositionState({ duration: Rep.dur, position: Math.max(0, Math.min(Rep.dur, Audio.ahora())), playbackRate: Audio.sonando ? Math.pow(2, Rep.centsRef / 1200) : 1 });
+    } catch {}
   }
 };
 
