@@ -418,6 +418,13 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 /* (0.5.2) compases con 3 o más acordes: más chicos, para que no se pisen con el de al lado */
 .cmp.n3{font-size:.72em}
 .cmp.n4{font-size:.6em}
+
+/* (0.5.7) acordes: el que suena verde a pleno, el próximo azul a pleno, el resto apagado */
+.ac{color:#3f5f78}
+.fila:not(.actual) .ac{color:#3f5f78}
+.ac.prox{color:var(--acorde)!important;opacity:1!important}
+.ac.suena{color:var(--verde)!important;opacity:1!important}
+.fila.pasada:has(.ac.suena),.fila.pasada:has(.ac.prox){opacity:1}
 </style>
 </head>
 <body>
@@ -1461,7 +1468,7 @@ const Nube = (() => {
   async function catalogo(lib, progreso) {
     const viejo = leerCache(lib.clave) || { entradas: {} };
     const nuevo = { entradas: {}, fecha: Date.now() };
-    const miniaturas = {};
+    const miniaturas = {}, cambiadas = [];
     for (const r of lib.raices) {
       let items;
       try { items = await hijos(rutaItem(r, 'catalogo') + '/children'); }
@@ -1484,6 +1491,7 @@ const Nube = (() => {
           } catch (e) { datos = null; if (intento === 2) { fallas.push(it.name); console.log('catálogo: no bajó', it.name, e && e.message); } }
         }
         if (!datos && prev) { datos = prev.datos; it = { ...it, eTag: prev.eTag }; }   // la conocida (y se vuelve a pedir la próxima vez)
+        else if (datos && datos.id && prev && prev.eTag !== it.eTag) cambiadas.push(datos.id);   // (0.5.8) la ficha cambió: hay algo nuevo
         if (datos && datos.id) nuevo.entradas[it.name + '@' + r.id] = { eTag: it.eTag, datos, raiz: r, privada: r.privada };
         progreso && progreso(++hechos, jsons.length);
       });
@@ -1491,11 +1499,11 @@ const Nube = (() => {
       anotar('catálogo:', r.privada ? 'privada' : 'banda', jsons.length, 'fichas en OneDrive');
       try {
         for (const m of await hijos(rutaItem(r, 'miniaturas') + '/children'))
-          if (m['@microsoft.graph.downloadUrl']) miniaturas[m.name.replace(/\.jpg$/i, '')] = m['@microsoft.graph.downloadUrl'];
+          if (m['@microsoft.graph.downloadUrl']) miniaturas[m.name.replace(/\.jpg$/i, '')] = { url: m['@microsoft.graph.downloadUrl'], eTag: m.eTag || '' };   // (0.5.8) con eTag: se baja solo si cambió
       } catch {}
     }
     grabarCache(lib.clave, nuevo);
-    return { canciones: aCanciones(nuevo), miniaturas };
+    return { canciones: aCanciones(nuevo), miniaturas, cambiadas };
   }
   function catalogoGuardado(lib) { const c = leerCache(lib.clave); return c ? aCanciones(c) : null; }
   function aCanciones(c) {
@@ -1905,7 +1913,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.5.6';
+const VERSION = '0.5.8';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2173,20 +2181,50 @@ const Bib = {
     this.guardadas = await Nube.idsGuardados();
     for (const l of this.libs) {
       if (l.local) { this.porLib[l.clave] = Local.lista(); for (const c of this.porLib[l.clave]) if (c.miniatura && !this.miniaturas['local|' + c.id]) Local.miniatura(c.id).then(u => { if (u) { this.miniaturas['local|' + c.id] = u; this.dibujar(); } }); continue; }
-      const cache = Nube.catalogoGuardado(l); if (cache) this.porLib[l.clave] = cache;
+      const cache = Nube.catalogoGuardado(l); if (cache) { this.porLib[l.clave] = cache; this.minisDeCache(l, cache); }
     }
     this.dibujar();
     if (soloCache) return;
     await Promise.all(this.libs.filter(l => !l.local).map(async l => {
       try {
-        const { canciones, miniaturas } = await Nube.catalogo(l, (a, b) => { if (!this.porLib[l.clave] && this.seVe(l)) this.estado(`Leyendo ${l.nombre === 'Mías' ? 'tu biblioteca' : l.nombre}… ${a} de ${b}`); });
+        const { canciones, miniaturas, cambiadas } = await Nube.catalogo(l, (a, b) => { if (!this.porLib[l.clave] && this.seVe(l)) this.estado(`Leyendo ${l.nombre === 'Mías' ? 'tu biblioteca' : l.nombre}… ${a} de ${b}`); });
         this.porLib[l.clave] = canciones;
-        for (const id in miniaturas) this.miniaturas[l.clave + '|' + id] = miniaturas[id];
-        anotar('catálogo', l.carpeta, canciones.length + ' con Máxima');
+        this.ponerMinis(l, miniaturas);
+        anotar('catálogo', l.carpeta, canciones.length + ' con Máxima' + (cambiadas.length ? ' · ' + cambiadas.length + ' con cambios' : ''));
+        // (0.5.8) las guardadas en el aparato que cambiaron en la nube se ponen al día ya (solo lo que cambió: kilobytes)
+        for (const id of cambiadas) { const c = canciones.find(x => x.id === id); if (c && this.guardadas.has(l.clave + '|' + id)) ColaAlDia.agregar(c, l); }
       } catch (e) { anotar('catálogo', l.carpeta, e); if (!this.porLib[l.clave]) this.porLib[l.clave] = []; this.error = 'No pude leer «' + l.carpeta + '»: ' + e.message; }
       this.dibujar();
     }));
     Corr.cargar().catch(e => anotar('correcciones', e));
+  },
+  // (0.5.8) miniaturas: guardadas en el aparato con su eTag; al actualizar se baja solo la que cambió (antes, todas cada vez)
+  miniEtag: {},
+  claveMini(l, id) { return Nube.claveCache(l.clave, id, '_catalogo.jpg'); },
+  usarMini(k, buf, eTag) {
+    const viejo = this.miniaturas[k]; if (viejo && viejo.startsWith('blob:')) URL.revokeObjectURL(viejo);
+    this.miniaturas[k] = URL.createObjectURL(new Blob([buf], { type: 'image/jpeg' })); this.miniEtag[k] = eTag;
+    clearTimeout(this.tMini); this.tMini = setTimeout(() => this.dibujar(), 150);
+  },
+  async minisDeCache(l, canciones) {
+    for (const c of canciones) {
+      const k = l.clave + '|' + c.id; if (this.miniaturas[k]) continue;
+      const e = await Nube.etagCache(this.claveMini(l, c.id)); if (e === null) continue;
+      const b = await Nube.enCache(this.claveMini(l, c.id)); if (b) this.usarMini(k, b, e);
+    }
+  },
+  async ponerMinis(l, minis) {
+    const ids = Object.keys(minis).filter(id => this.miniEtag[l.clave + '|' + id] !== minis[id].eTag || !this.miniaturas[l.clave + '|' + id]);
+    let bajadas = 0;
+    await (async () => { let i = 0; await Promise.all([0, 1, 2, 3].map(async () => { while (i < ids.length) {
+      const id = ids[i++], m = minis[id], k = l.clave + '|' + id, ck = this.claveMini(l, id);
+      try {
+        if ((await Nube.etagCache(ck)) === m.eTag) { const b = await Nube.enCache(ck); if (b) { this.usarMini(k, b, m.eTag); continue; } }
+        const r = await fetch(m.url); if (!r.ok) continue;
+        const b = await r.arrayBuffer(); await Nube.ponerCache(ck, b, m.eTag); this.usarMini(k, b, m.eTag); bajadas++;
+      } catch {}
+    } })); })();
+    if (bajadas) anotar('miniaturas', l.carpeta, bajadas + ' bajadas (las demás, ya estaban)');
   },
   seVe(l) { return this.vistas.some(v => v.lib === l && this.sel.has(v.id)); },
   recargarLocal() { this.porLib.local = Local.lista(); this.dibujar(); },
@@ -2463,6 +2501,11 @@ async function abrirCancion(c, lib, op = {}) {
 // Acordes, letra y secciones se actualizan en la pantalla al momento; pistas nuevas suenan la próxima vez que la abras.
 async function ponerAlDia(c, lib, turno) {
   if (!Nube.conectado() || !navigator.onLine) return;
+  const r = await traerCambios(c, lib); if (!r) return;
+  mostrarCambios(c, lib, turno, r);
+}
+// baja de OneDrive SOLO lo que cambió de una canción guardada (por eTag): datos (kilobytes) y, si hay, pistas cambiadas
+async function traerCambios(c, lib) {
   const clave = rel => Nube.claveCache(lib.clave, c.id, rel);
   let a;
   try { a = await Nube.archivosDe(c); } catch (e) { anotar('al día', c.id, 'sin poder revisar:', e.message || e); return; }
@@ -2474,14 +2517,21 @@ async function ponerAlDia(c, lib, turno) {
   for (const x of datos) if (await cambio(x, x.name) || (!(await Nube.hay(clave(x.name))) && /^(analisis|letra)\.json$/.test(x.name))) datosNuevos.push(x);
   for (const x of audio) if (await cambio(x, a.dirPistas + '/' + x.name)) audioNuevo.push(x);
   await Nube.guardarManifiesto(clave('manifiesto'), { raiz: a.raiz.map(x => ({ name: x.name })), pistas: a.pistas.map(x => ({ name: x.name })), dir: a.dirPistas });
-  if (!datosNuevos.length && !audioNuevo.length) { anotar('al día', c.id); return; }
+  if (!datosNuevos.length && !audioNuevo.length) { anotar('al día', c.id); return null; }
   anotar('al día', c.id, 'cambió:', [...datosNuevos, ...audioNuevo].map(x => x.name).join(', '));
   try {
     for (const x of datosNuevos) await Nube.bajar(x, clave(x.name));
     for (const x of audioNuevo) await Nube.bajar(x, clave(a.dirPistas + '/' + x.name));
-  } catch (e) { anotar('al día', c.id, e); return; }
+  } catch (e) { anotar('al día', c.id, e); return null; }
+  return { datosNuevos, audioNuevo };
+}
+// si la canción está abierta, lo nuevo (acordes/letra) se ve al momento
+function mostrarCambios(c, lib, turno, { datosNuevos, audioNuevo }) {
+  const clave = rel => Nube.claveCache(lib.clave, c.id, rel);
   const t = '«' + (c.titulo || c.id) + '»';
-  const sigue = turno === abriendo && Rep.cancion === c && !Editor.abierto && !Corr.viendo;
+  const sigue = (turno == null || turno === abriendo) && Rep.cancion && Rep.cancion.id === c.id && Rep.lib && Rep.lib.clave === lib.clave && !Editor.abierto && !Corr.viendo;
+  if (!sigue && turno == null) return;   // (cola de la biblioteca) ya quedó guardada: se ve al abrirla
+  (async () => {
   if (sigue && datosNuevos.some(x => /^(analisis|letra)\.json$/.test(x.name))) {
     const leer = async n => { try { const b = await Nube.enCache(clave(n)); return b ? JSON.parse(new TextDecoder().decode(b)) : null; } catch { return null; } };
     let anJ = await leer('analisis.json'); const leJ = await leer('letra.json');
@@ -2492,7 +2542,22 @@ async function ponerAlDia(c, lib, turno) {
     aviso(t + ' se actualizó (acordes/letra).', 3500);
   }
   if (audioNuevo.length) aviso(t + ' tiene pistas nuevas en OneDrive: ya se bajaron, suenan la próxima vez que la abras.', 5000);
+  })();
 }
+// (0.5.8) cola de la biblioteca: las guardadas que cambiaron en la nube se bajan de a una, en segundo plano
+const ColaAlDia = {
+  cola: [], activo: false,
+  agregar(c, lib) { if (!this.cola.some(x => x.c.id === c.id && x.lib.clave === lib.clave)) this.cola.push({ c, lib }); if (!this.activo) this.seguir(); },
+  async seguir() {
+    this.activo = true;
+    while (this.cola.length) {
+      const { c, lib } = this.cola.shift();
+      try { const r = await traerCambios(c, lib); if (r) { anotar('al día (biblioteca)', c.id); mostrarCambios(c, lib, null, r); } }
+      catch (e) { anotar('al día (biblioteca)', c.id, e); }
+    }
+    this.activo = false;
+  }
+};
 
 // ══════════════════════ Reproducción ══════════════════════
 const PALETA_ARR = ['#3f6f8f', '#6f4f8f', '#8f5f3f', '#3f8f5f', '#8f3f5f', '#6f6f3f'];
@@ -3019,7 +3084,15 @@ const Rep = {
       this.iAc = ia;
     }
     // acordes de la letra y de las filas de compases: verde mientras suenan (cada cuadro, por tiempo; mismo margen que el grande)
-    for (const x of this.acordesEl) { const on = t >= x.t - 0.05 && t < x.fin - 0.05; if (on !== x.on || this.saltoTele) { x.on = on; x.el.classList.toggle('suena', on); } }
+    // (0.5.7) el que suena: verde a pleno; el PRÓXIMO acorde distinto: azul; todo lo demás apagado (fabao)
+    let nSuena = null, prox = null;
+    for (const x of this.acordesEl) if (t >= x.t - 0.05 && t < x.fin - 0.05) { nSuena = x.n; break; }
+    for (const x of this.acordesEl) if (x.t > t + 0.05 && x.n !== nSuena && !Modelo.esSilencio(x.n)) { prox = x; break; }
+    for (const x of this.acordesEl) {
+      const on = t >= x.t - 0.05 && t < x.fin - 0.05, px = x === prox;
+      if (on !== x.on || this.saltoTele) { x.on = on; x.el.classList.toggle('suena', on); }
+      if (px !== x.px || this.saltoTele) { x.px = px; x.el.classList.toggle('prox', px); }
+    }
     this.pintarViene(t);   // cada cuadro: el compás puede cambiar sin que cambie el acorde (%)
     // sección y pulso
     const b = an.arreglo.find(x => t >= x.t - 0.001 && t < x.fin);
