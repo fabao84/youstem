@@ -400,6 +400,24 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 .haNum{min-width:34px;text-align:center;font-weight:700}
 .haNota{margin:6px 2px;padding:11px 12px;border-radius:10px;background:var(--panel2);border:none;color:var(--texto);font-size:16px}
 #haCaja>button.grande{text-align:center;align-items:center;background:#ffb547;color:#241a05;font-weight:700}
+
+/* (0.4.3) estirar para actualizar */
+.tirar{height:0;overflow:hidden;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--gris);transition:height .2s}
+.tirar.listo{color:var(--texto)}
+.tirar.girando::before{content:'';width:14px;height:14px;margin-right:8px;border-radius:50%;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;animation:gira .8s linear infinite}
+.lista{overscroll-behavior-y:contain}
+
+/* (0.5.2) mantener apretado el Click: 1→ (correr el 1) · 1 tachado (sin acento) */
+.popClick{position:fixed;display:none;gap:8px;padding:8px;border-radius:14px;background:#2a3038;box-shadow:0 8px 28px rgba(0,0,0,.5);z-index:35}
+.popClick.ver{display:flex}
+.popClick button{width:56px;height:48px;border-radius:10px;background:var(--panel2);font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:2px}
+.popClick .flecha{font-size:18px}
+.popClick s{text-decoration-thickness:3px}
+.popClick button.on{background:var(--texto);color:#111}
+
+/* (0.5.2) compases con 3 o más acordes: más chicos, para que no se pisen con el de al lado */
+.cmp.n3{font-size:.72em}
+.cmp.n4{font-size:.6em}
 </style>
 </head>
 <body>
@@ -429,6 +447,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
   <div id="bajando" class="bajando" style="display:none"><span id="bajTxt"></span><button id="bajCortar">Detener</button></div>
   <div id="barraLocal" class="barraLocal" style="display:none"><button id="btnImportar">＋ Importar .youstem</button><button id="btnCarpeta" style="display:none"></button></div>
   <div id="estadoBib" class="estado" style="display:none"></div>
+  <div id="tirar" class="tirar"></div>
   <div id="lista" class="lista"></div>
 </section>
 
@@ -542,6 +561,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 </div>
 <div id="hojaAviso" class="hoja"><div class="hojaCaja" id="haCaja"></div></div>
 <div id="panelReg" class="hoja reg"><div class="hojaCaja"><pre id="registro"></pre><div class="fila2"><button id="regCopiar">Copiar</button><button id="regCerrar">Cerrar</button></div></div></div>
+<div id="popClick" class="popClick"><button id="pcCorrer" title="Correr el 1 al pulso siguiente">1<span class="flecha">→</span></button><button id="pcUno" title="Apagar el acento del 1"><s>1</s></button></div>
 <div id="aviso" class="aviso"></div>
 <input id="archivoImp" type="file" multiple style="display:none">
 <div id="soltar" class="soltar"><div>Soltá acá los .youstem o .youstemcorr</div></div>
@@ -1877,7 +1897,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.5.0';
+const VERSION = '0.5.3';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2068,7 +2088,7 @@ const Bib = {
       this.armarVistas();
       if (!nube.length && !this.libs.length) { this.estado('No encontré tu carpeta de YouSTEM en este OneDrive. ¿Entraste con la misma cuenta que usás en la Mac?'); return; }
       if (!nube.length) aviso('No encontré tu carpeta de YouSTEM en este OneDrive.', 5000);
-      this.cargarTodo();
+      this.cargaP = this.cargarTodo();
       subirPendientes().catch(e => anotar('pendientes', e));
     } catch (e) {
       anotar('bibliotecas', e);
@@ -2265,6 +2285,33 @@ const Bib = {
   }
 };
 $('#q').addEventListener('input', () => Bib.dibujar());
+
+// (0.4.3) estirar la lista hacia abajo (estando arriba de todo) = actualizar la biblioteca, como en el navegador
+(() => {
+  const L = $('#lista'), T = $('#tirar'), UMBRAL = 70;
+  let y0 = null, d = 0, actualizando = false;
+  const poner = (h, txt) => { T.style.height = h + 'px'; T.textContent = txt; T.classList.toggle('listo', h >= UMBRAL); };
+  L.addEventListener('touchstart', e => { if (actualizando || e.touches.length !== 1 || L.scrollTop > 0) { y0 = null; return; } y0 = e.touches[0].clientY; d = 0; T.style.transition = 'none'; }, { passive: true });
+  L.addEventListener('touchmove', e => {
+    if (y0 == null) return;
+    d = e.touches[0].clientY - y0;
+    if (d <= 0 || L.scrollTop > 0) { d = 0; poner(0, ''); return; }
+    e.preventDefault();   // que no rebote la página
+    const h = Math.min(110, d * 0.5);
+    poner(h, h >= UMBRAL ? '↻ Soltá para actualizar' : '↓ Estirá para actualizar');
+  }, { passive: false });
+  const soltar = async () => {
+    if (y0 == null) return; y0 = null;
+    T.style.transition = '';
+    if (Math.min(110, d * 0.5) < UMBRAL || !Nube.conectado()) { poner(0, ''); if (d * 0.5 >= UMBRAL) aviso('Sin cuenta de Microsoft: no hay nada para actualizar.'); return; }
+    actualizando = true; poner(44, 'Actualizando…'); T.classList.add('girando');
+    if (navigator.vibrate) navigator.vibrate(10);
+    try { Bib.cargaP = null; await Bib.iniciar(); if (Bib.cargaP) await Bib.cargaP; anotar('biblioteca actualizada (estirando)'); }
+    catch (e) { anotar('actualizar', e); }
+    finally { actualizando = false; T.classList.remove('girando'); poner(0, ''); }
+  };
+  L.addEventListener('touchend', soltar); L.addEventListener('touchcancel', soltar);
+})();
 
 // ══════════════════════ Abrir una canción ══════════════════════
 const NOMBRES = { voz: 'Voz', bajo: 'Bajo', bateria: 'Batería', guitarra: 'Guitarra', piano: 'Piano', otros: 'Otros', original: 'Original' };
@@ -2471,7 +2518,7 @@ const Rep = {
     Audio.enviar({ t: 'master', v: this.aj.masterMute ? 0 : this.aj.master });
     this.armarTele();
     this.dibujarMezcla();
-    pantalla('pRep');
+    pantalla('pRep'); centrarPlay();
     this.pos0 = this.aj.marcaInicio >= 0 ? this.aj.marcaInicio : 0;
     const vuelve = this.restaurar || {}; this.restaurar = null;
     this.ir(vuelve.pos != null ? vuelve.pos : this.pos0);
@@ -2661,7 +2708,37 @@ const Rep = {
     const compasSeg = comps.length >= 2 ? Math.max(0.8, Math.min(8, comps[1] - comps[0])) : 2;
     const desde = Math.max(0, an.inicioMusica - compasSeg - 0.1), groove = an.grooveDesde >= 0 ? an.grooveDesde : 0;
     const b = beats.filter(t => t >= desde);
-    Audio.enviar({ t: 'click', c: { beats: b.map(t => Math.round(t * sr)), fuerte: b.map(t => fuertes.has(Math.round(t * 1000)) ? 1 : 0), desde: 0, suaveHasta: Math.round((groove - 0.05) * sr) } });
+    const conUno = !Pref.get('clickSinUno', false);   // (0.5.2) "1 tachado": todos los golpes iguales (como el Acento de la Mac)
+    Audio.enviar({ t: 'click', c: { beats: b.map(t => Math.round(t * sr)), fuerte: b.map(t => conUno && fuertes.has(Math.round(t * 1000)) ? 1 : 0), desde: 0, suaveHasta: Math.round((groove - 0.05) * sr) } });
+  },
+  // (0.5.2) "1 →": el 1 del compás pasa al pulso siguiente (lo mismo que "correr el 1" de la Mac: ediciones.correr1)
+  correrUno() {
+    const an = this.an, c = this.cancion, lib = this.lib;
+    if (!an.valido) { aviso('Esta canción no tiene pulso todavía.', 3000); return; }
+    if (an.anclas.length && an.anclasHonradas()) { aviso('El 1 de esta canción se puso a mano en la Mac (Pulso): se mueve allá.', 4500); return; }
+    const n = Math.max(2, an.compasN);
+    an.correr1 = (an.correr1 + 1) % n; an._ce = null; an._be = null;
+    if (this.aj.marcaCuenta >= 0) { const k = this.compasCercano(this.aj.marcaCuenta); if (k) this.aj.marcaCuenta = k.t; }
+    this.armarClick(); this.armarTele(); this.medir(); this.iViene = -2; this.iAc = -2; this.pulsoClave = null;
+    aviso('El 1 se corrió un pulso (' + (an.correr1 + 1) + ' de ' + n + '). Tocá de nuevo para seguir corriéndolo.', 2500);
+    // se guarda como cualquier corrección (tu OneDrive / el aparato / a tu colega), un rato después del último toque
+    clearTimeout(this.tCorrer);
+    this.tCorrer = setTimeout(() => { if (this.cancion === c) guardarEdiciones(c, lib, { correr1: an.correr1 }).catch(e => anotar('correr el 1', e)); }, 1800);
+  },
+  alternarUno() {
+    const sin = !Pref.get('clickSinUno', false); Pref.set('clickSinUno', sin);
+    this.armarClick();
+    aviso(sin ? 'Click sin acento en el 1 (todos los golpes iguales).' : 'Click con acento en el 1.', 2200);
+  },
+  menuClick(canal) {
+    const M = $('#popClick');
+    $('#pcUno').classList.toggle('on', Pref.get('clickSinUno', false));
+    const r = canal.getBoundingClientRect();
+    M.classList.add('ver');
+    const w = M.offsetWidth, h = M.offsetHeight;
+    M.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
+    M.style.top = Math.max(8, r.top - h - 8) + 'px';
+    if (navigator.vibrate) navigator.vibrate(12);
   },
 
   // ── tono ──
@@ -2721,8 +2798,14 @@ const Rep = {
     let desde = Audio.pos >= this.dur - 0.05 ? 0 : Audio.pos;
     if (a.marcaInicio >= 0 && !this.reanudar) desde = a.marcaInicio;      // como la Mac: la bandera verde manda
     Audio.enviar({ t: 'cuenta', desde: 0, hasta: -1, pos: [], fuerte: [] });
-    if (a.cuenta && a.marcaCuenta >= 0 && an.valido) {
-      const destino = a.marcaCuenta;                                         // 🟣 = tu entrada
+    if (a.cuenta && a.marcaCuenta >= 0 && an.valido && !Editor.abierto) {
+      // (0.5.2) con la cuenta prendida, CADA ▶ cuenta antes de arrancar (fabao: "debe hacerlo al presionar play"):
+      // con 🟢 cuenta y entra en la verde; antes de la 🟣 (o justo en ella) salta a la cuenta de tu entrada;
+      // más adelante, cuenta y entra en el "1" del compás donde estás
+      let destino;
+      if (a.marcaInicio >= 0 && !this.reanudar) destino = a.marcaInicio;
+      else if (desde <= a.marcaCuenta + 0.3) destino = a.marcaCuenta;
+      else { const c = this.compasCercano(desde); destino = c ? c.t : desde; }
       const comps = an.compasesEfectivos(), nB = Math.max(2, an.compasN), nComp = Pref.get('cuentaCompases', 1);
       let paso = 0;
       for (let i = 0; i + 1 < comps.length; i++) if (comps[i] >= destino - 0.12) { const d = comps[i + 1] - comps[i]; if (d > 0.4 && d < 8) { paso = d / nB; break; } }
@@ -2731,11 +2814,9 @@ const Rep = {
       const total = nComp * nB, pos = [], fuerte = [];
       for (let k = total; k >= 1; k--) { const t = destino - paso * k; if (t >= 0) { pos.push(Math.round(t * Audio.sr)); fuerte.push(k % nB === 0 ? 1 : 0); } }
       const ini = destino - paso * total;
-      // (0.4.0) la cuenta se oye ENTERA antes de tu entrada: si arrancás antes, suena cuando llega; si arrancás en medio
-      // de la cuenta o hasta un compás después de la entrada, arranca desde el principio de la cuenta; mucho después, sin cuenta
-      if (pos.length && desde <= destino + paso * nB) {
-        if (desde > ini) desde = Math.max(0, ini);
-        Audio.enviar({ t: 'cuenta', desde: Math.max(0, ini) * Audio.sr, hasta: destino * Audio.sr, pos, fuerte });
+      if (pos.length) {
+        desde = Math.max(0, ini);
+        Audio.enviar({ t: 'cuenta', desde: desde * Audio.sr, hasta: destino * Audio.sr, pos, fuerte });
       }
     }
     this.ir(desde);
@@ -2758,6 +2839,8 @@ const Rep = {
     rio.innerHTML = ''; this.rio = rio; this.filasTele = []; this.palabrasEl = []; this.acordesEl = [];
     const acordes = an.valido || an.acordes.length ? an.acordesAlPulso().filter(a => !a.sigue) : [];
     this.acordes = acordes;
+    // (0.5.2) cada acorde se pinta de verde mientras suena: hasta que empieza el siguiente (las continuaciones "sigue" no cortan)
+    acordes.forEach((a, k) => { a.finV = k + 1 < acordes.length ? acordes[k + 1].t : Math.max(a.fin, this.dur); a.finP = null; });
     const comps = an.compasesEfectivos(), beats = an.beatsEfectivos();
     // (0.3.7) "lo que viene": TODOS los acordes de cada compás (no solo el dominante), cada uno con su tiempo
     this.celdasViene = comps.map((t0, i) => {
@@ -2800,7 +2883,11 @@ const Rep = {
     }
     // compases sin letra: celdas de a cuatro (como la hoja de la ventana de acordes)
     if (comps.length && sueltos.length) {
-      const celdas = Modelo.acordesPorCompas(acordes.filter(a => !Modelo.esSilencio(a.nombre)), comps, beats);
+      // (0.5.2) cada compás con TODOS sus acordes (como "lo que viene"); si no empieza ninguno, el que viene sonando (%)
+      const celdas = this.celdasViene.map(cv => {
+        const nuevos = cv.acordes.filter(x => !x.viene);
+        return { t: cv.t, fin: cv.fin, acordes: (nuevos.length ? nuevos : cv.acordes.slice(0, 1)).map(x => ({ t: x.t, nombre: x.nombre })) };
+      });
       const libre = cel => !filas.some(f => f.tipo === 'letra' && cel.t < zonaDe(f)[1] - 0.05 && cel.fin > zonaDe(f)[0] + 0.05) && cel.acordes.length;
       let tanda = [];
       const cerrar = () => { if (tanda.length) filas.push({ tipo: 'compases', t: tanda[0].t, fin: tanda[tanda.length - 1].fin, celdas: tanda }); tanda = []; };
@@ -2813,6 +2900,11 @@ const Rep = {
     } else if (!comps.length && sueltos.length) {
       for (let i = 0; i < sueltos.length; i += 4) { const g = sueltos.slice(i, i + 4); filas.push({ tipo: 'compases', t: g[0].t, fin: g[g.length - 1].fin, celdas: g.map(a => ({ t: a.t, fin: a.fin, acordes: [a] })) }); }
     }
+    // (0.5.2) los acordes entre dos renglones que no entraron en una fila de compases (el compás toca la letra):
+    // van adelante del renglón que sigue, así se ven y se pintan cuando suenan
+    const enCompases = ac => filas.some(f => f.tipo === 'compases' && ac.t >= f.t - 0.05 && ac.t < f.fin);
+    const renglones = filas.filter(f => f.tipo === 'letra');
+    for (const ac of sueltos) if (!enCompases(ac)) { const f = renglones.find(f => f.t >= ac.t) || renglones[renglones.length - 1]; if (f) { f.acordes.push(ac); f.acordes.sort((x, y) => x.t - y.t); } }
     filas.sort((a, b) => a.t - b.t);
     if (!filas.length) filas.push({ tipo: 'vacio', t: 0, fin: this.dur, texto: le.valida ? 'La letra de esta canción no tiene tiempos todavía.' : 'Sin letra ni acordes para esta canción.' });
 
@@ -2828,7 +2920,7 @@ const Rep = {
         for (const ac of f.acordes) {
           let j = -1; for (let k = 0; k < f.pal.length; k++) if (f.pal[k].t <= ac.t + 0.12) j = k;
           const dest = j < 0 ? antes : porPal[j];
-          if (dest.length && dest[dest.length - 1].nombre === ac.nombre) continue;   // el mismo acorde dos veces en la misma palabra: uno
+          if (dest.length && dest[dest.length - 1].nombre === ac.nombre) { dest[dest.length - 1].finP = ac.finV; continue; }   // el mismo acorde dos veces en la misma palabra: uno (que dura los dos)
           dest.push(ac);
         }
         if (antes.length) { const w = el('span', 'w solo'); const ca = el('span', 'acs'); antes.forEach(ac => ca.appendChild(this.chipAcorde(ac))); w.appendChild(ca); w.appendChild(el('span', 'tx', '\u00a0')); d.appendChild(w); }
@@ -2843,7 +2935,9 @@ const Rep = {
       } else if (f.tipo === 'compases') {
         let ant = previo && previo.tipo === 'compases' ? previo.ultimo : null;
         for (const cel of f.celdas) {
-          const c = el('span', 'cmp');
+          const c = el('span', 'cmp' + (cel.acordes.length >= 4 ? ' n4' : cel.acordes.length === 3 ? ' n3' : ''));
+          // verde hasta que suena el acorde siguiente (aunque siga en el compás de al lado)
+          cel.acordes.forEach((ac, j) => { let fin = cel.fin; for (const x of acordes) { if (x.t <= ac.t + 0.05) fin = x.finV; else break; } ac.finV = j + 1 < cel.acordes.length ? Math.min(fin, cel.acordes[j + 1].t) : fin; });
           for (const ac of cel.acordes) {
             const chip = this.chipAcorde(ac);
             if (cel.acordes.length === 1 && ant === ac.nombre) chip.classList.add('repite');
@@ -2862,7 +2956,7 @@ const Rep = {
   },
   chipAcorde(ac) {
     const b = el('b', 'ac'); b.dataset.n = ac.nombre;
-    this.acordesEl.push({ el: b, t: ac.t, fin: ac.fin, n: ac.nombre });
+    this.acordesEl.push({ el: b, t: ac.t, fin: ac.finP || ac.finV || ac.fin, n: ac.nombre, on: false });
     return b;
   },
   pintarAcordes() { for (const a of this.acordesEl) a.el.textContent = this.nombreAcorde(a.n, a.t); this.iAc = -2; this.iViene = -2; $('#tonoKey').parentElement.classList.toggle('grados', Pref.get('notacion', 'americana') === 'grados'); },
@@ -2908,13 +3002,14 @@ const Rep = {
     const A = this.acordes || [];
     let ia = -1; for (let k = 0; k < A.length; k++) { if (A[k].t <= t + 0.05) ia = k; else break; }
     if (ia !== this.iAc || this.saltoTele) {
-      for (const x of this.acordesEl) x.el.classList.toggle('suena', ia >= 0 && Math.abs(x.t - A[ia].t) < 0.01 && x.n === A[ia].nombre);
       const ahora = ia >= 0 ? A[ia] : null;
       let prox = null; for (let k = ia + 1; k < A.length; k++) if (!Modelo.esSilencio(A[k].nombre)) { prox = A[k]; break; }
       $('#acAhora').textContent = ahora ? (Modelo.esSilencio(ahora.nombre) ? 'N.C.' : this.nombreAcorde(ahora.nombre, ahora.t)) : '';
       $('#acProx').textContent = prox ? '→ ' + this.nombreAcorde(prox.nombre, prox.t) : '';
       this.iAc = ia;
     }
+    // acordes de la letra y de las filas de compases: verde mientras suenan (cada cuadro, por tiempo; mismo margen que el grande)
+    for (const x of this.acordesEl) { const on = t >= x.t - 0.05 && t < x.fin - 0.05; if (on !== x.on || this.saltoTele) { x.on = on; x.el.classList.toggle('suena', on); } }
     this.pintarViene(t);   // cada cuadro: el compás puede cambiar sin que cambie el acorde (%)
     // sección y pulso
     const b = an.arreglo.find(x => t >= x.t - 0.001 && t < x.fin);
@@ -3048,6 +3143,14 @@ const Rep = {
         else { f.solo = false; if (f.muteAntes) f.mute = true; f.muteAntes = false; }
         this.filas.forEach(x => x.pintar && x.pintar()); this.pintarSolos(); this.enviarControles(); this.guardarLocal();
       });
+      if (f.tipo === 'click') {   // (0.5.2) mantener apretado = mover el 1 / apagar el 1
+        let lp = null, x0 = 0, y0 = 0, hecho = false;
+        c.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; hecho = false; clearTimeout(lp); lp = setTimeout(() => { lp = null; hecho = true; this.menuClick(c); }, 550); });
+        c.addEventListener('pointermove', e => { if (lp && Math.hypot(e.clientX - x0, e.clientY - y0) > 8) { clearTimeout(lp); lp = null; } });
+        ['pointerup', 'pointercancel'].forEach(t => c.addEventListener(t, () => { clearTimeout(lp); lp = null; }));
+        c.addEventListener('click', e => { if (hecho) { hecho = false; e.stopPropagation(); e.preventDefault(); } }, true);
+        c.addEventListener('contextmenu', e => { e.preventDefault(); this.menuClick(c); });
+      }
       m.appendChild(c);
     }
     this.pintarSolos();
@@ -3067,6 +3170,9 @@ $('#tonoMas').onclick = () => Rep.cambiarTono(+1);
 $('#tonoKey').parentElement.onclick = () => Rep.cambiarNotacion();
 $('#tonoVal').onclick = () => { Rep.tono = Math.round(Rep.ajMac.tono || 0); Rep.aplicarTono(); Rep.guardarLocal(); aviso('Tono como en la Mac.'); };
 $('#btnCuenta').onclick = () => Rep.alternarCuenta();
+$('#pcCorrer').onclick = () => Rep.correrUno();
+$('#pcUno').onclick = () => { Rep.alternarUno(); $('#pcUno').classList.toggle('on', Pref.get('clickSinUno', false)); };
+document.addEventListener('pointerdown', e => { const M = $('#popClick'); if (M.classList.contains('ver') && !e.target.closest('#popClick')) M.classList.remove('ver'); }, true);
 $('#btnVerde').onclick = () => Rep.alternarVerde();
 $('#btnLoop').onclick = () => {
   const a = Rep.aj;
@@ -3348,6 +3454,7 @@ $('#pedEnviar').onclick = () => Pedidos.pedir();
 $('#pedPegar').onclick = () => Pedidos.pegar();
 $('#pedLink').addEventListener('keydown', e => { if (e.key === 'Enter') Pedidos.pedir(); });
 
+
 // ══════════════════════ (0.3.13) Guardar para sin conexión: baja la canción entera (pistas, letra, acordes) sin abrirla ══════════════════════
 const Descargas = {
   cola: [], activo: false, hechas: 0, total: 0, parar: false,
@@ -3616,8 +3723,21 @@ function acomodar() {
   const ahora = $('.ahora'), der = $('.der'), izq = $('.izq'), barra = $('#barra'), pie = $('#pie'), tiempo = $('#tiempo'), viene = $('#viene'), trans = $('.transporte');
   if (ancha) { der.prepend(viene); der.prepend(ahora); pie.append(barra); pie.append(tiempo); }
   else { izq.prepend(ahora); der.prepend(barra); trans.append(tiempo); }
+  centrarPlay();
   if (Rep.cancion) Rep.iViene = -2;
   if (ancha !== era && Rep.cancion) { requestAnimationFrame(() => Rep.medir()); }
+}
+// (0.5.3) ▶ al centro de SU lugar: en vertical, de la pantalla; acostado, de su mitad (la columna de la derecha) (fabao).
+// Los botones de al lado se corren con él (relleno a un costado; el tiempo, pegado a la derecha, no se mueve)
+function centrarPlay() {
+  const t = $('.transporte'); t.style.paddingLeft = t.style.paddingRight = '';
+  requestAnimationFrame(() => {
+    const p = $('#btnPlay').getBoundingClientRect(), r = t.getBoundingClientRect(); if (!p.width || !r.width) return;
+    const d = (r.left + r.width / 2) - (p.left + p.width / 2);
+    if (Math.abs(d) < 1) return;
+    const cs = getComputedStyle(t);
+    if (d > 0) t.style.paddingLeft = ((parseFloat(cs.paddingLeft) || 0) + 2 * d) + 'px'; else t.style.paddingRight = ((parseFloat(cs.paddingRight) || 0) - 2 * d) + 'px';
+  });
 }
 acomodar(); addEventListener('resize', acomodar); addEventListener('orientationchange', () => setTimeout(acomodar, 250));
 ajustarAlto(); addEventListener('resize', ajustarAlto); addEventListener('orientationchange', () => setTimeout(ajustarAlto, 250));
@@ -4228,8 +4348,10 @@ const clavePend = (lib, id) => 'ys.ed.' + lib.clave + '|' + id;
 function mezclarEdiciones(base, ed) { const o = JSON.parse(JSON.stringify(base || {})); o.ediciones = { ...(o.ediciones || {}), ...ed }; return o; }
 async function guardarEdiciones(c, lib, ed) {
   const destino = lib.local ? 'local' : lib.mia ? 'nube' : 'colega';
+  // (0.5.2) se suma a lo que ya estaba guardado sin subir (p. ej. acordes + "correr el 1")
+  const previo = edicionGuardada(lib, c.id); if (previo && !lib.local) ed = { ...previo.ed, ...ed };
   const nuevo = mezclarEdiciones(Rep.anJson, ed);
-  anotar('editor: guardar', c.id, destino, Object.keys(ed.acordes).length + ' acordes, ' + ed.nuevos.length + ' nuevos, ' + ed.arreglo.length + ' secciones');
+  anotar('editor: guardar', c.id, destino, Object.keys(ed.acordes || {}).length + ' acordes, ' + (ed.nuevos || []).length + ' nuevos, ' + (ed.arreglo || []).length + ' secciones' + ('correr1' in ed ? ', el 1 corrido ' + ed.correr1 : ''));
   if (destino === 'local') {
     await Local.guardarArchivo(c.id, 'analisis.json', JSON.stringify(nuevo));
     Rep.anJson = nuevo; aviso('Guardado en ' + EQUIPO + '. Para pasárselo a otro: Menú ⋯ › Enviar correcciones.', 5000);
@@ -4634,7 +4756,7 @@ const Corr = {
     const j = await this.leer(l.raices[0], `correcciones/${this.yo()}/${id}/analisis.json`);
     if (!j || !j.ediciones) throw new Error('no encontré la corrección de ' + l.nombre);
     // solo lo que se corrige en la web (acordes y secciones): el pulso sigue siendo el tuyo
-    const ed = {}; for (const k of ['acordes', 'tiempos', 'nuevos', 'arreglo']) if (k in j.ediciones) ed[k] = j.ediciones[k];
+    const ed = {}; for (const k of ['acordes', 'tiempos', 'nuevos', 'arreglo', 'correr1']) if (k in j.ediciones) ed[k] = j.ediciones[k];
     return ed;
   },
   mostrarAn(json) { Rep.an = Modelo.Analisis.deJson(json); Rep.armarTele(); Rep.medir(); Rep.iViene = -2; Rep.iAc = -2; },
