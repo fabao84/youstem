@@ -213,6 +213,28 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .fila2{display:flex;gap:8px}.fila2 button{flex:1;padding:12px;border-radius:12px;background:var(--panel2)}
 .aviso{position:fixed;left:50%;bottom:calc(24px + var(--sa-b));transform:translate(-50%,20px);background:#2a3038;color:var(--texto);padding:11px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:all .25s;z-index:40;max-width:90vw;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.4)}
 .aviso.ver{opacity:1;transform:translate(-50%,0)}
+/* (0.5.0) pedir una canción a tu Mac */
+.pedEntrada{display:flex;gap:8px}
+.pedEntrada input{flex:1;min-width:0;-webkit-user-select:text;user-select:text;padding:12px 14px;border-radius:12px;border:0;background:var(--panel2);color:var(--texto);font:inherit;font-size:16px;outline:none}
+.pedEntrada button,.pedBot{padding:10px 14px;border-radius:12px;background:var(--panel2);font-weight:650;flex:none}
+#pedEnviar{background:var(--texto);color:#111;padding:13px;border-radius:12px;font-weight:700;text-align:center}
+#pedEnviar:disabled{opacity:.5}
+.pedMac{padding:10px 12px;border-radius:12px;background:var(--panel2);font-size:14px;line-height:1.35}
+.punto{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ff7a7a;margin-right:8px;vertical-align:1px}
+.punto.on{background:var(--verde);box-shadow:0 0 8px var(--verde)}
+.pedAyuda{font-size:13px;padding:0 4px}
+.pedFila{padding:11px 12px;border-radius:12px;background:var(--panel2);display:flex;flex-direction:column;gap:5px}
+.pedFila .gris{font-size:13px}
+.pedTit{display:flex;gap:8px;align-items:center}
+.pedTit b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pedChip{font-size:12px;padding:2px 8px;border-radius:9px;background:rgba(255,255,255,.1);flex:none}
+.pedChip.e-lista{background:var(--verde);color:#08240f}
+.pedChip.e-error{background:#ff7a7a;color:#2a0a0a}
+.pedRiel{height:4px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden}
+.pedRiel i{display:block;height:100%;background:var(--texto);transition:width .4s}
+.pedBots{display:flex;gap:8px;margin-top:2px}
+.pedBot{font-size:14px;padding:8px 12px;background:rgba(255,255,255,.08)}
+.pedBot.on{background:var(--verde);color:#08240f}
 
 /* como app de pantalla de inicio: iOS difumina la franja de la hora; la cabecera baja un poco para quedar nítida */
 @media (display-mode: standalone){ .pantalla{padding-top:calc(var(--sa-t) + 12px)} }
@@ -469,6 +491,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 <div id="menu" class="hoja">
   <div class="hojaCaja">
     <div class="hojaTit"><span id="menuVersion"></span><span id="menuUsuario" class="gris"></span></div>
+    <button id="menuPedir">Pedir una canción a tu Mac<span class="gris">Pegás un link de YouTube; tu Mac la separa en Máxima y la sube</span></button>
     <button id="menuImportar">Importar .youstem o correcciones (.youstemcorr)</button>
     <button id="menuCarpeta" style="display:none">Carpeta de canciones…<span id="menuCarpetaNombre" class="gris"></span></button>
     <button id="menuConectar">Conectar con Microsoft (OneDrive)</button>
@@ -496,6 +519,18 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="accEstrella"></button>
     <button id="accBorrar" class="rojo"></button>
     <button id="accCerrar" class="cerrar">Cancelar</button>
+  </div>
+</div>
+<div id="pedidos" class="hoja">
+  <div class="hojaCaja">
+    <div class="hojaTit"><span>Pedir una canción a tu Mac</span><span class="gris">Pegá un link de YouTube: tu Mac la baja, hace la Máxima y la sube a tus Privadas. No queda guardada en la Mac.</span></div>
+    <div id="pedMac" class="pedMac"></div>
+    <div class="pedEntrada"><input id="pedLink" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://youtu.be/…"><button id="pedPegar">Pegar</button></div>
+    <button id="pedEnviar">Pedir</button>
+    <div id="pedError" class="gris pedAyuda" style="display:none"></div>
+    <div id="pedVacio" class="gris pedAyuda">Todavía no pediste nada.</div>
+    <div id="pedLista" style="display:flex;flex-direction:column;gap:6px"></div>
+    <button id="pedCerrar" class="cerrar">Cerrar</button>
   </div>
 </div>
 <div id="listoCompartir" class="hoja">
@@ -1539,6 +1574,16 @@ const Nube = (() => {
     if (ficha) await moverItem(ficha, await carpetaEn(hasta, 'catalogo'));
   }
   function pedirEscritura() { try { localStorage.setItem('ys.escribir', '1'); } catch {} return entrar(); }
+  // (0.5.0) pedidos a tu Mac: los archivos de una carpeta (si no existe, ninguno) y borrar un archivo
+  async function listarEn(raiz, ruta) {
+    try { return await hijos(rutaItem(raiz, ruta) + '/children?$select=id,name,lastModifiedDateTime,file,folder'); }
+    catch (e) { if (e.status === 404) return []; throw e; }
+  }
+  async function borrarEn(raiz, ruta) {
+    const r = await g(rutaItem(raiz, ruta), { method: 'DELETE' });
+    if (r.ok || r.status === 404) return true;
+    const e = new Error('no pude borrar ' + ruta + ' (' + r.status + ')'); e.status = r.status; e.sinPermiso = r.status === 401 || r.status === 403; throw e;
+  }
 
   async function borrarTodo() {
     try { const c = await caches.open(CACHE); for (const r of await c.keys()) if (!r.url.startsWith('https://cache.youstem/local/')) await c.delete(r); } catch {}
@@ -1546,7 +1591,8 @@ const Nube = (() => {
   async function espacio() { try { const e = await navigator.storage.estimate(); return e.usage || 0; } catch { return 0; } }
 
   return { entrar, atenderVuelta, conectado, salir, token, yo, bibliotecas, catalogo, catalogoGuardado, archivosDe, bajar, enCache,
-           guardarManifiesto, idsGuardados, hay, etagCache, borrarTodo, espacio, claveCache, CLIENTE, leerJson, escribir, ponerCache, moverCancion, pedirEscritura, quiereEscribir, rutaItem };
+           guardarManifiesto, idsGuardados, hay, etagCache, borrarTodo, espacio, claveCache, CLIENTE, leerJson, escribir, ponerCache, moverCancion, pedirEscritura, quiereEscribir, rutaItem,
+           listarEn, borrarEn, carpetaEn };
 })();
 
 // ── Local: usar sin nube. Importar .youstem / .youstemcorr, guardar en el dispositivo, carpeta en la computadora ──
@@ -1831,7 +1877,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.4.2';
+const VERSION = '0.5.0';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -1980,6 +2026,8 @@ function migrarLimpio() {
 }
 async function arrancar() {
   migrarLimpio();
+  // (0.5.0) ?pedir=<link> (un Atajo de iOS desde Compartir) abre «Pedir una canción a tu Mac» con el link puesto
+  try { const q = new URLSearchParams(location.search).get('pedir'); if (q) { sessionStorage.setItem('ys.pedirLink', q); history.replaceState(null, '', location.pathname); } } catch {}
   $('#version').textContent = 'versión ' + VERSION;
   $('#menuVersion').textContent = 'YouSTEM web ' + VERSION;
   try {
@@ -1988,7 +2036,10 @@ async function arrancar() {
   if (Nube.conectado()) Pref.set('sinCuenta', false);
   if (!Nube.conectado() && !Pref.get('sinCuenta', false) && !Local.lista().length) { pantalla('pLogin'); return; }
   pantalla('pBib');
-  Bib.iniciar();
+  Bib.iniciar().then(() => {
+    let l = null; try { l = sessionStorage.getItem('ys.pedirLink'); sessionStorage.removeItem('ys.pedirLink'); } catch {}
+    if (l !== null && Nube.conectado()) Pedidos.abrir(l);
+  });
 }
 
 $('#btnEntrar').onclick = () => Nube.entrar();
@@ -3069,6 +3120,7 @@ async function abrirMenu() {
   $('#menuBorrar').style.display = con ? '' : 'none';
   $('#menuBajarLista').style.display = con && $('#pBib').classList.contains('activa') ? '' : 'none';
   $('#menuRecargar').style.display = con ? '' : 'none';
+  $('#menuPedir').style.display = con && Pedidos.raiz() ? '' : 'none';   // (0.5.0)
   $('#menuCarpeta').style.display = Local.hayCarpetas() ? '' : 'none';
   if (Local.hayCarpetas()) Local.carpeta().then(h => $('#menuCarpetaNombre').textContent = h ? ' · ' + h.name : ' · ninguna');
   $('#menuCuenta').textContent = 'Cuenta: ' + Pref.get('cuentaCompases', 1) + (Pref.get('cuentaCompases', 1) === 1 ? ' compás' : ' compases');
@@ -3116,6 +3168,185 @@ $('#bajCortar').onclick = () => Descargas.cortar();
 $('#accCerrar').onclick = () => $('#acciones').classList.remove('ver');
 $('#acciones').addEventListener('click', e => { if (e.target.id === 'acciones') $('#acciones').classList.remove('ver'); });
 $('#btnCompartir').onclick = () => Rep.cancion && compartirCancion(Rep.cancion, Rep.lib);
+
+// ══════════════════════ (0.5.0) PEDIR UNA CANCIÓN A TU MAC (Mac 1.4.18) ══════════════════════
+// Pegás un link de YouTube; una Mac con YouSTEM abierto lo toma, la baja, hace la Máxima, la sube a tu carpeta
+// privada y la borra de la Mac. Antes de pedir se mira si hay una Mac despierta (su "latido", cada minuto).
+// Buzón en «YouSTEM Privado/pedidos»: <pid>.json (lo dejás vos) · tomados/ · estado/<pid>.json (lo escribe la Mac) ·
+// macs/<mac>.json (el latido). Protocolo: claude/YouSTEM-diseno-pedidos-telefono.md
+const Pedidos = {
+  DESPIERTA: 3 * 60 * 1000,   // un latido de menos de 3 min = la Mac está despierta
+  timer: null, macs: [], pendientes: [], estados: [], leyendo: false,
+  raiz() { const l = Bib.libs.find(x => x.mia); return l ? l.raices.find(r => r.privada) || null : null; },
+  lib() { return Bib.libs.find(x => x.mia) || null; },
+  // lo mismo que la Mac (Pedidos::idDeLink): youtu.be, watch?v=, shorts, embed, live, music.youtube, m.youtube
+  idDeLink(texto) {
+    let t = (texto || '').trim(); const k = t.toLowerCase().indexOf('http'); if (k > 0) t = t.slice(k);
+    t = t.split(/\s/)[0]; if (!t) return '';
+    let u; try { u = new URL(/^https?:\/\//i.test(t) ? t : 'https://' + t); } catch { return ''; }
+    const h = u.hostname.toLowerCase(), ok = s => /^[A-Za-z0-9_-]{11}$/.test(s) ? s : '';
+    if (h === 'youtu.be') return ok(u.pathname.split('/')[1] || '');
+    if (!(h === 'youtube.com' || h.endsWith('.youtube.com') || h.endsWith('youtube-nocookie.com'))) return '';
+    if (u.searchParams.get('v')) return ok(u.searchParams.get('v'));
+    const m = u.pathname.match(/^\/(shorts|embed|live|v)\/([^/?#]+)/); return m ? ok(m[2]) : '';
+  },
+  hace(ms) {
+    const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (s < 60) return 'hace ' + s + ' s'; if (s < 3600) return 'hace ' + Math.round(s / 60) + ' min';
+    if (s < 86400) return 'hace ' + Math.round(s / 3600) + ' h'; return 'hace ' + Math.round(s / 86400) + ' d';
+  },
+  async abrir(prellenado) {
+    if (!Nube.conectado()) { aviso('Primero conectate con Microsoft (OneDrive).'); return; }
+    if (!this.raiz()) { aviso('No encuentro tu carpeta «YouSTEM Privado» en OneDrive (la crea la Mac al sincronizar).', 5000); return; }
+    $('#pedidos').classList.add('ver');
+    if (prellenado) $('#pedLink').value = prellenado;
+    this.pintar();
+    await this.refrescar();
+    clearInterval(this.timer); this.timer = setInterval(() => { if (!document.hidden) this.refrescar(); }, 10000);
+  },
+  cerrar() { $('#pedidos').classList.remove('ver'); clearInterval(this.timer); this.timer = null; },
+  async leerJsons(raiz, carpeta, items) {
+    return (await Promise.all(items.map(async it => {
+      try { const j = await Nube.leerJson(raiz, carpeta + it.name); j._fecha = Date.parse(it.lastModifiedDateTime) || 0; j._archivo = it.name; return j; }
+      catch (e) { anotar('pedidos: leer', carpeta + it.name, e); return null; }
+    }))).filter(Boolean);
+  },
+  async leerMacs() {
+    const r = this.raiz(); if (!r) return [];
+    const items = (await Nube.listarEn(r, 'pedidos/macs')).filter(x => x.file && /\.json$/i.test(x.name));
+    const macs = await this.leerJsons(r, 'pedidos/macs/', items);
+    for (const m of macs) {
+      m.clave = m.clave || m._archivo.replace(/\.json$/i, '');
+      m.edad = Date.now() - (m._fecha || m.hora || 0);   // la hora de OneDrive (no depende del reloj de la Mac)
+      m.despierta = m.edad < this.DESPIERTA;
+      m.sirve = m.despierta && m.acepta && m.maxima;
+    }
+    return macs.sort((a, b) => (b.sirve - a.sirve) || (b.despierta - a.despierta) || (a.edad - b.edad));
+  },
+  async refrescar() {
+    const r = this.raiz(); if (!r || this.leyendo) return;
+    this.leyendo = true;
+    try {
+      const [macs, raizItems, est] = await Promise.all([
+        this.leerMacs(),
+        Nube.listarEn(r, 'pedidos'),
+        Nube.listarEn(r, 'pedidos/estado')]);
+      this.macs = macs;
+      const sueltos = raizItems.filter(x => x.file && /\.json$/i.test(x.name));
+      this.pendientes = await this.leerJsons(r, 'pedidos/', sueltos);
+      const ultimos = est.filter(x => x.file && /\.json$/i.test(x.name))
+        .sort((a, b) => Date.parse(b.lastModifiedDateTime) - Date.parse(a.lastModifiedDateTime)).slice(0, 25);
+      this.estados = await this.leerJsons(r, 'pedidos/estado/', ultimos);
+      this.error = '';
+    } catch (e) {
+      anotar('pedidos', e);
+      if (e.sinSesion) { this.cerrar(); sesionVencida(); return; }
+      this.error = 'No pude leer los pedidos: ' + e.message;
+    } finally { this.leyendo = false; }
+    this.pintar();
+  },
+  lineaMac() {
+    const m = this.macs;
+    if (!m.length) return { on: false, txt: 'Ninguna Mac con YouSTEM 1.4.18 o más todavía. Actualizá la Mac y abrí YouSTEM.' };
+    const s = m.find(x => x.sirve);
+    if (s) return { on: true, txt: s.mac + ' despierta (' + this.hace(s._fecha) + ')' + (s.enCurso ? ' · ' + s.enCurso + (s.enCurso === 1 ? ' pedido en curso' : ' pedidos en curso') : '') };
+    const d = m.find(x => x.despierta);
+    if (d && !d.maxima) return { on: false, txt: d.mac + ' está despierta, pero no hace la calidad Máxima (y acá se ve solo la Máxima).' };
+    if (d) return { on: false, txt: d.mac + ' está despierta, pero no acepta pedidos. En la Mac: Biblioteca ▸ Ajustes ▸ OneDrive ▸ Aceptar pedidos del teléfono.' };
+    const ult = m.slice().sort((a, b) => a.edad - b.edad)[0];
+    return { on: false, txt: 'Ninguna Mac despierta. La última: ' + ult.mac + ', ' + this.hace(ult._fecha) + '. Abrí YouSTEM en la Mac (y que no se duerma).' };
+  },
+  pintar() {
+    const lm = this.lineaMac();
+    $('#pedMac').innerHTML = ''; $('#pedMac').append(el('span', 'punto' + (lm.on ? ' on' : '')), lm.txt);
+    $('#pedError').textContent = this.error || ''; $('#pedError').style.display = this.error ? '' : 'none';
+    const n = $('#pedLista'); n.innerHTML = '';
+    const filas = [
+      ...this.pendientes.map(p => ({ pid: p.pid || p._archivo.replace(/\.json$/i, ''), titulo: '', link: p.link, yt: p.yt, estado: 'esperando',
+                                     detalle: 'Esperando que una Mac lo tome', hora: p._fecha || p.creado, sinTomar: true })),
+      ...this.estados.map(e => ({ ...e, hora: e.hora || e._fecha }))];
+    filas.sort((a, b) => (b.creado || b.hora || 0) - (a.creado || a.hora || 0));
+    $('#pedVacio').style.display = filas.length ? 'none' : '';
+    const NOMBRE = { esperando: 'en espera', bajando: 'bajando', separando: 'separando', subiendo: 'subiendo', lista: 'lista ✓', error: 'error' };
+    for (const f of filas) {
+      const d = el('div', 'pedFila e-' + f.estado);
+      const t = el('div', 'pedTit'); t.append(el('b', '', f.titulo ? (f.artista ? f.artista + ' – ' : '') + f.titulo : (f.yt || f.link || '?')), el('span', 'pedChip e-' + f.estado, NOMBRE[f.estado] || f.estado));
+      d.append(t);
+      d.append(el('div', 'gris', (f.detalle || '') + (f.mac && !f.sinTomar ? ' · ' + f.mac : '') + ' · pedida ' + this.hace(f.creado > 1e12 ? f.creado : (f.hora || Date.now()))));
+      if (f.progreso >= 0 && f.estado !== 'lista' && f.estado !== 'error') { const r = el('div', 'pedRiel'); const i = el('i'); i.style.width = f.progreso + '%'; r.append(i); d.append(r); }
+      const bots = el('div', 'pedBots');
+      if (f.estado === 'lista' && f.calidad !== 'rapida') { const b = el('button', 'pedBot on', 'Abrir'); b.onclick = () => this.abrirCancion(f.yt); bots.append(b); }
+      if (f.sinTomar) { const b = el('button', 'pedBot', 'Cancelar'); b.onclick = () => this.quitar('pedidos/' + f.pid + '.json', '¿Cancelar este pedido?'); bots.append(b); }
+      else if (f.estado === 'lista' || f.estado === 'error') { const b = el('button', 'pedBot', 'Quitar de la lista'); b.onclick = () => this.quitar('pedidos/estado/' + f.pid + '.json'); bots.append(b); }
+      if (bots.children.length) d.append(bots);
+      n.append(d);
+    }
+  },
+  async quitar(ruta, pregunta) {
+    if (pregunta && !confirm(pregunta)) return;
+    if (!this.escribe('quitar el pedido')) return;
+    try { await Nube.borrarEn(this.raiz(), ruta); } catch (e) { anotar('pedidos: quitar', e); aviso('No pude: ' + e.message, 4000); }
+    this.refrescar();
+  },
+  escribe(para) {
+    if (Nube.quiereEscribir()) return true;
+    if (confirm('Para ' + para + ', Microsoft te va a pedir permiso para escribir en TU carpeta de OneDrive (una sola vez). ¿Seguimos?')) {
+      try { sessionStorage.setItem('ys.pedirLink', $('#pedLink').value || ''); } catch {}
+      Nube.pedirEscritura();
+    }
+    return false;
+  },
+  async abrirCancion(yt) {
+    const lib = this.lib(); if (!lib) return;
+    let c = (Bib.porLib[lib.clave] || []).find(x => x.id === yt);
+    if (!c) { aviso('Buscándola en tu biblioteca…', 1500); await Bib.cargarTodo(); c = (Bib.porLib[lib.clave] || []).find(x => x.id === yt); }
+    if (!c) { aviso('Todavía no aparece en tu biblioteca: probá en un minuto.', 4000); return; }
+    this.cerrar(); abrirCancion(c, lib);
+  },
+  async pedir() {
+    const pegado = $('#pedLink').value.trim();
+    const yt = this.idDeLink(pegado);
+    const link = (pegado.slice(Math.max(0, pegado.toLowerCase().indexOf('http'))).split(/\s/)[0]) || pegado;   // solo el link (sin el texto de Compartir)
+    if (!yt) { aviso('Pegá un link de un video de YouTube (youtube.com/watch… o youtu.be/…).', 4500); return; }
+    const lib = this.lib();
+    const ya = lib && (Bib.porLib[lib.clave] || []).find(x => x.id === yt);
+    if (ya) { if (confirm('«' + (ya.titulo || yt) + '» ya está en tu biblioteca en Máxima. ¿La abro?')) { this.cerrar(); abrirCancion(ya, lib); } return; }
+    const enCurso = [...this.pendientes, ...this.estados.filter(e => e.estado !== 'lista' && e.estado !== 'error')].find(p => p.yt === yt || this.idDeLink(p.link) === yt);
+    if (enCurso) { aviso('Ese ya está pedido: miralo en la lista.', 3500); return; }
+    if (!this.escribe('dejar el pedido')) return;
+    const b = $('#pedEnviar'); b.disabled = true; b.textContent = 'Mirando si hay una Mac despierta…';
+    try {
+      this.macs = await this.leerMacs();
+      const s = this.macs.find(x => x.sirve);
+      if (!s) {
+        const lm = this.lineaMac();
+        if (!confirm(lm.txt + '\n\n¿Lo dejo pedido igual? La primera Mac que abra YouSTEM (con «Aceptar pedidos» prendido) lo va a hacer.')) return;
+      }
+      const pid = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const r = this.raiz();
+      await Nube.carpetaEn(r, 'pedidos');
+      await Nube.escribir(r, 'pedidos/' + pid + '.json', JSON.stringify({ formato: 1, pid, link, yt, creado: Date.now(),
+        desde: EQUIPO.replace(/^el /, ''), para: s ? s.clave : '' }, null, 2));
+      anotar('pedidos: pedido', pid, yt, s ? 'para ' + s.clave : 'sin Mac despierta');
+      $('#pedLink').value = '';
+      aviso(s ? 'Listo: ' + s.mac + ' lo va a tomar en un minuto.' : 'Pedido: queda esperando una Mac.', 4000);
+      await this.refrescar();
+    } catch (e) {
+      anotar('pedidos: pedir', e);
+      if (e.sinPermiso) { if (confirm('OneDrive no me dejó escribir. ¿Pedimos el permiso de nuevo?')) Nube.pedirEscritura(); }
+      else aviso('No pude dejar el pedido: ' + e.message, 5000);
+    } finally { b.disabled = false; b.textContent = 'Pedir'; }
+  },
+  async pegar() {
+    try { const t = await navigator.clipboard.readText(); if (t) $('#pedLink').value = t.trim(); } catch { aviso('Mantené apretado el cuadro y elegí Pegar.', 3000); }
+  }
+};
+$('#menuPedir').onclick = () => { cerrarMenu(); Pedidos.abrir(); };
+$('#pedCerrar').onclick = () => Pedidos.cerrar();
+$('#pedidos').addEventListener('click', e => { if (e.target.id === 'pedidos') Pedidos.cerrar(); });
+$('#pedEnviar').onclick = () => Pedidos.pedir();
+$('#pedPegar').onclick = () => Pedidos.pegar();
+$('#pedLink').addEventListener('keydown', e => { if (e.key === 'Enter') Pedidos.pedir(); });
 
 // ══════════════════════ (0.3.13) Guardar para sin conexión: baja la canción entera (pistas, letra, acordes) sin abrirla ══════════════════════
 const Descargas = {
