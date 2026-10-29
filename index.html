@@ -621,6 +621,7 @@ class YouStem extends AudioWorkletProcessor {
     this.ratio = 1; this.rw = 1;   // ratio = remuestreo total; rw = cuánto estira el WSOLA (1 = no estira: solo velocidad)
     this.click = { on: false, g: 1, beats: [], fuerte: [], desde: 0, suaveHasta: 0, i: 0 };
     this.cuenta = { desde: 0, hasta: -1, pos: [], fuerte: [] };
+    this.previa = null;   // (0.5.9) la cuenta ANTES del comienzo del audio: silencio + golpes, después arranca la canción
     this.bClickF = sintetizarBeep(sampleRate, 0.05, 1568, 0.8, false);
     this.bClickD = sintetizarBeep(sampleRate, 0.05, 1046.5, 0.55, false);
     this.bCuentaF = sintetizarBeep(sampleRate, 0.085, 660, 1.15, true);
@@ -657,8 +658,9 @@ class YouStem extends AudioWorkletProcessor {
       case 'ctl': this.ctl.set(m.g); break;
       case 'master': this.master = m.v; break;
       case 'play': this.sonando = true; break;
-      case 'pausa': this.sonando = false; this.reiniciarTono(); this.avisar(); break;
-      case 'ir': this.pos = Math.max(0, Math.min(this.largo, Math.round(m.pos))); this.reiniciarTono(); this.click.i = 0; this.avisar(); break;
+      case 'pausa': this.sonando = false; this.previa = null; this.reiniciarTono(); this.avisar(); break;
+      case 'previa': this.previa = m.n > 0 ? { n: Math.round(m.n), t: 0, pos: m.pos, fuerte: m.fuerte } : null; break;
+      case 'ir': this.previa = null; this.pos = Math.max(0, Math.min(this.largo, Math.round(m.pos))); this.reiniciarTono(); this.click.i = 0; this.avisar(); break;
       case 'loop': this.loopOn = m.on; this.loopA = Math.round(m.a); this.loopB = Math.round(m.b); break;
       case 'tono': { const rw = m.rw == null ? m.r : m.rw; if (Math.abs(m.r - this.ratio) > 1e-6 || Math.abs(rw - this.rw) > 1e-6) { this.ratio = m.r; this.rw = rw; this.reiniciarTono(); } break; }
       case 'hola': this.port.postMessage({ t: 'hola', n: m.n }); break;
@@ -863,6 +865,21 @@ class YouStem extends AudioWorkletProcessor {
   process(_in, outputs) {
     const out = outputs[0], L = out[0], R = out[1] || out[0], n = L.length;
     const gm = this.master;
+    let hecho = 0;
+    if (this.sonando && this.previa) {   // (0.5.9) cuenta antes del audio: solo los golpes
+      const pv = this.previa, k = Math.min(n, pv.n - pv.t);
+      L.fill(0); if (R !== L) R.fill(0);
+      this.sumarBeeps(L, R, 0, k, pv.t, pv.pos, pv.fuerte, this.bCuentaF, this.bCuentaD, 1.0, null);
+      pv.t += k; hecho = k;
+      if (pv.t >= pv.n) this.previa = null;
+    }
+    if (hecho < n) this.normal(hecho ? L.subarray(hecho) : L, hecho ? R.subarray(hecho) : R, n - hecho);
+    for (let i = 0; i < n; i++) { this.gMaster += (gm - this.gMaster) * 0.003; L[i] *= this.gMaster; if (R !== L) R[i] *= this.gMaster; }
+    this.contAviso += n;
+    if (this.contAviso >= this.avisoCada) { this.contAviso = 0; this.avisar(); }
+    return true;
+  }
+  normal(L, R, n) {
     if (!this.sonando && (this.ratio === 1 || this.O.n - this.oLeido <= 0)) {
       L.fill(0); R.fill(0);
     } else if (this.ratio === 1) {
@@ -875,10 +892,6 @@ class YouStem extends AudioWorkletProcessor {
       this.oLeido += n;
       this.sumarFija(L, R, n);
     }
-    for (let i = 0; i < n; i++) { this.gMaster += (gm - this.gMaster) * 0.003; L[i] *= this.gMaster; if (R !== L) R[i] *= this.gMaster; }
-    this.contAviso += n;
-    if (this.contAviso >= this.avisoCada) { this.contAviso = 0; this.avisar(); }
-    return true;
   }
 }
 
@@ -1913,7 +1926,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.5.8';
+const VERSION = '0.5.10';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2873,6 +2886,7 @@ const Rep = {
     let desde = Audio.pos >= this.dur - 0.05 ? 0 : Audio.pos;
     if (a.marcaInicio >= 0 && !this.reanudar) desde = a.marcaInicio;      // como la Mac: la bandera verde manda
     Audio.enviar({ t: 'cuenta', desde: 0, hasta: -1, pos: [], fuerte: [] });
+    let previa = null;
     if (a.cuenta && a.marcaCuenta >= 0 && an.valido && !Editor.abierto) {
       // (0.5.2) con la cuenta prendida, CADA ▶ cuenta antes de arrancar (fabao: "debe hacerlo al presionar play"):
       // con 🟢 cuenta y entra en la verde; antes de la 🟣 (o justo en ella) salta a la cuenta de tu entrada;
@@ -2886,15 +2900,16 @@ const Rep = {
       for (let i = 0; i + 1 < comps.length; i++) if (comps[i] >= destino - 0.12) { const d = comps[i + 1] - comps[i]; if (d > 0.4 && d < 8) { paso = d / nB; break; } }
       if (paso <= 0 && comps.length >= 2) paso = Math.max(0.8, Math.min(8, comps[1] - comps[0])) / nB;
       if (paso < 0.15 || paso > 2.5) paso = 0.5;
-      const total = nComp * nB, pos = [], fuerte = [];
-      for (let k = total; k >= 1; k--) { const t = destino - paso * k; if (t >= 0) { pos.push(Math.round(t * Audio.sr)); fuerte.push(k % nB === 0 ? 1 : 0); } }
-      const ini = destino - paso * total;
-      if (pos.length) {
-        desde = Math.max(0, ini);
-        Audio.enviar({ t: 'cuenta', desde: desde * Audio.sr, hasta: destino * Audio.sr, pos, fuerte });
-      }
+      // (0.5.10) la cuenta va SOLA, en silencio, antes de la entrada (fabao: "no quiero que suene sobre la música"),
+      // al tempo del compás que viene después de la entrada; terminada la cuenta, la canción arranca justo ahí
+      const total = nComp * nB, v = Math.pow(2, this.centsRef / 1200);   // v: velocidad de la corrección a 440
+      const pasoReal = paso * Audio.sr / v;
+      previa = { t: 'previa', n: Math.round(pasoReal * total), pos: Array.from({ length: total }, (_, k) => Math.round(pasoReal * k)),
+                 fuerte: Array.from({ length: total }, (_, k) => (k % nB === 0 ? 1 : 0)) };
+      desde = destino;
     }
     this.ir(desde);
+    if (previa) Audio.enviar(previa);   // después de "ir" (que la borra)
     Audio.enviar({ t: 'play' }); Audio.sonando = true; Audio.posCt = Audio.ctx.currentTime;
     this.reanudar = false;
     pantallaPrendida(true); this.refrescarBotones();
