@@ -1926,7 +1926,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.5.10';
+const VERSION = '0.5.11';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2888,25 +2888,31 @@ const Rep = {
     Audio.enviar({ t: 'cuenta', desde: 0, hasta: -1, pos: [], fuerte: [] });
     let previa = null;
     if (a.cuenta && a.marcaCuenta >= 0 && an.valido && !Editor.abierto) {
-      // (0.5.2) con la cuenta prendida, CADA ▶ cuenta antes de arrancar (fabao: "debe hacerlo al presionar play"):
-      // con 🟢 cuenta y entra en la verde; antes de la 🟣 (o justo en ella) salta a la cuenta de tu entrada;
-      // más adelante, cuenta y entra en el "1" del compás donde estás
-      let destino;
-      if (a.marcaInicio >= 0 && !this.reanudar) destino = a.marcaInicio;
-      else if (desde <= a.marcaCuenta + 0.3) destino = a.marcaCuenta;
-      else { const c = this.compasCercano(desde); destino = c ? c.t : desde; }
+      // (0.5.11) fabao: "la bandera morada es solo el lugar donde debe TERMINAR la cuenta". La canción arranca donde
+      // arranca (la verde o donde estés); la cuenta suena en los 1 o 2 compases antes de la morada, con el tempo del
+      // compás que viene después de la morada. Si la morada está tan al comienzo que no entran todos los golpes, los
+      // que faltan suenan antes del audio (en silencio) y después arranca la canción.
+      const destino = a.marcaCuenta;
       const comps = an.compasesEfectivos(), nB = Math.max(2, an.compasN), nComp = Pref.get('cuentaCompases', 1);
       let paso = 0;
       for (let i = 0; i + 1 < comps.length; i++) if (comps[i] >= destino - 0.12) { const d = comps[i + 1] - comps[i]; if (d > 0.4 && d < 8) { paso = d / nB; break; } }
       if (paso <= 0 && comps.length >= 2) paso = Math.max(0.8, Math.min(8, comps[1] - comps[0])) / nB;
       if (paso < 0.15 || paso > 2.5) paso = 0.5;
-      // (0.5.10) la cuenta va SOLA, en silencio, antes de la entrada (fabao: "no quiero que suene sobre la música"),
-      // al tempo del compás que viene después de la entrada; terminada la cuenta, la canción arranca justo ahí
-      const total = nComp * nB, v = Math.pow(2, this.centsRef / 1200);   // v: velocidad de la corrección a 440
-      const pasoReal = paso * Audio.sr / v;
-      previa = { t: 'previa', n: Math.round(pasoReal * total), pos: Array.from({ length: total }, (_, k) => Math.round(pasoReal * k)),
-                 fuerte: Array.from({ length: total }, (_, k) => (k % nB === 0 ? 1 : 0)) };
-      desde = destino;
+      const total = nComp * nB, ini = destino - paso * total;
+      if (desde < destino - 0.05) {   // después de la morada no hay cuenta
+        const pos = [], fuerte = [], antes = [];
+        for (let k = total; k >= 1; k--) {
+          const t = destino - paso * k, f = k % nB === 0 ? 1 : 0;
+          if (t >= desde - 0.02 && t >= 0) { pos.push(Math.round(t * Audio.sr)); fuerte.push(f); }
+          else if (t < 0 && desde < 0.05) antes.push({ t, f });   // no entra antes del audio: va en silencio
+        }
+        if (pos.length) Audio.enviar({ t: 'cuenta', desde: Math.max(0, Math.min(desde, ini)) * Audio.sr, hasta: destino * Audio.sr, pos, fuerte });
+        if (antes.length) {
+          const v = Math.pow(2, this.centsRef / 1200);   // la velocidad de la corrección a 440
+          previa = { t: 'previa', n: Math.round(-ini * Audio.sr / v), pos: antes.map(x => Math.round((x.t - ini) * Audio.sr / v)), fuerte: antes.map(x => x.f) };
+          desde = 0;
+        }
+      }
     }
     this.ir(desde);
     if (previa) Audio.enviar(previa);   // después de "ir" (que la borra)
