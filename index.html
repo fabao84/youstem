@@ -1467,20 +1467,28 @@ const Nube = (() => {
       try { items = await hijos(rutaItem(r, 'catalogo') + '/children'); }
       catch (e) { if (e.status === 404) continue; throw e; }
       const jsons = items.filter(x => x.file && x.name.endsWith('.json'));
+      const fallas = [];
       let hechos = 0;
-      await enParalelo(jsons, 6, async it => {
+      await enParalelo(jsons, 6, async (it) => {
         const prev = viejo.entradas[it.name + '@' + r.id];
         let datos = prev && prev.eTag === it.eTag ? prev.datos : null;
-        if (!datos) {
+        // (0.5.5) si una ficha no baja (OneDrive ocupado, p. ej. mientras una Mac sincroniza), se reintenta y, si igual
+        // falla, queda la versión que ya conocía: antes la canción desaparecía de la lista hasta la próxima carga buena
+        for (let intento = 0; !datos && intento < 3; intento++) {
           try {
+            if (intento) await new Promise(res => setTimeout(res, 700 * intento));
             const url = it['@microsoft.graph.downloadUrl'];
             const resp = url ? await fetch(url) : await g(rutaItem(r) + `:/catalogo/${encodeURIComponent(it.name)}:/content`);
+            if (!resp.ok) throw new Error('ficha ' + it.name + ' → ' + resp.status);
             datos = await resp.json();
-          } catch { datos = null; }
+          } catch (e) { datos = null; if (intento === 2) { fallas.push(it.name); console.log('catálogo: no bajó', it.name, e && e.message); } }
         }
+        if (!datos && prev) { datos = prev.datos; it = { ...it, eTag: prev.eTag }; }   // la conocida (y se vuelve a pedir la próxima vez)
         if (datos && datos.id) nuevo.entradas[it.name + '@' + r.id] = { eTag: it.eTag, datos, raiz: r, privada: r.privada };
         progreso && progreso(++hechos, jsons.length);
       });
+      if (fallas.length) anotar('catálogo:', fallas.length, 'fichas no bajaron (queda la versión conocida):', fallas.slice(0, 8).join(', '));
+      anotar('catálogo:', r.privada ? 'privada' : 'banda', jsons.length, 'fichas en OneDrive');
       try {
         for (const m of await hijos(rutaItem(r, 'miniaturas') + '/children'))
           if (m['@microsoft.graph.downloadUrl']) miniaturas[m.name.replace(/\.jpg$/i, '')] = m['@microsoft.graph.downloadUrl'];
@@ -1897,7 +1905,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.5.3';
+const VERSION = '0.5.6';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2245,6 +2253,7 @@ const Bib = {
     else if (!todos.length && cargando) this.estado('Leyendo tu biblioteca…');
     else if (!todos.length && soloLocal) this.estado('Todavía no hay canciones en ' + EQUIPO + '. Tocá «Importar .youstem» y elegí los archivos que te pasaron (podés elegir varios).');
     else if (!todos.length) this.estado(this.error || (elegidas.some(v => v.id === 'priv') && elegidas.length === 1 ? 'No tenés canciones privadas en calidad Máxima.' : 'Acá todavía no hay canciones en calidad Máxima.'));
+    else if (soloGuardadas && lista.length < todos.length) this.estado('⬇ Mostrando solo las guardadas en ' + EQUIPO + ' (' + lista.length + ' de ' + todos.length + '). Tocá «⬇ Guardadas» para ver todas.');   // (0.5.6)
     else this.estado(qq && otras ? 'También hay ' + otras + ' en otras pestañas (tocá «Todas»).' : '');
     $('#cuenta').textContent = todos.length ? lista.length + ' de ' + todos.length : '';
   },
@@ -2387,6 +2396,7 @@ async function abrirCancion(c, lib, op = {}) {
     const notasVoz = Melodia.leer(vmJ);
     const edPend = edicionGuardada(lib, c.id);   // tus correcciones guardadas en el dispositivo (de un colega, o esperando subir)
     if (edPend && anJ) anJ = mezclarEdiciones(anJ, edPend.ed);
+    if (!pistas.length) anotar('abrir', c.id, 'SIN PISTAS · nivel', c.nivel, '· carpeta', (c.raiz && c.raiz.privada) ? 'privada' : 'banda', '· archivos:', man.raiz.map(x => x.name).join(','), '·', man.dir + ':', man.pistas.map(x => x.name).join(',') || '(vacía)', man.offline ? '· (de lo guardado)' : '');
     if (!pistas.length) throw new Error(lib.local ? 'Faltan las pistas de esta canción: importala de nuevo.' : 'No encontré las pistas Máxima de esta canción en OneDrive.');
 
     // bajar (o leer del iPhone) y decodificar de a una: así entra en memoria
