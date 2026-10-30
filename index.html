@@ -425,6 +425,16 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 .ac.prox{color:var(--acorde)!important;opacity:1!important}
 .ac.suena{color:var(--verde)!important;opacity:1!important}
 .fila.pasada:has(.ac.suena),.fila.pasada:has(.ac.prox){opacity:1}
+
+/* (0.5.13) A · FOCO (boceto aprobado por fabao): el acorde que suena, lleno de verde, más grande y con brillo
+   (lo principal); el que viene justo después (aunque repita), en azul; todo lo demás apagado */
+.ac.suena{background:var(--verde);color:#06210f!important;border-radius:.3em;padding:.06em .28em;margin:-.06em -.28em;
+  box-shadow:0 0 .7em rgba(76,217,123,.5);transform:scale(1.12);display:inline-block;position:relative;z-index:1}
+.ac.prox{color:var(--acorde)!important;opacity:1!important}
+.va,.vc.on .va{color:#3f5f78}
+.vac.ya{color:#2b343d}
+.vac.vsuena{background:var(--verde);color:#06210f;border-radius:7px;padding:1px 6px;box-shadow:0 0 12px rgba(76,217,123,.45)}
+.va.vprox,.vac.vprox{color:var(--acorde)}
 </style>
 </head>
 <body>
@@ -1926,7 +1936,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.5.12';
+const VERSION = '0.5.13';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -3035,7 +3045,7 @@ const Rep = {
           // verde hasta que suena el acorde siguiente (aunque siga en el compás de al lado)
           cel.acordes.forEach((ac, j) => { let fin = cel.fin; for (const x of acordes) { if (x.t <= ac.t + 0.05) fin = x.finV; else break; } ac.finV = j + 1 < cel.acordes.length ? Math.min(fin, cel.acordes[j + 1].t) : fin; });
           for (const ac of cel.acordes) {
-            const chip = this.chipAcorde(ac);
+            const chip = this.chipAcorde(ac, true);
             if (cel.acordes.length === 1 && ant === ac.nombre) chip.classList.add('repite');
             c.appendChild(chip); ant = ac.nombre;
           }
@@ -3047,12 +3057,16 @@ const Rep = {
     }
     this.palabrasEl.sort((a, b) => a.t - b.t);
     this.acordesEl.sort((a, b) => a.t - b.t);
+    // (0.5.13) en las filas de compases, cada casilla está verde solo hasta que empieza la casilla siguiente
+    // (si el acorde se repite compás a compás, se enciende uno por vez, no todos los ya tocados)
+    const cmps = this.acordesEl.filter(x => x.cmp);
+    for (let k = 0; k + 1 < cmps.length; k++) cmps[k].fin = Math.min(cmps[k].fin, Math.max(cmps[k].t + 0.05, cmps[k + 1].t));
     this.iFila = -1; this.iPal = -1; this.iAc = -1; this.saltoTele = true;
     this.pintarAcordes();
   },
-  chipAcorde(ac) {
+  chipAcorde(ac, enCompas) {
     const b = el('b', 'ac'); b.dataset.n = ac.nombre;
-    this.acordesEl.push({ el: b, t: ac.t, fin: ac.finP || ac.finV || ac.fin, n: ac.nombre, on: false });
+    this.acordesEl.push({ el: b, t: ac.t, fin: ac.finP || ac.finV || ac.fin, n: ac.nombre, on: false, cmp: !!enCompas });
     return b;
   },
   pintarAcordes() { for (const a of this.acordesEl) a.el.textContent = this.nombreAcorde(a.n, a.t); this.iAc = -2; this.iViene = -2; $('#tonoKey').parentElement.classList.toggle('grados', Pref.get('notacion', 'americana') === 'grados'); },
@@ -3108,7 +3122,10 @@ const Rep = {
     // (0.5.7) el que suena: verde a pleno; el PRÓXIMO acorde distinto: azul; todo lo demás apagado (fabao)
     let nSuena = null, prox = null;
     for (const x of this.acordesEl) if (t >= x.t - 0.05 && t < x.fin - 0.05) { nSuena = x.n; break; }
-    for (const x of this.acordesEl) if (x.t > t + 0.05 && x.n !== nSuena && !Modelo.esSilencio(x.n)) { prox = x; break; }
+    // (0.5.13) el azul se prende recién cuando el que viene INMEDIATAMENTE es otro acorde: mientras queden compases
+    // repitiendo el que suena (Dm Dm Dm…), no se prende nada adelante (fabao: "eso es lo que confunde")
+    // (0.5.13) azul = el que viene INMEDIATAMENTE (el compás o acorde siguiente), aunque repita el que suena (fabao)
+    for (const x of this.acordesEl) if (x.t > t + 0.05) { if (!Modelo.esSilencio(x.n)) prox = x; break; }
     for (const x of this.acordesEl) {
       const on = t >= x.t - 0.05 && t < x.fin - 0.05, px = x === prox;
       if (on !== x.on || this.saltoTele) { x.on = on; x.el.classList.toggle('suena', on); }
@@ -3173,7 +3190,7 @@ const Rep = {
     for (let k = 0; k < C.length; k++) { if (C[k].t <= t + 0.05) i = k; else break; }   // mismo margen que el acorde grande
     const ini = Math.max(0, i);
     if (ini !== this.iViene) {
-      this.iViene = ini; caja.innerHTML = ''; this.vieneSpans = [];
+      this.iViene = ini; caja.innerHTML = ''; this.vieneSpans = []; this.vieneSig = null;
       const secDe = tt => { const b = this.an.arreglo.find(x => tt >= x.t - 0.02 && tt < x.fin - 0.02); return b ? b.nombre : ''; };
       const filas = Math.max(2, Math.floor((caja.clientHeight - 24 + 6) / 52)), cuantos = filas * 4;   // llena el lugar que haya
       let ant = null, secAnt = C[ini] ? secDe(C[ini].t) : '';
@@ -3184,6 +3201,7 @@ const Rep = {
         if (cel.acordes.length === 1 && cel.acordes[0].nombre === ant && k !== i) va.textContent = '%';
         else cel.acordes.forEach((a, j) => { const sp = el('span', 'vac', (j ? ' ' : '') + this.nombreAcorde(a.nombre, a.t)); va.appendChild(sp); if (k === i) this.vieneSpans.push({ el: sp, t: a.t }); });
         if (cel.acordes.length > 2) va.classList.add('tres');
+        if (k === i + 1) this.vieneSig = va;
         d.appendChild(va);
         if (cel.acordes.length) ant = cel.acordes[cel.acordes.length - 1].nombre;
         caja.appendChild(d);
@@ -3192,7 +3210,8 @@ const Rep = {
     // en el compás que suena: el acorde de ahora en verde, los que ya pasaron apagados
     const S = this.vieneSpans || []; let j = -1;
     for (let k = 0; k < S.length; k++) if (S[k].t <= t + 0.05) j = k;
-    S.forEach((x, k) => { x.el.classList.toggle('vsuena', k === j); x.el.classList.toggle('ya', k < j); });
+    S.forEach((x, k) => { x.el.classList.toggle('vsuena', k === j); x.el.classList.toggle('ya', k < j); x.el.classList.toggle('vprox', j >= 0 && k === j + 1); });
+    if (this.vieneSig) this.vieneSig.classList.toggle('vprox', j < 0 || j >= S.length - 1);   // el siguiente compás, si en este ya no viene otro
   },
 
   // ── mezcla: una columna por fila ──
@@ -3414,11 +3433,11 @@ $('#btnCompartir').onclick = () => Rep.cancion && compartirCancion(Rep.cancion, 
 
 // ══════════════════════ (0.5.0) PEDIR UNA CANCIÓN A TU MAC (Mac 1.4.18) ══════════════════════
 // Pegás un link de YouTube; una Mac con YouSTEM abierto lo toma, la baja, hace la Máxima, la sube a tu carpeta
-// privada y la borra de la Mac. Antes de pedir se mira si hay una Mac despierta (su "latido", cada minuto).
+// privada y la borra de la Mac. Antes de pedir se mira si hay una Mac despierta (su "latido", cada ~3 min desde la Mac 1.5.0).
 // Buzón en «YouSTEM Privado/pedidos»: <pid>.json (lo dejás vos) · tomados/ · estado/<pid>.json (lo escribe la Mac) ·
 // macs/<mac>.json (el latido). Protocolo: claude/YouSTEM-diseno-pedidos-telefono.md
 const Pedidos = {
-  DESPIERTA: 3 * 60 * 1000,   // un latido de menos de 3 min = la Mac está despierta
+  DESPIERTA: 7 * 60 * 1000,   // (Mac 1.5.0 / web 0.5.1 de la otra sesión) la Mac late cada ~3 min: menos de 7 min = despierta
   timer: null, macs: [], pendientes: [], estados: [], leyendo: false,
   raiz() { const l = Bib.libs.find(x => x.mia); return l ? l.raices.find(r => r.privada) || null : null; },
   lib() { return Bib.libs.find(x => x.mia) || null; },
