@@ -1936,10 +1936,11 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.5.13';
+const VERSION = '0.5.14';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
+const ES_ANDROID = /Android/i.test(navigator.userAgent);
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const fmtT = s => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), x = Math.floor(s % 60); return m + ':' + String(x).padStart(2, '0'); };
 
@@ -2941,6 +2942,7 @@ const Rep = {
 
   // ══════════ TELEPROMPTER: letra con los acordes sobre la palabra, y compases sin letra ══════════
   armarTele() {
+    this.genTele = (this.genTele || 0) + 1;
     const an = this.an, le = this.letra, rio = $('#rio');
     rio.innerHTML = ''; this.rio = rio; this.filasTele = []; this.palabrasEl = []; this.acordesEl = [];
     const acordes = an.valido || an.acordes.length ? an.acordesAlPulso().filter(a => !a.sigue) : [];
@@ -3083,6 +3085,8 @@ const Rep = {
     if (!this.cancion) return;
     requestAnimationFrame(() => this.cuadro());
     if (!$('#pRep').classList.contains('activa')) return;
+    // (0.5.14) Android: la pantalla se actualiza 30 veces por segundo (sobra para la letra y los acordes) y deja más aire al audio
+    if (ES_ANDROID && (this.saltoCuadro = !this.saltoCuadro) && !this.saltoTele) return;
     const t = Audio.ahora(), an = this.an;
     $('#tiempo').textContent = fmtT(t) + ' / ' + fmtT(this.dur);
     this.dibujarBarra(t);
@@ -3157,6 +3161,11 @@ const Rep = {
   dibujarBarra(t) {
     const cv = $('#barra'), dpr = window.devicePixelRatio || 1;
     const W = cv.clientWidth, H = cv.clientHeight;
+    // (0.5.14) solo se redibuja si algo cambió (el cabezal se movió un píxel, una bandera, el loop, el arreglo):
+    // antes eran ~60 dibujos enteros por segundo, y en teléfonos modestos eso le quitaba tiempo al audio
+    const a0 = this.aj, clave = [W, H, dpr, Math.round(t / (this.dur || 1) * W * dpr), a0.marcaInicio, a0.marcaCuenta, a0.loop, a0.cicloIni, a0.cicloFin, this.an.arreglo.length, this.genTele || 0].join('|');
+    if (clave === this.claveBarra) return;
+    this.claveBarra = clave;
     if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
     const x = cv.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, W, H);
     const d = this.dur || 1, X = s => s / d * W;
