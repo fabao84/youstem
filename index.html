@@ -438,6 +438,36 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 
 /* (0.5.16) el menú del click con cinco botones: en dos filas si no entra */
 .popClick{flex-wrap:wrap;max-width:calc(100vw - 16px);justify-content:center}
+
+/* (0.6.1) modo Pulso */
+.pulso{position:fixed;inset:0;z-index:26;background:var(--fondo);display:none;flex-direction:column;padding:var(--sa-t) var(--sa-r) var(--sa-b) var(--sa-l)}
+.pulso.ver{display:flex}
+.pulso .edCab{padding:8px 12px}
+.pulso .edTit{flex:1;min-width:0}.pulso #puTit{font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pulso #puInfo{font-size:12px}
+.puTira{flex:1;min-height:120px;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:5px}
+.puFila{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.puCmp{position:relative;background:var(--panel2);border-radius:9px;height:44px;padding:3px 7px;cursor:pointer}
+.puCmp.sona{outline:2px solid var(--verde)}
+.puN{font-size:10px;font-weight:700;color:var(--gris)}
+.puPul{position:absolute;left:7px;right:7px;bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.puPul i{width:7px;height:7px;border-radius:50%;background:#3a4652}
+.puPul i.uno{background:#c9d1da;width:9px;height:9px}
+.puPul i.on{background:var(--verde);box-shadow:0 0 6px var(--verde)}
+.puRombo{position:absolute;top:-5px;left:-3px;width:14px;height:14px;background:var(--oro);transform:rotate(45deg);border-radius:2px;box-shadow:0 0 8px rgba(255,215,106,.55)}
+.puRombo.sel{outline:2px solid #fff;outline-offset:2px}
+.puRombo.par{background:#ffb547}
+.puCambio{position:absolute;top:3px;right:6px;font-size:10px;font-weight:800;color:var(--acorde)}
+.puAbajo{flex:none;padding:8px 12px 10px;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--linea);max-height:62%;overflow-y:auto}
+.puTap{height:88px;border-radius:20px;background:linear-gradient(180deg,#2a3a2e,#1d2a21);border:2px solid var(--verde);font:800 22px/1.1 -apple-system,system-ui;color:var(--verde);display:flex;flex-direction:column;align-items:center;justify-content:center;touch-action:manipulation;flex:none}
+.puTap small{font:600 12px/1.3 -apple-system,system-ui;color:#9fd8b2;margin-top:4px}
+.puTap.flash{animation:puFlash .25s ease-out}
+@keyframes puFlash{from{background:var(--verde);color:#06210f}to{background:linear-gradient(180deg,#2a3a2e,#1d2a21)}}
+.puTrans{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.puGrupo{display:flex;flex-direction:column;gap:5px}
+.puGrupo>span{font-size:11px;font-weight:800;letter-spacing:.7px;color:var(--gris);text-transform:uppercase}
+.puGrupo>div{display:flex;gap:6px;flex-wrap:wrap}
+.popClick button.ancho{width:auto;padding:0 14px;font-size:17px}
+@media (min-width:700px) and (min-height:600px){ .puTira{padding:12px 24px} .puAbajo{padding:10px 24px 14px} .puCmp{height:52px} }
 </style>
 </head>
 <body>
@@ -522,9 +552,21 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
   <div class="edArrCaja"><div id="edArr" class="edArr"></div></div>
   <div id="edHoja" class="edHoja"></div>
   <div id="edPanel" class="edPanel"></div>
-  <div class="edTrans"><button id="edPlay" class="edBot redondo grande2">▶</button><button id="edRep" class="edBot">⟲ Repetir el compás</button><span id="edTiempo" class="edT"></span><span class="edNota">El pulso se arregla en la Mac · el click suena mientras editás</span></div>
+  <div class="edTrans"><button id="edPlay" class="edBot redondo grande2">▶</button><button id="edRep" class="edBot">⟲ Repetir el compás</button><button id="edPulso" class="edBot">Pulso…</button><span id="edTiempo" class="edT"></span><span class="edNota">El pulso se arregla en la Mac · el click suena mientras editás</span></div>
 </section>
 
+<section id="pPulso" class="pulso">
+  <header class="edCab"><button id="puCancelar" class="edBot">Cancelar</button><div class="edTit"><div id="puTit"></div><div id="puInfo" class="gris"></div></div><button id="puListo" class="edBot listo">Listo ✓</button></header>
+  <div id="puTira" class="puTira"></div>
+  <div class="puAbajo">
+    <button id="puTap" class="puTap">TOCÁ EN EL 1<small>mientras suena: marca el 1 en el golpe más cercano a tu dedo</small></button>
+    <div class="puTrans"><button id="puAtras" class="edChip" title="4 compases atrás">⏮</button><button id="puPlay" class="edChip">▶</button><button id="puRep" class="edChip">⟲ compás</button><button id="puClick" class="edChip on">Click ●</button><span id="puTiempo" class="edT"></span></div>
+    <div class="puGrupo"><span>Tempo del click</span><div><button id="puD2" class="edChip">÷2</button><button id="puX2" class="edChip">×2</button><button id="puMedio" class="edChip">½→</button><button id="puUno" class="edChip">1→</button></div></div>
+    <div class="puGrupo"><span>Compás de la canción</span><div id="puCompases"><button class="edChip" data-n="2">2/4</button><button class="edChip" data-n="3">3/4</button><button class="edChip" data-n="4">4/4</button><button class="edChip" data-n="6">6/8</button><button class="edChip">Otro…</button></div></div>
+    <div class="puGrupo"><span>Desde el compás que suena</span><div id="puDesde"><button class="edChip" data-n="2">2</button><button class="edChip" data-n="3">3</button><button class="edChip" data-n="4">4</button><button class="edChip" data-n="5">5</button><button class="edChip" data-n="6">6</button><button class="edChip" data-n="7">7</button><button class="edChip">Quitar</button></div></div>
+    <div class="puGrupo"><span>El 1 elegido (tocá un rombo)</span><div><button id="puIzq" class="edChip">◀ un pulso</button><button id="puDer" class="edChip">un pulso ▶</button><button id="puBorrar" class="edChip rojo">Borrar</button><button id="puParejo" class="edChip">Parejo desde acá</button><button id="puBorrarTodo" class="edChip rojo">Borrar todos</button></div></div>
+  </div>
+</section>
 <div id="cargando" class="cargando"><div class="cargCaja"><div class="giro"></div><div id="cargTxt"></div><div class="cargRiel"><div id="cargBarra"></div></div></div></div>
 
 <div id="menu" class="hoja">
@@ -535,6 +577,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="menuCarpeta" style="display:none">Carpeta de canciones…<span id="menuCarpetaNombre" class="gris"></span></button>
     <button id="menuConectar">Conectar con Microsoft (OneDrive)</button>
     <button id="menuEditar">✎ Editar acordes y arreglos</button>
+    <button id="menuPulso">Ajustar pulso (tocá en el 1)</button>
     <button id="menuAvisar">⚠ Avisar un error en esta parte</button>
     <button id="menuEnviar">Enviar correcciones (.youstemcorr)</button>
     <button id="menuDescartar">Descartar mis correcciones de esta canción</button>
@@ -581,7 +624,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 </div>
 <div id="hojaAviso" class="hoja"><div class="hojaCaja" id="haCaja"></div></div>
 <div id="panelReg" class="hoja reg"><div class="hojaCaja"><pre id="registro"></pre><div class="fila2"><button id="regCopiar">Copiar</button><button id="regCerrar">Cerrar</button></div></div></div>
-<div id="popClick" class="popClick"><button id="pcCorrer" title="Correr el 1 al pulso siguiente">1<span class="flecha">→</span></button><button id="pcMedio" title="Mover el click medio tiempo (otro toque lo vuelve)">½<span class="flecha">→</span></button><button id="pcUno" title="Apagar el acento del 1"><s>1</s></button><button id="pcD2" title="Click a la mitad">÷2</button><button id="pcX2" title="Click al doble">×2</button></div>
+<div id="popClick" class="popClick"><button id="pcCorrer" title="Correr el 1 al pulso siguiente">1<span class="flecha">→</span></button><button id="pcMedio" title="Mover el click medio tiempo (otro toque lo vuelve)">½<span class="flecha">→</span></button><button id="pcUno" title="Apagar el acento del 1"><s>1</s></button><button id="pcD2" title="Click a la mitad">÷2</button><button id="pcX2" title="Click al doble">×2</button><button id="pcPulso" class="ancho" title="Ajustar el pulso: tocá en el 1">Pulso…</button></div>
 <div id="aviso" class="aviso"></div>
 <input id="archivoImp" type="file" multiple style="display:none">
 <div id="soltar" class="soltar"><div>Soltá acá los .youstem o .youstemcorr</div></div>
@@ -2431,7 +2474,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.6.0';
+const VERSION = '0.6.1';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -3367,7 +3410,7 @@ const Rep = {
     Audio.enviar({ t: 'click', c: { beats: b.map(t => Math.round(t * sr)), fuerte: b.map(t => conUno && fuertes.has(Math.round(t * 1000)) ? 1 : 0), desde: 0, suaveHasta: Math.round((groove - 0.05) * sr) } });
   },
   // (0.5.2) "1 →": el 1 del compás pasa al pulso siguiente (lo mismo que "correr el 1" de la Mac: ediciones.correr1)
-  correrUno() {
+  correrUno(sinGuardar) {
     const an = this.an, c = this.cancion, lib = this.lib;
     if (!an.valido) { aviso('Esta canción no tiene pulso todavía.', 3000); return; }
     if (an.anclas.length && an.anclasHonradas()) { aviso('El 1 de esta canción se puso a mano en la Mac (Pulso): se mueve allá.', 4500); return; }
@@ -3377,10 +3420,10 @@ const Rep = {
     this.armarClick(); this.armarTele(); this.medir(); this.iViene = -2; this.iAc = -2; this.pulsoClave = null;
     aviso('El 1 se corrió un pulso (' + (an.correr1 + 1) + ' de ' + n + '). Tocá de nuevo para seguir corriéndolo.', 2500);
     // se guarda como cualquier corrección (tu OneDrive / el aparato / a tu colega), un rato después del último toque
-    guardarClick(c, lib, { correr1: an.correr1 });
+    if (!sinGuardar) guardarClick(c, lib, { correr1: an.correr1 });
   },
   // (0.5.15) "½→": toda la grilla medio tiempo adelante; otro toque la vuelve (lo mismo que "Mover ½" de la Mac: ediciones.medio)
-  correrMedio() {
+  correrMedio(sinGuardar) {
     const an = this.an, c = this.cancion, lib = this.lib;
     if (!an.valido || an.beatsCrudos.length < 2) { aviso('Esta canción no tiene pulso todavía.', 3000); return; }
     if (an.anclas.length && an.anclasHonradas()) { aviso('El pulso de esta canción se puso a mano en la Mac (Pulso): se mueve allá.', 4500); return; }
@@ -3389,10 +3432,10 @@ const Rep = {
     this.armarClick(); this.armarTele(); this.medir(); this.iViene = -2; this.iAc = -2; this.pulsoClave = null;
     $('#pcMedio').classList.toggle('on', an.medioPulso);
     aviso(an.medioPulso ? 'Click corrido medio tiempo · otro toque en ½ lo vuelve' : 'Click como lo detectó YouSTEM', 2500);
-    guardarClick(c, lib, { medio: an.medioPulso });
+    if (!sinGuardar) guardarClick(c, lib, { medio: an.medioPulso });
   },
   // (0.5.16) ×2 / ÷2: el click al doble o a la mitad de velocidad (lo mismo que la Mac: ediciones.factor 0,5 · 1 · 2)
-  factorTempo(f) {
+  factorTempo(f, sinGuardar) {
     const an = this.an, c = this.cancion, lib = this.lib;
     if (!an.valido || an.beats.length < 2) { aviso('Esta canción no tiene pulso todavía.', 3000); return; }
     if (an.anclas.length && an.anclasHonradas()) { aviso('El pulso de esta canción se puso a mano en la Mac (Pulso): se cambia allá.', 4500); return; }
@@ -3404,7 +3447,7 @@ const Rep = {
     this.armarClick(); this.armarTele(); this.medir(); this.iViene = -2; this.iAc = -2; this.pulsoClave = null;
     this.pintarMenuClick();
     aviso(an.beatFactor === 2 ? 'Click al doble (×2)' : an.beatFactor === 0.5 ? 'Click a la mitad (÷2)' : 'Click como lo detectó YouSTEM', 2200);
-    guardarClick(c, lib, { factor: an.beatFactor });
+    if (!sinGuardar) guardarClick(c, lib, { factor: an.beatFactor });
   },
   pintarMenuClick() {
     const an = this.an || {};
@@ -3493,7 +3536,7 @@ const Rep = {
     if (a.marcaInicio >= 0 && !this.reanudar) desde = a.marcaInicio;      // como la Mac: la bandera verde manda
     Audio.enviar({ t: 'cuenta', desde: 0, hasta: -1, pos: [], fuerte: [] });
     let previa = null;
-    if (a.cuenta && a.marcaCuenta >= 0 && an.valido && !Editor.abierto) {
+    if (a.cuenta && a.marcaCuenta >= 0 && an.valido && !Editor.abierto && !Pulso.abierto) {
       // (0.5.11) fabao: "la bandera morada es solo el lugar donde debe TERMINAR la cuenta". La canción arranca donde
       // arranca (la verde o donde estés); la cuenta suena en los 1 o 2 compases antes de la morada, con el tempo del
       // compás que viene después de la morada. Si la morada está tan al comienzo que no entran todos los golpes, los
@@ -4018,6 +4061,7 @@ async function abrirMenu() {
   $('#menuAudio').style.display = enRep ? '' : 'none';
   $('#menuEditar').style.display = enRep && Editor.puede() ? '' : 'none';
   $('#menuEnviar').style.display = enRep && !Rep.lib.mia ? '' : 'none';
+  $('#menuPulso').style.display = enRep && Rep.an.valido ? '' : 'none';
   $('#menuAvisar').style.display = enRep && !Rep.lib.mia && !Rep.lib.local && Rep.an.valido ? '' : 'none';
   $('#menuDescartar').style.display = enRep && !Rep.lib.local && edicionGuardada(Rep.lib, Rep.cancion.id) ? '' : 'none';
 }
@@ -5669,6 +5713,228 @@ async function marcarLista(c, lib, si) {
     else aviso('No pude: ' + e.message, 5000);
   } finally { cargando(null); }
 }
+
+// ══════════════════════ (0.6.1) MODO PULSO: "Tocá en el 1" + compás + tempo del click (boceto aprobado 31/10) ══════════════════════
+// Todo lo que cambia acá es lo mismo que guarda la Mac en analisis.json › ediciones: anclas (los "1" a mano = rombos),
+// anclasParejas, compas, cambiosCompas, correr1, medio, factor. Nada sube a la nube hasta "Listo" (y sube después,
+// como los cambios del click); "Cancelar" deja todo como estaba.
+const Pulso = {
+  abierto: false, sel: -1, foto: null,
+  campos(an) { return { anclas: an.anclas.slice(), anclasParejas: an.anclasParejas.slice(), compasN: an.compasN, cambiosCompas: an.cambiosCompas.map(x => x.slice()), correr1: an.correr1, medioPulso: an.medioPulso, beatFactor: an.beatFactor }; },
+  poner(an, f) { Object.assign(an, { anclas: f.anclas.slice(), anclasParejas: f.anclasParejas.slice(), compasN: f.compasN, cambiosCompas: f.cambiosCompas.map(x => x.slice()), correr1: f.correr1, medioPulso: f.medioPulso, beatFactor: f.beatFactor }); an.aplicarMedio(); },
+  edicion(an) { return { anclas: an.anclas.slice(), anclasParejas: an.anclasParejas.slice(), compas: an.compasN, cambiosCompas: an.cambiosCompas.map(x => x.slice()), correr1: an.correr1, medio: an.medioPulso, factor: an.beatFactor }; },
+
+  abrir() {
+    const R = Rep; if (!R.cancion) return;
+    if (!R.an.valido || R.an.beatsCrudos.length < 2) { aviso('Esta canción no tiene pulso detectado todavía: se analiza en la Mac.', 4000); return; }
+    if (Corr.viendo) Corr.volverMia();
+    $('#popClick').classList.remove('ver');
+    this.foto = this.campos(R.an); this.sel = -1; this.abierto = true;
+    // el click arranca ENCENDIDO (fabao); al salir vuelve como estaba
+    const fc = R.filas.find(f => f.tipo === 'click');
+    this.clickAntes = fc ? fc.mute : null;
+    if (fc && fc.mute) { fc.mute = false; fc.pintar && fc.pintar(); R.enviarControles(); }
+    $('#puTit').textContent = 'Pulso · ' + (R.cancion.titulo || R.cancion.id);
+    $('#pPulso').classList.add('ver');
+    this.dibujar(true); this.cuadro();
+    anotar('pulso: abierto', R.cancion.id, this.foto.anclas.length + ' rombos');
+  },
+  cerrar() {
+    const R = Rep;
+    this.abierto = false; this.repetir = false; $('#pPulso').classList.remove('ver');
+    const fc = R.filas.find(f => f.tipo === 'click');
+    if (fc && this.clickAntes != null && fc.mute !== this.clickAntes) { fc.mute = this.clickAntes; fc.pintar && fc.pintar(); R.enviarControles(); }
+    R.aplicarLoop();
+  },
+  cambio() {   // después de tocar algo: se rehace la grilla, el click, la letra y la tira
+    const an = Rep.an; an._ce = null; an._be = null;
+    if (Rep.aj.marcaCuenta >= 0) { const k = Rep.compasCercano(Rep.aj.marcaCuenta); if (k) Rep.aj.marcaCuenta = k.t; }
+    Rep.armarClick(); Rep.armarTele(); Rep.iViene = -2; Rep.iAc = -2; Rep.pulsoClave = null;
+    if (this.repetir) this.aplicarRepetir();
+    this.dibujar();
+  },
+  hayCambios() { return JSON.stringify(this.campos(Rep.an)) !== JSON.stringify(this.foto); },
+  cancelar() {
+    if (this.hayCambios() && !confirm('¿Descartar los cambios del pulso?')) return;
+    this.poner(Rep.an, this.foto); this.cerrar(); this.cambio(); Rep.medir();
+  },
+  listo() {
+    const R = Rep, cambio = this.hayCambios();
+    this.cerrar(); Rep.medir();
+    if (!cambio) return;
+    guardarClick(R.cancion, R.lib, this.edicion(R.an));
+    anotar('pulso: listo', R.cancion.id, R.an.anclas.length + ' rombos, compás ' + R.an.compasN, R.an.cambiosCompas.length + ' cambios');
+    aviso('Pulso guardado en ' + EQUIPO + '; sube a la nube cuando salgas de la canción.', 3500);
+  },
+
+  // ── "TOCÁ EN EL 1": un 1 en el golpe de la canción más cercano a tu dedo ──
+  tocarUno() {
+    const an = Rep.an, t = Audio.ahora(), b = golpesDetectados(an);
+    if (!b.length) return;
+    let k = 0; for (let i = 1; i < b.length; i++) if (Math.abs(b[i] - t) < Math.abs(b[k] - t)) k = i;
+    const uno = b[k], paso = k + 1 < b.length ? b[k + 1] - b[k] : (k > 0 ? b[k] - b[k - 1] : 0.5);
+    // si ya hay un 1 a menos de medio pulso, se reemplaza (corregís un toque anterior)
+    const cerca = an.anclas.findIndex(x => Math.abs(x - uno) < paso * 0.6);
+    if (cerca >= 0) { an.anclasParejas = an.anclasParejas.filter(x => Math.abs(x - an.anclas[cerca]) > 0.002); an.anclas.splice(cerca, 1); }
+    an.anclas.push(uno); an.anclas.sort((x, y) => x - y);
+    this.sel = an.anclas.indexOf(uno);
+    if (navigator.vibrate) navigator.vibrate(15);
+    const btn = $('#puTap'); btn.classList.remove('flash'); void btn.offsetWidth; btn.classList.add('flash');
+    this.cambio();
+    anotar('pulso: 1 marcado en', uno.toFixed(3), '(tocaste en ' + t.toFixed(3) + ')');
+  },
+  moverSel(dir) {
+    const an = Rep.an; if (this.sel < 0 || this.sel >= an.anclas.length) { aviso('Tocá un rombo de la tira (o marcá un 1) primero.', 2500); return; }
+    const t0 = an.anclas[this.sel], b = golpesDetectados(an);
+    let k = 0; for (let i = 1; i < b.length; i++) if (Math.abs(b[i] - t0) < Math.abs(b[k] - t0)) k = i;
+    const k2 = Math.max(0, Math.min(b.length - 1, k + dir)); if (k2 === k) return;
+    const t1 = b[k2];
+    if (an.anclas.some((x, i) => i !== this.sel && Math.abs(x - t1) < 0.01)) { aviso('Ahí ya hay un 1.', 1500); return; }
+    const par = an.anclasParejas.findIndex(x => Math.abs(x - t0) < 0.002); if (par >= 0) an.anclasParejas[par] = t1;
+    an.anclas[this.sel] = t1; an.anclas.sort((x, y) => x - y); this.sel = an.anclas.indexOf(t1);
+    Rep.ir(Math.max(0, t1 - 0.05));
+    this.cambio();
+  },
+  borrarSel() {
+    const an = Rep.an; if (this.sel < 0 || this.sel >= an.anclas.length) { aviso('Tocá un rombo de la tira primero.', 2500); return; }
+    const t0 = an.anclas[this.sel];
+    an.anclas.splice(this.sel, 1); an.anclasParejas = an.anclasParejas.filter(x => Math.abs(x - t0) > 0.002);
+    this.sel = -1; this.cambio(); aviso('1 borrado.', 1400);
+  },
+  borrarTodos() {
+    const an = Rep.an; if (!an.anclas.length) return;
+    if (!confirm('¿Borrar los ' + an.anclas.length + ' «1» marcados a mano? El pulso vuelve a ser el detectado.')) return;
+    an.anclas = []; an.anclasParejas = []; this.sel = -1; this.cambio();
+  },
+  parejo() {
+    const an = Rep.an; if (this.sel < 0 || this.sel >= an.anclas.length) { aviso('Tocá el rombo desde donde los compases van parejos.', 2500); return; }
+    const t0 = an.anclas[this.sel], i = an.anclasParejas.findIndex(x => Math.abs(x - t0) < 0.002);
+    if (i >= 0) an.anclasParejas.splice(i, 1); else an.anclasParejas.push(t0);
+    if (this.sel !== an.anclas.length - 1 && i < 0) aviso('"Parejo" se aplica después del ÚLTIMO 1 marcado.', 3000);
+    this.cambio();
+  },
+  ponerCompas(n) {
+    const an = Rep.an; if (an.compasN === n) return;
+    an.compasN = n; an.correr1 = 0; this.cambio();
+    aviso('Compás de ' + n + ' tiempos en toda la canción' + (an.cambiosCompas.length ? ' (los cambios "desde acá" siguen)' : '') + '.', 2500);
+  },
+  otroCompas() {
+    const x = parseInt(prompt('¿Cuántos tiempos tiene el compás? (2 a 12)', String(Rep.an.compasN)) || '', 10);
+    if (x >= 2 && x <= 12) this.ponerCompas(x);
+  },
+  compasActual() { const c = Rep.an.compasesEfectivos(), t = Audio.ahora() + 0.03; let k = -1; for (let i = 0; i < c.length; i++) { if (c[i] <= t) k = i; else break; } return k; },
+  desdeAca(n) {
+    const an = Rep.an, c = an.compasesEfectivos(), k = this.compasActual(); if (k < 0) return;
+    const t = c[k];
+    an.cambiosCompas = an.cambiosCompas.filter(x => Math.abs(x[0] - t) > 0.01);
+    if (n) an.cambiosCompas.push([t, n]);
+    an.cambiosCompas.sort((x, y) => x[0] - y[0]);
+    this.cambio();
+    aviso(n ? 'Desde el compás ' + (k + 1) + ': ' + n + ' tiempos.' : 'Sin cambio de compás en el ' + (k + 1) + '.', 2200);
+  },
+
+  // ── escuchar ──
+  aplicarRepetir() {
+    const c = Rep.an.compasesEfectivos(), k = this.compasActual();
+    if (this.repetir && k >= 0) { const t1 = k + 1 < c.length ? c[k + 1] : c[k] + Rep.an.duracionCompas(); Audio.enviar({ t: 'loop', on: true, a: c[k] * Audio.sr, b: t1 * Audio.sr }); }
+    else Rep.aplicarLoop();
+    $('#puRep').classList.toggle('on', !!this.repetir);
+  },
+  alternarClick() {
+    const fc = Rep.filas.find(f => f.tipo === 'click'); if (!fc) return;
+    fc.mute = !fc.mute; fc.pintar && fc.pintar(); Rep.enviarControles(); this.pintarBotones();
+  },
+
+  // ── dibujo: la tira de compases (4 por fila), con sus pulsos, los rombos y los cambios de compás ──
+  dibujar(scrollear) {
+    const an = Rep.an, C = an.compasesEfectivos(), B = an.beatsEfectivos(), T = $('#puTira');
+    const sc = T.scrollTop; T.innerHTML = '';
+    this.celdas = [];
+    let fila = null;
+    for (let i = 0; i < C.length; i++) {
+      if (i % 4 === 0) { fila = el('div', 'puFila'); T.appendChild(fila); }
+      const t0 = C[i], t1 = i + 1 < C.length ? C[i + 1] : t0 + an.duracionCompas();
+      const d = el('div', 'puCmp'); d.dataset.i = i;
+      d.appendChild(el('span', 'puN', String(i + 1)));
+      const pul = el('span', 'puPul');
+      const bs = B.filter(b => b >= t0 - 0.02 && b < t1 - 0.02);
+      (bs.length ? bs : [t0]).forEach((b, j) => { const p = el('i', j === 0 ? 'uno' : ''); p.dataset.t = b; pul.appendChild(p); });
+      d.appendChild(pul);
+      const ai = an.anclas.findIndex(a => Math.abs(a - t0) < 0.06);
+      if (ai >= 0) { const r = el('span', 'puRombo' + (ai === this.sel ? ' sel' : '') + (an.anclaEsPareja(an.anclas[ai]) ? ' par' : '')); r.dataset.a = ai; d.appendChild(r); }
+      const cc = an.cambiosCompas.find(x => Math.abs(x[0] - t0) < 0.06);
+      if (cc) d.appendChild(el('span', 'puCambio', cc[1] + '/' + (cc[1] === 6 || cc[1] === 7 ? 8 : 4)));
+      fila.appendChild(d);
+      this.celdas.push({ el: d, t0, t1, pul: [...pul.children] });
+    }
+    T.scrollTop = sc;
+    this.iAct = -2;
+    this.pintarBotones();
+    if (scrollear) requestAnimationFrame(() => { const k = this.compasActual(); const d = this.celdas[Math.max(0, k)]; if (d) d.el.scrollIntoView({ block: 'center' }); });
+  },
+  pintarBotones() {
+    const an = Rep.an, fc = Rep.filas.find(f => f.tipo === 'click');
+    $('#puClick').classList.toggle('on', !!fc && !fc.mute); $('#puClick').textContent = fc && !fc.mute ? 'Click ●' : 'Click ○';
+    $('#puD2').classList.toggle('on', an.beatFactor === 0.5); $('#puX2').classList.toggle('on', an.beatFactor === 2); $('#puMedio').classList.toggle('on', !!an.medioPulso);
+    document.querySelectorAll('#puCompases .edChip').forEach(b => b.classList.toggle('on', +b.dataset.n === an.compasN));
+    const n = an.anclas.length;
+    $('#puInfo').textContent = n ? n + (n === 1 ? ' «1» marcado' : ' «1» marcados') + (this.sel >= 0 ? ' · elegido el ' + (this.sel + 1) : '') : 'Sin «1» marcados: el pulso es el detectado';
+    $('#puPlay').textContent = Audio.sonando ? '❚❚' : '▶';
+  },
+  cuadro() {
+    if (!this.abierto) return;
+    requestAnimationFrame(() => this.cuadro());
+    const t = Audio.ahora(), C = this.celdas || [];
+    let k = -1; for (let i = 0; i < C.length; i++) { if (C[i].t0 <= t + 0.03) k = i; else break; }
+    if (k !== this.iAct) {
+      if (this.iAct >= 0 && C[this.iAct]) { C[this.iAct].el.classList.remove('sona'); C[this.iAct].pul.forEach(p => p.classList.remove('on')); }
+      this.iAct = k;
+      if (k >= 0) { C[k].el.classList.add('sona'); if (Audio.sonando) { const T = $('#puTira'), r = C[k].el.getBoundingClientRect(), h = T.getBoundingClientRect(); if (r.top < h.top + 6 || r.bottom > h.bottom - 6) T.scrollTop += r.top - h.top - h.height * 0.35; } }
+    }
+    if (k >= 0) { let j = -1; C[k].pul.forEach((p, i) => { if (+p.dataset.t <= t + 0.03) j = i; }); C[k].pul.forEach((p, i) => p.classList.toggle('on', i === j)); }
+    $('#puTiempo').textContent = fmtT(t) + ' / ' + fmtT(Rep.dur);
+    if ((this.nCuadro = (this.nCuadro || 0) + 1) % 10 === 0) $('#puPlay').textContent = Audio.sonando ? '❚❚' : '▶';
+  }
+};
+// los golpes DETECTADOS (con ×2/÷2), no la grilla ya estirada entre rombos: ahí se pegan los 1 que marcás
+function golpesDetectados(an) {
+  const b = an.beats, f = an.beatFactor;
+  if (f > 1.5) { const r = []; for (let i = 0; i < b.length; i++) { r.push(b[i]); if (i + 1 < b.length) r.push((b[i] + b[i + 1]) / 2); } return r; }
+  if (f < 0.75) { const r = []; for (let i = 0; i < b.length; i += 2) r.push(b[i]); return r; }
+  return b.slice();
+}
+
+// ── eventos ──
+$('#puCancelar').onclick = () => Pulso.cancelar();
+$('#puListo').onclick = () => Pulso.listo();
+$('#puTap').addEventListener('pointerdown', e => { e.preventDefault(); Pulso.tocarUno(); });   // al apoyar el dedo (no al soltar): menos atraso
+$('#puPlay').onclick = () => { if (Audio.sonando) Rep.pausa(); else { Rep.reanudar = true; Rep.tocar(); } Pulso.pintarBotones(); };
+$('#puAtras').onclick = () => { const c = Rep.an.compasesEfectivos(), k = Pulso.compasActual(); Rep.reanudar = true; Rep.ir(c[Math.max(0, k - 4)] || 0); if (Audio.sonando) Rep.tocar(); };
+$('#puRep').onclick = () => { Pulso.repetir = !Pulso.repetir; Pulso.aplicarRepetir(); };
+$('#puClick').onclick = () => Pulso.alternarClick();
+$('#puD2').onclick = () => { Rep.factorTempo(0.5, true); Pulso.dibujar(); };
+$('#puX2').onclick = () => { Rep.factorTempo(2, true); Pulso.dibujar(); };
+$('#puMedio').onclick = () => { Rep.correrMedio(true); Pulso.dibujar(); };
+$('#puUno').onclick = () => { Rep.correrUno(true); Pulso.dibujar(); };
+$('#puIzq').onclick = () => Pulso.moverSel(-1);
+$('#puDer').onclick = () => Pulso.moverSel(1);
+$('#puBorrar').onclick = () => Pulso.borrarSel();
+$('#puBorrarTodo').onclick = () => Pulso.borrarTodos();
+$('#puParejo').onclick = () => Pulso.parejo();
+$('#puCompases').addEventListener('click', e => { const b = e.target.closest('.edChip'); if (!b) return; if (b.dataset.n) Pulso.ponerCompas(+b.dataset.n); else Pulso.otroCompas(); });
+$('#puDesde').addEventListener('click', e => { const b = e.target.closest('.edChip'); if (!b) return; Pulso.desdeAca(+b.dataset.n || 0); });
+$('#puTira').addEventListener('click', e => {
+  const r = e.target.closest('.puRombo');
+  if (r) { Pulso.sel = +r.dataset.a; Rep.ir(Math.max(0, Rep.an.anclas[Pulso.sel] - 0.05)); Pulso.dibujar(); return; }
+  const d = e.target.closest('.puCmp'); if (!d) return;
+  const c = Pulso.celdas[+d.dataset.i]; if (c) { Rep.reanudar = true; Rep.ir(c.t0); if (Pulso.repetir) Pulso.aplicarRepetir(); }
+});
+$('#pcPulso').onclick = () => Pulso.abrir();
+$('#menuPulso').onclick = () => { cerrarMenu(); Pulso.abrir(); };
+$('#edPulso').onclick = async () => {   // (iPad/compu) del editor al modo Pulso: lo del editor se guarda primero
+  if (Editor.hayCambios() && !confirm('Guardo lo que cambiaste en el editor y paso a ajustar el pulso. ¿Seguimos?')) return;
+  await Editor.listo(); Pulso.abrir();
+};
 </script>
 </body>
 </html>
