@@ -435,6 +435,9 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 .vac.ya{color:#2b343d}
 .vac.vsuena{background:var(--verde);color:#06210f;border-radius:7px;padding:1px 6px;box-shadow:0 0 12px rgba(76,217,123,.45)}
 .va.vprox,.vac.vprox{color:var(--acorde)}
+
+/* (0.5.16) el menú del click con cinco botones: en dos filas si no entra */
+.popClick{flex-wrap:wrap;max-width:calc(100vw - 16px);justify-content:center}
 </style>
 </head>
 <body>
@@ -578,7 +581,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 </div>
 <div id="hojaAviso" class="hoja"><div class="hojaCaja" id="haCaja"></div></div>
 <div id="panelReg" class="hoja reg"><div class="hojaCaja"><pre id="registro"></pre><div class="fila2"><button id="regCopiar">Copiar</button><button id="regCerrar">Cerrar</button></div></div></div>
-<div id="popClick" class="popClick"><button id="pcCorrer" title="Correr el 1 al pulso siguiente">1<span class="flecha">→</span></button><button id="pcMedio" title="Mover el click medio tiempo (otro toque lo vuelve)">½<span class="flecha">→</span></button><button id="pcUno" title="Apagar el acento del 1"><s>1</s></button></div>
+<div id="popClick" class="popClick"><button id="pcCorrer" title="Correr el 1 al pulso siguiente">1<span class="flecha">→</span></button><button id="pcMedio" title="Mover el click medio tiempo (otro toque lo vuelve)">½<span class="flecha">→</span></button><button id="pcUno" title="Apagar el acento del 1"><s>1</s></button><button id="pcD2" title="Click a la mitad">÷2</button><button id="pcX2" title="Click al doble">×2</button></div>
 <div id="aviso" class="aviso"></div>
 <input id="archivoImp" type="file" multiple style="display:none">
 <div id="soltar" class="soltar"><div>Soltá acá los .youstem o .youstemcorr</div></div>
@@ -1936,7 +1939,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.5.15';
+const VERSION = '0.5.16';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2821,8 +2824,7 @@ const Rep = {
     this.armarClick(); this.armarTele(); this.medir(); this.iViene = -2; this.iAc = -2; this.pulsoClave = null;
     aviso('El 1 se corrió un pulso (' + (an.correr1 + 1) + ' de ' + n + '). Tocá de nuevo para seguir corriéndolo.', 2500);
     // se guarda como cualquier corrección (tu OneDrive / el aparato / a tu colega), un rato después del último toque
-    clearTimeout(this.tCorrer);
-    this.tCorrer = setTimeout(() => { if (this.cancion === c) guardarEdiciones(c, lib, { correr1: an.correr1 }).catch(e => anotar('correr el 1', e)); }, 1800);
+    guardarClick(c, lib, { correr1: an.correr1 });
   },
   // (0.5.15) "½→": toda la grilla medio tiempo adelante; otro toque la vuelve (lo mismo que "Mover ½" de la Mac: ediciones.medio)
   correrMedio() {
@@ -2834,8 +2836,29 @@ const Rep = {
     this.armarClick(); this.armarTele(); this.medir(); this.iViene = -2; this.iAc = -2; this.pulsoClave = null;
     $('#pcMedio').classList.toggle('on', an.medioPulso);
     aviso(an.medioPulso ? 'Click corrido medio tiempo · otro toque en ½ lo vuelve' : 'Click como lo detectó YouSTEM', 2500);
-    clearTimeout(this.tMedio);
-    this.tMedio = setTimeout(() => { if (this.cancion === c) guardarEdiciones(c, lib, { medio: an.medioPulso }).catch(e => anotar('mover ½', e)); }, 1500);
+    guardarClick(c, lib, { medio: an.medioPulso });
+  },
+  // (0.5.16) ×2 / ÷2: el click al doble o a la mitad de velocidad (lo mismo que la Mac: ediciones.factor 0,5 · 1 · 2)
+  factorTempo(f) {
+    const an = this.an, c = this.cancion, lib = this.lib;
+    if (!an.valido || an.beats.length < 2) { aviso('Esta canción no tiene pulso todavía.', 3000); return; }
+    if (an.anclas.length && an.anclasHonradas()) { aviso('El pulso de esta canción se puso a mano en la Mac (Pulso): se cambia allá.', 4500); return; }
+    const v = an.beatFactor;
+    an.beatFactor = v > 1.5 && f > 1.5 ? 2 : v < 0.75 && f < 0.75 ? 0.5 : Math.max(0.5, Math.min(2, v * f));
+    if (an.beatFactor === v) { aviso(f > 1 ? 'Ya está al doble.' : 'Ya está a la mitad.', 1800); return; }
+    an._ce = null; an._be = null;
+    if (this.aj.marcaCuenta >= 0) { const k = this.compasCercano(this.aj.marcaCuenta); if (k) this.aj.marcaCuenta = k.t; }
+    this.armarClick(); this.armarTele(); this.medir(); this.iViene = -2; this.iAc = -2; this.pulsoClave = null;
+    this.pintarMenuClick();
+    aviso(an.beatFactor === 2 ? 'Click al doble (×2)' : an.beatFactor === 0.5 ? 'Click a la mitad (÷2)' : 'Click como lo detectó YouSTEM', 2200);
+    guardarClick(c, lib, { factor: an.beatFactor });
+  },
+  pintarMenuClick() {
+    const an = this.an || {};
+    $('#pcUno').classList.toggle('on', Pref.get('clickSinUno', false));
+    $('#pcMedio').classList.toggle('on', !!an.medioPulso);
+    $('#pcX2').classList.toggle('on', an.beatFactor === 2);
+    $('#pcD2').classList.toggle('on', an.beatFactor === 0.5);
   },
   alternarUno() {
     const sin = !Pref.get('clickSinUno', false); Pref.set('clickSinUno', sin);
@@ -2844,8 +2867,7 @@ const Rep = {
   },
   menuClick(canal) {
     const M = $('#popClick');
-    $('#pcUno').classList.toggle('on', Pref.get('clickSinUno', false));
-    $('#pcMedio').classList.toggle('on', !!(this.an && this.an.medioPulso));
+    this.pintarMenuClick();
     const r = canal.getBoundingClientRect();
     M.classList.add('ver');
     const w = M.offsetWidth, h = M.offsetHeight;
@@ -3341,7 +3363,26 @@ const Medios = {
 };
 
 // ── controles de Reproducción ──
-$('#btnVolver').onclick = () => { Rep.parar(); Rep.refrescarBotones(); pantalla('pBib'); Bib.dibujar(); };
+$('#btnVolver').onclick = () => { Rep.parar(); Rep.refrescarBotones(); pantalla('pBib'); Bib.dibujar(); subirAlSalir(); };
+// (0.5.16) los cambios del click se guardan al toque EN EL APARATO y suben a la nube al salir de la canción
+// (o al dejar la app), sin cartel ni espera: así se puede escuchar y seguir ajustando tranquilo (fabao)
+function guardarClick(c, lib, ed) {
+  if (lib.local) { Rep.anJson = mezclarEdiciones(Rep.anJson, ed); Local.guardarArchivo(c.id, 'analisis.json', JSON.stringify(Rep.anJson)).catch(e => anotar('click', e)); return; }
+  let p = edicionGuardada(lib, c.id) || null;
+  p = { ...(p || {}), ed: { ...(p ? p.ed : {}), ...ed }, fecha: Date.now(), titulo: c.titulo, raiz: c.raiz, subir: !!lib.mia,
+        publicar: !lib.mia && !c.listaParaVivo && Nube.conectado(), c: { id: c.id, titulo: c.titulo, artista: c.artista, huella: c.huella, editado: c.editado } };
+  try { localStorage.setItem(clavePend(lib, c.id), JSON.stringify(p)); } catch {}
+  Rep.anJson = mezclarEdiciones(Rep.anJson, ed);
+  anotar('click: guardado en el aparato', c.id, JSON.stringify(ed));
+  if (!Pref.get('vioClickDiferido', false)) { Pref.set('vioClickDiferido', true); setTimeout(() => aviso('Queda guardado en ' + EQUIPO + '; sube a la nube cuando salgas de la canción.', 4000), 2300); }
+}
+let subiendoAlSalir = false;
+async function subirAlSalir() {
+  if (subiendoAlSalir || !Nube.conectado()) return;
+  subiendoAlSalir = true;
+  try { await subirPendientes(true); } catch (e) { anotar('subir al salir', e); } finally { subiendoAlSalir = false; }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) subirAlSalir(); });
 $('#btnPlay').onclick = () => Audio.sonando ? Rep.pausa() : Rep.tocar();
 $('#btnInicio').onclick = () => Rep.alInicio();
 $('#tonoMenos').onclick = () => Rep.cambiarTono(-1);
@@ -3351,6 +3392,8 @@ $('#tonoVal').onclick = () => { Rep.tono = Math.round(Rep.ajMac.tono || 0); Rep.
 $('#btnCuenta').onclick = () => Rep.alternarCuenta();
 $('#pcCorrer').onclick = () => Rep.correrUno();
 $('#pcMedio').onclick = () => Rep.correrMedio();
+$('#pcX2').onclick = () => Rep.factorTempo(2);
+$('#pcD2').onclick = () => Rep.factorTempo(0.5);
 $('#pcUno').onclick = () => { Rep.alternarUno(); $('#pcUno').classList.toggle('on', Pref.get('clickSinUno', false)); };
 document.addEventListener('pointerdown', e => { const M = $('#popClick'); if (M.classList.contains('ver') && !e.target.closest('#popClick')) M.classList.remove('ver'); }, true);
 $('#btnVerde').onclick = () => Rep.alternarVerde();
@@ -4585,14 +4628,14 @@ async function subirEdicion(lib, id, silencioso) {
     return false;
   } finally { if (!silencioso) cargando(null); }
 }
-async function subirPendientes() {
+async function subirPendientes(callado) {
   if (!Nube.conectado() || !Nube.quiereEscribir()) return;
   const mia = (Bib.libs || []).find(l => l.mia); if (!mia) return;
   for (const k of Object.keys(localStorage)) {
     if (!k.startsWith('ys.ed.' + mia.clave + '|')) continue;
     const id = k.slice(('ys.ed.' + mia.clave + '|').length);
     const ok = await subirEdicion(mia, id, true);
-    if (ok) aviso('Se subió a tu OneDrive la corrección que había quedado pendiente.', 4000);
+    if (ok) aviso(callado ? 'Tus cambios subieron a la nube ✓' : 'Se subió a tu OneDrive la corrección que había quedado pendiente.', callado ? 1800 : 4000);
   }
   // (0.4.0) correcciones de canciones de colegas y avisos ⚠ que quedaron sin publicar
   for (const l of Corr.colegas()) for (const k of Object.keys(localStorage)) {
@@ -4936,7 +4979,7 @@ const Corr = {
     const j = await this.leer(l.raices[0], `correcciones/${this.yo()}/${id}/analisis.json`);
     if (!j || !j.ediciones) throw new Error('no encontré la corrección de ' + l.nombre);
     // solo lo que se corrige en la web (acordes y secciones): el pulso sigue siendo el tuyo
-    const ed = {}; for (const k of ['acordes', 'tiempos', 'nuevos', 'arreglo', 'correr1', 'medio']) if (k in j.ediciones) ed[k] = j.ediciones[k];
+    const ed = {}; for (const k of ['acordes', 'tiempos', 'nuevos', 'arreglo', 'correr1', 'medio', 'factor']) if (k in j.ediciones) ed[k] = j.ediciones[k];
     return ed;
   },
   mostrarAn(json) { Rep.an = Modelo.Analisis.deJson(json); Rep.armarTele(); Rep.medir(); Rep.iViene = -2; Rep.iAc = -2; },
