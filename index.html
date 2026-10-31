@@ -578,7 +578,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 </div>
 <div id="hojaAviso" class="hoja"><div class="hojaCaja" id="haCaja"></div></div>
 <div id="panelReg" class="hoja reg"><div class="hojaCaja"><pre id="registro"></pre><div class="fila2"><button id="regCopiar">Copiar</button><button id="regCerrar">Cerrar</button></div></div></div>
-<div id="popClick" class="popClick"><button id="pcCorrer" title="Correr el 1 al pulso siguiente">1<span class="flecha">→</span></button><button id="pcUno" title="Apagar el acento del 1"><s>1</s></button></div>
+<div id="popClick" class="popClick"><button id="pcCorrer" title="Correr el 1 al pulso siguiente">1<span class="flecha">→</span></button><button id="pcMedio" title="Mover el click medio tiempo (otro toque lo vuelve)">½<span class="flecha">→</span></button><button id="pcUno" title="Apagar el acento del 1"><s>1</s></button></div>
 <div id="aviso" class="aviso"></div>
 <input id="archivoImp" type="file" multiple style="display:none">
 <div id="soltar" class="soltar"><div>Soltá acá los .youstem o .youstemcorr</div></div>
@@ -1936,7 +1936,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.5.14';
+const VERSION = '0.5.15';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2824,6 +2824,19 @@ const Rep = {
     clearTimeout(this.tCorrer);
     this.tCorrer = setTimeout(() => { if (this.cancion === c) guardarEdiciones(c, lib, { correr1: an.correr1 }).catch(e => anotar('correr el 1', e)); }, 1800);
   },
+  // (0.5.15) "½→": toda la grilla medio tiempo adelante; otro toque la vuelve (lo mismo que "Mover ½" de la Mac: ediciones.medio)
+  correrMedio() {
+    const an = this.an, c = this.cancion, lib = this.lib;
+    if (!an.valido || an.beatsCrudos.length < 2) { aviso('Esta canción no tiene pulso todavía.', 3000); return; }
+    if (an.anclas.length && an.anclasHonradas()) { aviso('El pulso de esta canción se puso a mano en la Mac (Pulso): se mueve allá.', 4500); return; }
+    an.medioPulso = !an.medioPulso; an.aplicarMedio(); an._ce = null; an._be = null;
+    if (this.aj.marcaCuenta >= 0) { const k = this.compasCercano(this.aj.marcaCuenta); if (k) this.aj.marcaCuenta = k.t; }
+    this.armarClick(); this.armarTele(); this.medir(); this.iViene = -2; this.iAc = -2; this.pulsoClave = null;
+    $('#pcMedio').classList.toggle('on', an.medioPulso);
+    aviso(an.medioPulso ? 'Click corrido medio tiempo · otro toque en ½ lo vuelve' : 'Click como lo detectó YouSTEM', 2500);
+    clearTimeout(this.tMedio);
+    this.tMedio = setTimeout(() => { if (this.cancion === c) guardarEdiciones(c, lib, { medio: an.medioPulso }).catch(e => anotar('mover ½', e)); }, 1500);
+  },
   alternarUno() {
     const sin = !Pref.get('clickSinUno', false); Pref.set('clickSinUno', sin);
     this.armarClick();
@@ -2832,6 +2845,7 @@ const Rep = {
   menuClick(canal) {
     const M = $('#popClick');
     $('#pcUno').classList.toggle('on', Pref.get('clickSinUno', false));
+    $('#pcMedio').classList.toggle('on', !!(this.an && this.an.medioPulso));
     const r = canal.getBoundingClientRect();
     M.classList.add('ver');
     const w = M.offsetWidth, h = M.offsetHeight;
@@ -3336,6 +3350,7 @@ $('#tonoKey').parentElement.onclick = () => Rep.cambiarNotacion();
 $('#tonoVal').onclick = () => { Rep.tono = Math.round(Rep.ajMac.tono || 0); Rep.aplicarTono(); Rep.guardarLocal(); aviso('Tono como en la Mac.'); };
 $('#btnCuenta').onclick = () => Rep.alternarCuenta();
 $('#pcCorrer').onclick = () => Rep.correrUno();
+$('#pcMedio').onclick = () => Rep.correrMedio();
 $('#pcUno').onclick = () => { Rep.alternarUno(); $('#pcUno').classList.toggle('on', Pref.get('clickSinUno', false)); };
 document.addEventListener('pointerdown', e => { const M = $('#popClick'); if (M.classList.contains('ver') && !e.target.closest('#popClick')) M.classList.remove('ver'); }, true);
 $('#btnVerde').onclick = () => Rep.alternarVerde();
@@ -4516,7 +4531,7 @@ async function guardarEdiciones(c, lib, ed) {
   // (0.5.2) se suma a lo que ya estaba guardado sin subir (p. ej. acordes + "correr el 1")
   const previo = edicionGuardada(lib, c.id); if (previo && !lib.local) ed = { ...previo.ed, ...ed };
   const nuevo = mezclarEdiciones(Rep.anJson, ed);
-  anotar('editor: guardar', c.id, destino, Object.keys(ed.acordes || {}).length + ' acordes, ' + (ed.nuevos || []).length + ' nuevos, ' + (ed.arreglo || []).length + ' secciones' + ('correr1' in ed ? ', el 1 corrido ' + ed.correr1 : ''));
+  anotar('editor: guardar', c.id, destino, Object.keys(ed.acordes || {}).length + ' acordes, ' + (ed.nuevos || []).length + ' nuevos, ' + (ed.arreglo || []).length + ' secciones' + ('correr1' in ed ? ', el 1 corrido ' + ed.correr1 : '') + ('medio' in ed ? ', medio tiempo ' + (ed.medio ? 'corrido' : 'no') : ''));
   if (destino === 'local') {
     await Local.guardarArchivo(c.id, 'analisis.json', JSON.stringify(nuevo));
     Rep.anJson = nuevo; aviso('Guardado en ' + EQUIPO + '. Para pasárselo a otro: Menú ⋯ › Enviar correcciones.', 5000);
@@ -4921,7 +4936,7 @@ const Corr = {
     const j = await this.leer(l.raices[0], `correcciones/${this.yo()}/${id}/analisis.json`);
     if (!j || !j.ediciones) throw new Error('no encontré la corrección de ' + l.nombre);
     // solo lo que se corrige en la web (acordes y secciones): el pulso sigue siendo el tuyo
-    const ed = {}; for (const k of ['acordes', 'tiempos', 'nuevos', 'arreglo', 'correr1']) if (k in j.ediciones) ed[k] = j.ediciones[k];
+    const ed = {}; for (const k of ['acordes', 'tiempos', 'nuevos', 'arreglo', 'correr1', 'medio']) if (k in j.ediciones) ed[k] = j.ediciones[k];
     return ed;
   },
   mostrarAn(json) { Rep.an = Modelo.Analisis.deJson(json); Rep.armarTele(); Rep.medir(); Rep.iViene = -2; Rep.iAc = -2; },
