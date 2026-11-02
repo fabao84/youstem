@@ -286,6 +286,11 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 .edPul{display:flex;align-items:center;justify-content:center;border-radius:7px;background:rgba(255,255,255,.04);font-size:17px;font-weight:700;color:var(--acorde);white-space:nowrap;overflow:hidden;min-width:0;border:2px solid transparent}
 .edPul.viene{color:var(--tenue);font-weight:500}
 .edPul.sel{border-color:var(--acorde)}
+/* (0.6.3) el «y»: casilla y botón más angostos y tenues */
+.edPulsos.conY .edPul{font-size:14px}
+.edPul.edY{background:rgba(255,255,255,.02)}
+.edChip.edChY{padding-left:7px;padding-right:7px;opacity:.75;font-size:.85em}
+.edChip.edChY.on{opacity:1}
 .edPanel{flex:none;max-height:42dvh;overflow-y:auto;padding:10px 16px;border-top:1px solid var(--linea);background:var(--panel);display:flex;flex-direction:column;gap:8px}
 .edAyuda{color:var(--gris);font-size:14px;padding:6px 0}
 .edFilaP{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
@@ -552,7 +557,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
   <div class="edArrCaja"><div id="edArr" class="edArr"></div></div>
   <div id="edHoja" class="edHoja"></div>
   <div id="edPanel" class="edPanel"></div>
-  <div class="edTrans"><button id="edPlay" class="edBot redondo grande2">▶</button><button id="edRep" class="edBot">⟲ Repetir el compás</button><button id="edPulso" class="edBot">Pulso…</button><span id="edTiempo" class="edT"></span><span class="edNota">El pulso se arregla en la Mac · el click suena mientras editás</span></div>
+  <div class="edTrans"><button id="edPlay" class="edBot redondo grande2">▶</button><button id="edRep" class="edBot">⟲ Repetir el compás</button><button id="edPulso" class="edBot">Pulso…</button><span id="edTiempo" class="edT"></span><span class="edNota">El click suena mientras editás · los «y» = medio tiempo</span></div>
 </section>
 
 <section id="pPulso" class="pulso">
@@ -584,6 +589,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="menuAudio">Reiniciar el audio (si suena raro)</button>
     <button id="menuMac">Empezar de cero esta canción (todo en 0 dB, sin banderas)</button>
     <button id="menuCuenta">Cuenta: 1 compás</button>
+    <button id="menuBloqueada">Seguir sonando con la pantalla bloqueada: sí</button>
     <button id="menuRecargar">Recargar la biblioteca</button>
     <button id="menuBajarLista">⬇ Guardar las de la lista (para sin conexión)</button>
     <button id="menuBorrar">Borrar canciones guardadas en el iPhone<span id="menuEspacio" class="gris"></span></button>
@@ -1722,7 +1728,12 @@ const Modelo = (() => {
         const d1 = b[it] - t, d0 = t - b[it - 1];
         return d1 < d0 ? b[it] : b[it - 1];
       };
-      for (const a of res) a.t = alPulso(a.t);
+      // (0.6.3) los tuyos que caen en el «y» (medio tiempo entre dos pulsos) quedan en el «y»
+      const alY = t => {
+        const it = lowerBound(b, t); if (it === 0 || it === b.length) return -1;
+        const m = (b[it - 1] + b[it]) / 2; return Math.abs(t - m) <= (b[it] - b[it - 1]) * 0.15 ? m : -1;
+      };
+      for (const a of res) { const y = a.tOrig < -1.5 ? alY(a.t) : -1; a.t = y >= 0 ? y : alPulso(a.t); }
       for (let i = 1; i < res.length; i++) if (res[i].t < res[i - 1].t) res[i].t = res[i - 1].t;
       for (let i = 0; i < res.length; i++) res[i].fin = i + 1 < res.length ? res[i + 1].t : Math.max(res[i].t, alPulso(res[i].fin));
       return res;
@@ -2474,7 +2485,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.6.1';
+const VERSION = '0.6.3';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -2520,15 +2531,16 @@ const Audio = {
     catch (e) { anotar('worklet por blob falló, pruebo data:', e); await this.ctx.audioWorklet.addModule('data:application/javascript;charset=utf-8,' + encodeURIComponent(codigo)); }
     // (0.6.0) dos salidas: 0 = lo que cambia de tono, 1 = batería/click/cuenta (solo se usa con el motor de tono)
     this.nodo = new AudioWorkletNode(this.ctx, 'youstem', { numberOfInputs: 0, numberOfOutputs: 2, outputChannelCount: [2, 2] });
-    this.nodo.connect(this.ctx.destination, 0);
+    this.armarSalida();
+    this.nodo.connect(this.bus, 0);
     this.retardoFija = this.ctx.createDelay(1); this.retardoFija.delayTime.value = 0;
-    this.nodo.connect(this.retardoFija, 1); this.retardoFija.connect(this.ctx.destination);
+    this.nodo.connect(this.retardoFija, 1); this.retardoFija.connect(this.bus);
     this.stretch = null; this.stretchP = null; this.externo = false; this.retraso = 0;
     this.nodo.port.onmessage = e => {
       const m = e.data;
       if (m.t === 'pos') { this.pos = m.pos / this.sr; this.posCt = m.ct; this.sonando = m.sonando; }
       else if (m.t === 'hola') { const f = this.esperando && this.esperando[m.n]; if (f) { delete this.esperando[m.n]; f(); } }
-      else if (m.t === 'fin') { this.sonando = false; this.alTerminar && this.alTerminar(); }
+      else if (m.t === 'fin') { this.sonando = false; this.fondoPausa(); this.alTerminar && this.alTerminar(); }
     };
     this.ctx.resume().catch(() => {});
     anotar('audio: motor nuevo', this.sr + ' Hz', 'margen ' + Math.round((this.ctx.baseLatency || 0) * 1000) + ' ms', 'salida ' + Math.round((this.ctx.outputLatency || 0) * 1000) + ' ms');
@@ -2544,6 +2556,7 @@ const Audio = {
     if (!this.vigilando) {
       this.vigilando = true;
       document.addEventListener('visibilitychange', () => {
+        this.fondoCambiar(document.hidden);
         if (document.hidden) { this.ocultoDesde = Date.now(); return; }
         if (!this.ctx) return;
         if (this.ctx.state === 'running') return;
@@ -2615,7 +2628,7 @@ const Audio = {
         const st = await SignalsmithStretch(ctx);
         if (ES_ANDROID) await st.configure({ preset: 'cheaper', splitComputation: true });
         else await st.configure({ splitComputation: true });
-        st.connect(ctx.destination);
+        st.connect(this.bus);
         this.latStretch = (await st.latency()) || 0;
         if (ctx !== this.ctx) return null;
         this.stretch = st;
@@ -2631,7 +2644,7 @@ const Audio = {
     if (!this.nodo) return false;
     if (st) {
       if (!this.externo) {
-        try { this.nodo.disconnect(this.ctx.destination, 0); } catch {}
+        try { this.nodo.disconnect(this.bus, 0); } catch {}
         this.nodo.connect(st, 0);
         this.retardoFija.delayTime.value = this.latStretch; this.retraso = this.latStretch;
         st.start(); this.externo = true;
@@ -2642,12 +2655,46 @@ const Audio = {
     }
     if (this.externo) {
       try { this.nodo.disconnect(this.stretch, 0); } catch {}
-      this.nodo.connect(this.ctx.destination, 0);
+      this.nodo.connect(this.bus, 0);
       this.retardoFija.delayTime.value = 0; this.retraso = 0; this.externo = false;
       this.enviar({ t: 'externo', on: false });
       if (this.stretch) try { this.stretch.stop(); } catch {}
     }
     return false;
+  },
+  // ── (0.6.3) SEGUIR SONANDO CON LA PANTALLA BLOQUEADA ──
+  // Todo sale por un "bus". Con la pantalla prendida va directo al parlante (sin atraso extra: lo que se ve = lo que se
+  // oye). Al bloquear (o ir a otra app), el bus pasa a un <audio> que reproduce el mismo sonido: para el iPhone/Android
+  // eso es "música sonando", así que no lo corta y el ▶ / ❚❚ de la pantalla bloqueada funcionan. Al volver, directo otra vez.
+  bloqueadaOn() { return Pref.get('bloqueada', true) && matchMedia('(pointer: coarse)').matches; },
+  armarSalida() {
+    const ctx = this.ctx;
+    this.bus = ctx.createGain();
+    this.gDir = ctx.createGain(); this.bus.connect(this.gDir); this.gDir.connect(ctx.destination);
+    this.fondo = null; this.gFondo = null; this.porFondo = false;
+    try {
+      if (!ctx.createMediaStreamDestination) return;
+      const dst = ctx.createMediaStreamDestination();
+      this.gFondo = ctx.createGain(); this.gFondo.gain.value = 0; this.bus.connect(this.gFondo); this.gFondo.connect(dst);
+      const el = this.fondoEl || (this.fondoEl = document.createElement('audio'));
+      el.setAttribute('playsinline', ''); el.preload = 'none'; el.srcObject = dst.stream;
+      this.fondo = el;
+    } catch (e) { anotar('pantalla bloqueada: sin salida de fondo', e); }
+  },
+  fondoTocar() {
+    const el = this.fondo; if (!el || !this.bloqueadaOn()) return;
+    try { const p = el.play(); if (p && p.catch) p.catch(e => anotar('pantalla bloqueada: el navegador no dejó', e && e.name)); } catch {}
+  },
+  fondoPausa() { const el = this.fondo; if (el && !el.paused) try { el.pause(); } catch {} },
+  // oculto = la pantalla bloqueada / otra app: el sonido va por el <audio>; visible: directo
+  fondoCambiar(oculto) {
+    if (!this.ctx || !this.gFondo) return;
+    const usar = oculto && this.bloqueadaOn() && this.fondo && !this.fondo.paused, t = this.ctx.currentTime;
+    if (usar === this.porFondo) return;
+    this.porFondo = usar;
+    this.gDir.gain.setTargetAtTime(usar ? 0 : 1, t, 0.02);
+    this.gFondo.gain.setTargetAtTime(usar ? 1 : 0, t, 0.02);
+    anotar('pantalla bloqueada:', usar ? 'sigue sonando por el reproductor de fondo' : 'sonido directo');
   },
   async decodificar(buf) {
     return await new Promise((ok, mal) => { const p = this.ctx.decodeAudioData(buf, ok, mal); if (p && p.then) p.then(ok, mal); });
@@ -3525,7 +3572,9 @@ const Rep = {
   },
   ir(seg) { Audio.pos = Math.max(0, Math.min(this.dur, seg)); Audio.enviar({ t: 'ir', pos: Audio.pos * Audio.sr }); this.saltoTele = true; },
   async tocar() {
+    Audio.fondoTocar();   // (0.6.3) dentro del toque (el navegador lo pide)
     await Audio.iniciar();
+    Audio.fondoTocar();
     // (0.3.14) si el motor no arranca (p. ej. después de CarPlay), uno nuevo antes de tocar
     if (Audio.ctx && Audio.ctx.state !== 'running') {
       await new Promise(r => setTimeout(r, 300));
@@ -3567,11 +3616,12 @@ const Rep = {
     if (previa) Audio.enviar(previa);   // después de "ir" (que la borra)
     Audio.enviar({ t: 'play' }); Audio.sonando = true; Audio.posCt = Audio.ctx.currentTime;
     Audio.tocadoCt = Audio.ctx.currentTime; Audio.desdeToque = desde;
+    if (document.hidden) Audio.fondoCambiar(true);   // (0.6.3) ▶ desde la pantalla bloqueada
     this.reanudar = false;
     pantallaPrendida(true); this.refrescarBotones(); Medios.estado();
   },
-  pausa() { Audio.enviar({ t: 'pausa' }); Audio.sonando = false; pantallaPrendida(false); this.refrescarBotones(); Medios.estado(); },
-  parar() { if (Audio.nodo) Audio.enviar({ t: 'pausa' }); Audio.sonando = false; pantallaPrendida(false); },
+  pausa() { Audio.enviar({ t: 'pausa' }); Audio.sonando = false; Audio.fondoPausa(); pantallaPrendida(false); this.refrescarBotones(); Medios.estado(); },
+  parar() { if (Audio.nodo) Audio.enviar({ t: 'pausa' }); Audio.sonando = false; Audio.fondoPausa(); pantallaPrendida(false); },
   alInicio() { this.reanudar = false; this.ir(this.aj.marcaInicio >= 0 ? this.aj.marcaInicio : 0); if (Audio.sonando) this.tocar(); },
   refrescarBotones() {
     $('#btnPlay').classList.toggle('sonando', Audio.sonando);
@@ -4055,6 +4105,8 @@ async function abrirMenu() {
   $('#menuPedir').style.display = con && Pedidos.raiz() ? '' : 'none';   // (0.5.0)
   $('#menuCarpeta').style.display = Local.hayCarpetas() ? '' : 'none';
   if (Local.hayCarpetas()) Local.carpeta().then(h => $('#menuCarpetaNombre').textContent = h ? ' · ' + h.name : ' · ninguna');
+  $('#menuBloqueada').style.display = matchMedia('(pointer: coarse)').matches ? '' : 'none';
+  $('#menuBloqueada').textContent = 'Seguir sonando con la pantalla bloqueada: ' + (Pref.get('bloqueada', true) ? 'sí' : 'no');
   $('#menuCuenta').textContent = 'Cuenta: ' + Pref.get('cuentaCompases', 1) + (Pref.get('cuentaCompases', 1) === 1 ? ' compás' : ' compases');
   const enRep = !!Rep.cancion && $('#pRep').classList.contains('activa');
   $('#menuMac').style.display = enRep ? '' : 'none';
@@ -4071,6 +4123,7 @@ $('#menu').addEventListener('click', e => { if (e.target.id === 'menu') cerrarMe
 $('#menuCerrar').onclick = cerrarMenu;
 $('#menuRecargar').onclick = () => { cerrarMenu(); pantalla('pBib'); Bib.iniciar(); };
 $('#menuCuenta').onclick = () => { Pref.set('cuentaCompases', Pref.get('cuentaCompases', 1) === 1 ? 2 : 1); abrirMenu(); };
+$('#menuBloqueada').onclick = () => { const on = !Pref.get('bloqueada', true); Pref.set('bloqueada', on); if (on) { if (Audio.sonando) Audio.fondoTocar(); } else Audio.fondoPausa(); abrirMenu(); };
 $('#menuMac').onclick = () => { cerrarMenu(); Rep.volverALaMac(); };
 $('#menuAudio').onclick = () => { cerrarMenu(); Rep.reiniciarAudio('a pedido'); };
 $('#menuBorrar').onclick = async () => {
@@ -4579,7 +4632,7 @@ const Editor = (() => {
   // (0.3.5) nombres de siempre, para tocar sin teclado; lo escrito con "Otro…" se suma a la lista (sin numerar)
   const NOMBRES_SEC = ['Intro', 'Verso', 'Pre-coro', 'Coro', 'Post-coro', 'Puente', 'Solo', 'Interludio', 'Instrumental', 'Break', 'Final', 'Fade out'];
   const igualNombre = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
-  const CALIDADES = [['', 'mayor'], ['m', 'm'], ['7', '7'], ['maj7', 'maj7'], ['m7', 'm7'], ['sus4', 'sus4'], ['sus2', 'sus2'], ['6', '6'], ['m6', 'm6'],
+  const CALIDADES = [['', 'mayor'], ['m', 'm'], ['5', '5'], ['7', '7'], ['maj7', 'maj7'], ['m7', 'm7'], ['sus4', 'sus4'], ['sus2', 'sus2'], ['6', '6'], ['m6', 'm6'],
                      ['9', '9'], ['add9', 'add9'], ['m9', 'm9'], ['dim', 'dim'], ['dim7', 'dim7'], ['m7b5', 'm7♭5'], ['aug', 'aug'], ['7sus4', '7sus4'], ['13', '13']];
   const SOST = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'], BEM = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
   const puede = () => matchMedia('(min-width: 700px) and (min-height: 600px)').matches;
@@ -4632,16 +4685,20 @@ const Editor = (() => {
           if (a.fin <= c.t0 + 0.03 || a.t >= c.t1 - 0.03) continue;
           if (!a.nombre || a.nombre === Modelo.BORRADO || a.sigue) continue;
           const ini = Math.max(a.t, c.t0);
-          const p = Math.max(0, Math.min(c.pulsos - 1, Math.round((ini - c.t0) / (c.t1 - c.t0) * c.pulsos)));
-          const adentro = a.t >= c.t0 - 0.03;
-          if (c.items.length && c.items[c.items.length - 1].pulso >= p) { if (a.t > c.t0) c.items[c.items.length - 1] = { k, nombre: a.nombre, pulso: c.items[c.items.length - 1].pulso, t: a.t, adentro }; continue; }
-          c.items.push({ k, nombre: a.nombre, pulso: p, t: a.t, adentro });
+          let p = 0; while (p + 1 < c.bt.length && c.bt[p + 1] <= ini + 0.02) p++;
+          const sig = p + 1 < c.bt.length ? c.bt[p + 1] : c.t1, fr = sig > c.bt[p] ? (ini - c.bt[p]) / (sig - c.bt[p]) : 0;
+          let m = 0; if (fr >= 0.7 && p + 1 < c.pulsos) p++; else if (fr > 0.3) m = 1;   // (0.6.3) el «y»
+          p = Math.max(0, Math.min(c.pulsos - 1, p));
+          const slot = 2 * p + m, adentro = a.t >= c.t0 - 0.03;
+          const ult = c.items[c.items.length - 1];
+          if (ult && ult.slot >= slot) { if (a.t > c.t0) c.items[c.items.length - 1] = { k, nombre: a.nombre, pulso: ult.pulso, medio: ult.medio, slot: ult.slot, t: a.t, adentro }; continue; }
+          c.items.push({ k, nombre: a.nombre, pulso: p, medio: m, slot, t: a.t, adentro });
         }
         compases.push(c);
       }
       for (let i = 1; i < compases.length; i++) {
         const c = compases[i], p = compases[i - 1];
-        c.repite = c.items.length === 1 && c.items[0].pulso === 0 && p.items.length === 1 && p.items[0].nombre === c.items[0].nombre && p.seccion === c.seccion && !Modelo.esSilencio(c.items[0].nombre);
+        c.repite = c.items.length === 1 && c.items[0].slot === 0 && p.items.length === 1 && p.items[0].nombre === c.items[0].nombre && p.seccion === c.seccion && !Modelo.esSilencio(c.items[0].nombre);
       }
       const filas = []; let f = null;
       compases.forEach((c, i) => {
@@ -4656,6 +4713,7 @@ const Editor = (() => {
     compasEn(t) { const c = this.hoja.compases; if (!c.length || t < c[0].t0) return -1; let lo = 0, hi = c.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (c[m].t0 <= t) lo = m; else hi = m - 1; } return lo; },
     enCuadrantes(c, i) {
       if (this.partidos.has(i) || (this.sel && this.sel.c === i && !this.sel.entero)) return true;
+      if (c.items.some(x => x.medio)) return true;
       const n = c.items.length; if (n <= 1) return false;
       return !(n === 2 && c.pulsos % 2 === 0 && c.items[0].pulso === 0 && c.items[1].pulso === c.pulsos / 2);
     },
@@ -4691,15 +4749,17 @@ const Editor = (() => {
       if (e.tOrig < -1.5) { const i = Math.round(-e.tOrig - 2); if (i >= 0 && i < an.acordesNuevos.length) an.acordesNuevos.splice(i, 1); }
       else { this.borrarEdicion(an.acordesEditados, e.tOrig); an.acordesEditados[an.claveDe(e.tOrig)] = Modelo.BORRADO; }
     },
-    listaDe(c) { return c.items.filter(x => x.adentro).map(x => [this.hoja.vista[x.k].t, x.nombre, x.pulso]); },
+    listaDe(c) { return c.items.filter(x => x.adentro).map(x => [this.hoja.vista[x.k].t, x.nombre, x.slot]); },
+    // (0.6.3) el tiempo de un pulso o de su «y» (la mitad hasta el pulso siguiente)
+    tiempoSlot(c, p, m) { return m ? (c.bt[p] + (p + 1 < c.bt.length ? c.bt[p + 1] : c.t1)) / 2 : c.bt[p]; },
     ponerAcorde(nombre) {
       const s = this.sel; if (!s) return;
       const c = this.hoja.compases[s.c]; if (!c) return;
       this.apilar();
       if (s.entero) this.reemplazarTramo(c.t0, c.t1, [[c.t0, nombre]]);
       else {
-        const l = this.listaDe(c).filter(x => x[2] !== s.p).map(x => [x[0], x[1]]);
-        l.push([c.bt[s.p], nombre]); l.sort((x, y) => x[0] - y[0]);
+        const l = this.listaDe(c).filter(x => x[2] !== 2 * s.p + (s.m | 0)).map(x => [x[0], x[1]]);
+        l.push([this.tiempoSlot(c, s.p, s.m), nombre]); l.sort((x, y) => x[0] - y[0]);
         this.reemplazarTramo(c.t0, c.t1, l);
       }
       this.dibujar();
@@ -4713,8 +4773,8 @@ const Editor = (() => {
         if (c.items.some(x => x.adentro)) this.reemplazarTramo(c.t0, c.t1, []);
         else if (c.items[0]) this.borrarIdx(c.items[0].k);
       } else {
-        const it = c.items.find(x => x.pulso === s.p);
-        if (it && it.adentro) this.reemplazarTramo(c.t0, c.t1, this.listaDe(c).filter(x => x[2] !== s.p).map(x => [x[0], x[1]]));
+        const sl = 2 * s.p + (s.m | 0), it = c.items.find(x => x.slot === sl);
+        if (it && it.adentro) this.reemplazarTramo(c.t0, c.t1, this.listaDe(c).filter(x => x[2] !== sl).map(x => [x[0], x[1]]));
         else if (it) this.borrarIdx(it.k);
       }
       this.dibujar();
@@ -4725,8 +4785,8 @@ const Editor = (() => {
       const p = Math.max(1, Math.floor(c.pulsos / 2));
       this.partidos.add(i);
       // como la Mac: la segunda mitad arranca con el mismo acorde, para renombrarlo después
-      const sonando = c.items.filter(x => x.pulso < p).pop();
-      if (sonando && !c.items.some(x => x.pulso === p)) {
+      const sonando = c.items.filter(x => x.slot < 2 * p).pop();
+      if (sonando && !c.items.some(x => x.slot === 2 * p)) {
         this.apilar();
         const l = this.listaDe(c).map(x => [x[0], x[1]]); l.push([c.bt[p], sonando.nombre]); l.sort((x, y) => x[0] - y[0]);
         this.reemplazarTramo(c.t0, c.t1, l);
@@ -4736,7 +4796,7 @@ const Editor = (() => {
     },
     avanzar() {   // después de poner un acorde en un tiempo, el cursor pasa al tiempo siguiente
       const s = this.sel, c = this.hoja.compases[s.c];
-      if (s.p + 1 < c.pulsos) this.sel = { c: s.c, p: s.p + 1, entero: false };
+      if (s.p + 1 < c.pulsos) this.sel = { c: s.c, p: s.p + 1, m: 0, entero: false };
       this.dibujarSel();
     },
 
@@ -4832,11 +4892,12 @@ const Editor = (() => {
       d.appendChild(el('span', 'edNum', String(i + 1)));
       if (this.avisos && this.avisos[i]) { d.classList.add('conAviso'); d.appendChild(el('span', 'edAviso', '⚠')).title = this.avisos[i].map(p => Corr.textoAviso(p.aviso, p.mio ? 'Vos' : p.lib.nombre)).join('\n'); }
       if (this.enCuadrantes(c, i)) {
-        const g = el('div', 'edPulsos'); g.style.gridTemplateColumns = `repeat(${c.pulsos}, 1fr)`;
-        for (let p = 0; p < c.pulsos; p++) {
-          const it = c.items.find(x => x.pulso === p);
-          const q = el('div', 'edPul' + (it && !it.adentro ? ' viene' : ''), it ? this.mostrar(it.nombre, c.bt[p]) : '·');
-          q.dataset.p = p; g.appendChild(q);
+        const conY = c.items.some(x => x.medio) || !!(this.sel && this.sel.c === i && this.sel.m && !this.sel.entero), g = el('div', 'edPulsos' + (conY ? ' conY' : ''));   // (0.6.3) con «y»: 1 y 2 y 3 y 4 y
+        g.style.gridTemplateColumns = `repeat(${c.pulsos * (conY ? 2 : 1)}, 1fr)`;
+        for (let p = 0; p < c.pulsos; p++) for (let m = 0; m <= (conY ? 1 : 0); m++) {
+          const it = c.items.find(x => x.slot === 2 * p + m);
+          const q = el('div', 'edPul' + (m ? ' edY' : '') + (it && !it.adentro ? ' viene' : ''), it ? this.mostrar(it.nombre, c.bt[p]) : m ? '' : '·');
+          q.dataset.p = p; q.dataset.m = m; g.appendChild(q);
         }
         d.appendChild(g);
       } else {
@@ -4854,7 +4915,7 @@ const Editor = (() => {
         const d = document.querySelector(`#edHoja .edComp[data-i="${s.c}"]`);
         if (d) {
           if (s.entero) d.classList.add('sel');
-          else { const q = d.querySelector(`.edPul[data-p="${s.p}"]`); if (q) q.classList.add('sel'); else d.classList.add('sel'); }
+          else { const q = d.querySelector(`.edPul[data-p="${s.p}"][data-m="${s.m | 0}"]`); if (q) q.classList.add('sel'); else d.classList.add('sel'); }
         }
       }
       this.dibujarPanel();
@@ -4958,11 +5019,11 @@ const Editor = (() => {
     },
     // ── copiar / pegar: los acordes compás por compás (en su tiempo) y/o las secciones ──
     copiar() {
-      const r = this.rango; if (!r) { aviso('Elegí compases o secciones para copiar.'); return; }
+      const r = this.rango || (this.sel ? { a: this.sel.c, b: this.sel.c } : null); if (!r) { aviso('Elegí compases o secciones para copiar.'); return; }
       const H = this.hoja, acordes = [], secciones = [];
       for (let i = r.a; i <= r.b; i++) {
         const c = H.compases[i];
-        for (const x of c.items) if (x.adentro || i === r.a) acordes.push([i - r.a, x.pulso, x.nombre]);
+        for (const x of c.items) if (x.adentro || i === r.a) acordes.push([i - r.a, x.pulso, x.nombre, x.medio | 0]);
       }
       const t0 = H.compases[r.a].t0, t1 = this.tiempoFin(r.b);
       for (const b of this.an.arreglo) {
@@ -4970,10 +5031,12 @@ const Editor = (() => {
         const a = Math.max(r.a, this.compasEn(Math.max(b.t, t0) + 0.02)), z = Math.min(r.b, this.compasEn(Math.min(b.fin, t1) - 0.05));
         if (z >= a) secciones.push({ desde: a - r.a, n: z - a + 1, nombre: b.nombre, color: b.color | 0, compas: b.compas | 0 });
       }
+      const uno = !this.rango;   // (0.6.2) un solo compás elegido: solo sus acordes, sin la sección
+      if (uno) secciones.length = 0;
       const nombres = secciones.map(x => x.nombre).join(' + ');
-      this.copia = { n: r.b - r.a + 1, acordes, secciones, nombre: nombres || ('compases ' + (r.a + 1) + '–' + (r.b + 1)) };
+      this.copia = { n: r.b - r.a + 1, acordes, secciones, nombre: nombres || (r.a === r.b ? 'compás ' + (r.a + 1) : 'compases ' + (r.a + 1) + '–' + (r.b + 1)) };
       anotar('editor: copiado', this.copia.nombre, this.copia.n + ' compases, ' + acordes.length + ' acordes');
-      aviso('Copiado: ' + this.copia.nombre + ' (' + this.copia.n + ' compases). Tocá el compás donde empieza y «Pegar».', 3500);
+      aviso('Copiado: ' + this.copia.nombre + (this.copia.n > 1 ? ' (' + this.copia.n + ' compases)' : '') + '. Tocá el compás donde va y «Pegar» (⌘V).', 3500);
       this.dibujarPanel();
     },
     pegar(modo, desde) {
@@ -4985,7 +5048,7 @@ const Editor = (() => {
       if (modo !== 'seccion') {
         for (let k = 0; d + k <= ultimo; k++) {
           const c = H.compases[d + k];
-          const l = cp.acordes.filter(x => x[0] === k).map(x => [c.bt[Math.min(x[1], c.pulsos - 1)], x[2]]);
+          const l = cp.acordes.filter(x => x[0] === k).map(x => [this.tiempoSlot(c, Math.min(x[1], c.pulsos - 1), x[1] < c.pulsos ? x[3] : 0), x[2]]);
           this.reemplazarTramo(c.t0, c.t1, l);
         }
       }
@@ -5051,7 +5114,7 @@ const Editor = (() => {
       if (this.rango) { this.panelRango(P); return; }
       const s = this.sel;
       if (!s) {
-        P.appendChild(el('div', 'edAyuda', 'Tocá un compás para cambiarle el acorde. Para una SECCIÓN: ' + (matchMedia('(pointer: coarse)').matches ? 'mantené apretado el primer compás y arrastrá hasta el último' : 'arrastrá del primer compás al último (o Shift+clic)') + ', y tocá el nombre. Tocá una sección de la franja para copiarla, renombrarla o borrarla. El pulso no se toca acá: lo arregla la Mac.'));
+        P.appendChild(el('div', 'edAyuda', 'Tocá un compás para cambiarle el acorde. Para una SECCIÓN: ' + (matchMedia('(pointer: coarse)').matches ? 'mantené apretado el primer compás y arrastrá hasta el último' : 'arrastrá del primer compás al último (o Shift+clic)') + ', y tocá el nombre. COPIAR: elegí uno o varios compases › ⧉ Copiar (⌘C); después tocá el compás donde va › Pegar (⌘V). Tocá una sección de la franja para copiarla, renombrarla o borrarla. El pulso se arregla con «Pulso»'));
         return;
       }
       const c = this.hoja.compases[s.c];
@@ -5087,10 +5150,15 @@ const Editor = (() => {
       f1.appendChild(el('span', 'edDonde', 'Compás ' + (s.c + 1)));
       const bEnt = el('button', 'edChip' + (s.entero ? ' on' : ''), 'Entero'); bEnt.onclick = () => { this.sel = { c: s.c, p: 0, entero: true }; this.partidos.delete(s.c); this.dibujar(); };
       f1.appendChild(bEnt);
-      for (let p = 0; p < c.pulsos; p++) { const b = el('button', 'edChip' + (!s.entero && s.p === p ? ' on' : ''), 'T' + (p + 1)); b.onclick = () => { this.sel = { c: s.c, p, entero: false }; this.dibujar(); Rep.ir(c.bt[p]); }; f1.appendChild(b); }
+      for (let p = 0; p < c.pulsos; p++) for (const m of [0, 1]) {   // (0.6.3) T1 y T2 y …: el «y» = medio tiempo
+        const b = el('button', 'edChip' + (m ? ' edChY' : '') + (!s.entero && s.p === p && (s.m | 0) === m ? ' on' : ''), m ? 'y' : 'T' + (p + 1));
+        if (m) b.title = 'El «y» del ' + (p + 1) + ' (medio tiempo)';
+        b.onclick = () => { this.sel = { c: s.c, p, m, entero: false }; this.dibujar(); Rep.ir(this.tiempoSlot(c, p, m)); }; f1.appendChild(b);
+      }
       const bPar = el('button', 'edChip', 'Partir ½'); bPar.onclick = () => this.partir(); f1.appendChild(bPar);
       const bBor = el('button', 'edChip rojo', '∅ Borrar'); bBor.onclick = () => this.borrar(); f1.appendChild(bBor);
       const bSil = el('button', 'edChip', 'N.C. Silencio'); bSil.onclick = () => this.ponerAcorde('N.C.'); f1.appendChild(bSil);
+      const bCop = el('button', 'edChip', '⧉ Copiar'); bCop.title = 'Copiar este compás (⌘C). Para varios: arrastrá o Shift+clic'; bCop.onclick = () => this.copiar(); f1.appendChild(bCop);
       P.appendChild(f1);
       // fila 2: los de la canción (los más usados primero)
       const usados = {};
@@ -5155,7 +5223,7 @@ const Editor = (() => {
       const i = +d.dataset.i, q = e.target.closest('.edPul'), c = this.hoja.compases[i];
       if (e.shiftKey) { const ancla = this.sel ? this.sel.c : this.rango ? this.rango.a : i; this.elegirRango(ancla, i); return; }
       this.bloques = []; this.rango = null;
-      if (q) { const p = +q.dataset.p; this.sel = { c: i, p, entero: false }; Rep.ir(c.bt[p]); }
+      if (q) { const p = +q.dataset.p, m = +q.dataset.m || 0; this.sel = { c: i, p, m, entero: false }; Rep.ir(this.tiempoSlot(c, p, m)); }
       else { this.sel = { c: i, p: 0, entero: true }; Rep.ir(c.t0); }
       if (this.repetir) this.aplicarRepetir();
       this.dibujar();
@@ -5369,7 +5437,7 @@ document.addEventListener('keydown', e => {
   const cmd = e.metaKey || e.ctrlKey;
   if (cmd && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? Editor.rehacer() : Editor.deshacer(); }
   else if (e.code === 'Space') { e.preventDefault(); e.stopImmediatePropagation(); $('#edPlay').click(); }
-  else if (cmd && e.key.toLowerCase() === 'c' && (Editor.rango || Editor.bloques.length)) { e.preventDefault(); Editor.copiar(); }
+  else if (cmd && e.key.toLowerCase() === 'c' && (Editor.rango || Editor.bloques.length || Editor.sel)) { e.preventDefault(); Editor.copiar(); }
   else if (cmd && e.key.toLowerCase() === 'v' && Editor.copia) { e.preventDefault(); Editor.pegar('las dos'); }
   else if (cmd && e.key.toLowerCase() === 'd' && Editor.bloques.length) { e.preventDefault(); Editor.duplicar(); }
   else if (e.key === 'Escape') { if (Editor.rango || Editor.bloques.length || Editor.sel) { Editor.rango = null; Editor.bloques = []; Editor.sel = null; Editor.dibujar(); } else Editor.cancelar(); }
