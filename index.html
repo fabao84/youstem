@@ -491,6 +491,29 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 .puGrupo>div{display:flex;gap:6px;flex-wrap:wrap}
 .popClick button.ancho{width:auto;padding:0 14px;font-size:17px}
 @media (min-width:700px) and (min-height:600px){ .puTira{padding:12px 24px} .puAbajo{padding:10px 24px 14px} .puCmp{height:52px} }
+
+/* (0.7.2) la lupa de las banderas (mantener apretada la bandera en la barra) */
+.lupaB{position:fixed;left:10px;right:10px;bottom:calc(var(--sa-b) + 150px);z-index:36;display:none;flex-direction:column;gap:8px;max-width:620px;margin:0 auto;background:#0b0d10;border:1.5px solid #b48ef0;border-radius:16px;padding:10px 10px 12px;box-shadow:0 10px 30px rgba(0,0,0,.6);pointer-events:none}
+.lupaB.ver{display:flex}
+.lupaB.verde{border-color:#4cd97b}
+.lbTit{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;color:var(--gris)}
+.lbTit b{font-size:15px;font-weight:800;color:#b48ef0}
+.lupaB.verde .lbTit b{color:#4cd97b}
+.lbComps{position:relative;display:grid;height:96px;border-radius:9px;overflow:hidden}
+.lbC{position:relative;border-left:2px solid rgba(255,255,255,.16);padding:4px 5px;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
+.lbC.cuenta{background:rgba(180,142,240,.16)}
+.lbN{font-size:11px;font-weight:800;color:var(--gris)}
+.lbS{font-size:9px;font-weight:800;letter-spacing:.5px;color:#fff;padding:2px 4px;border-radius:4px;align-self:flex-start;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-transform:uppercase}
+.lbA{font-size:15px;font-weight:800;color:#7c9ab8;white-space:nowrap;overflow:hidden}
+.lbP{display:flex;justify-content:space-between;padding-right:4px}
+.lbP i{width:5px;height:5px;border-radius:50%;background:#3a4652}
+.lbP i:first-child{background:#cfd6de}
+.lbC.cuenta .lbP i{background:#b48ef0}
+.lbF{position:absolute;top:0;bottom:0;width:4px;margin-left:-2px;background:#b48ef0}
+.lbF::after{content:"";position:absolute;top:0;left:2px;border-left:13px solid #b48ef0;border-bottom:10px solid transparent}
+.lupaB.verde .lbF{background:#4cd97b}.lupaB.verde .lbF::after{border-left-color:#4cd97b}
+.lbPie{font-size:12px;color:var(--gris);text-align:center}
+@media (min-width:700px) and (min-height:600px){.lbComps{height:120px}.lbA{font-size:20px}.lbTit b{font-size:18px}}
 </style>
 </head>
 <body>
@@ -652,6 +675,8 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 <div id="hojaAviso" class="hoja"><div class="hojaCaja" id="haCaja"></div></div>
 <div id="panelReg" class="hoja reg"><div class="hojaCaja"><pre id="registro"></pre><div class="fila2"><button id="regCopiar">Copiar</button><button id="regCerrar">Cerrar</button></div></div></div>
 <div id="popClick" class="popClick"><button id="pcCorrer" title="Correr el 1 al pulso siguiente">1<span class="flecha">→</span></button><button id="pcMedio" title="Mover el click medio tiempo (otro toque lo vuelve)">½<span class="flecha">→</span></button><button id="pcUno" title="Apagar el acento del 1"><s>1</s></button><button id="pcD2" title="Click a la mitad">÷2</button><button id="pcX2" title="Click al doble">×2</button><button id="pcPulso" class="ancho" title="Ajustar el pulso: tocá en el 1">Pulso…</button></div>
+<div id="popCuenta" class="popClick"><button data-n="1" class="ancho">1 compás</button><button data-n="2" class="ancho">2 compases</button></div>
+<div id="lupaB" class="lupaB"><div class="lbTit"><b id="lbTit"></b><span id="lbSub"></span></div><div id="lbComps" class="lbComps"></div><div class="lbPie">Arrastrá a los costados · soltá para dejarla</div></div>
 <div id="aviso" class="aviso"></div>
 <input id="archivoImp" type="file" multiple style="display:none">
 <div id="soltar" class="soltar"><div>Soltá acá los .youstem o .youstemcorr</div></div>
@@ -2874,7 +2899,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.7.1';
+const VERSION = '0.7.2';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -3750,7 +3775,7 @@ const Rep = {
       if (!this.an.valido) { aviso('Esta canción no tiene pulso todavía: no hay cuenta.', 3000); return; }
       const c = this.compasCercano(Audio.ahora()); if (!c) return;
       a.cuenta = true; a.cuentaMuda = false; a.marcaCuenta = c.t;
-      aviso('Cuenta: entrada en el ' + this.textoEntrada(c.t) + (Pref.get('vioArrastre', false) ? '' : ' · arrastrá la bandera violeta en la barra para moverla'), 3600);
+      aviso('Cuenta: entrada en el ' + this.textoEntrada(c.t) + (Pref.get('vioArrastre', false) ? '' : ' · para moverla, mantené apretada la bandera violeta en la barra'), 3600);
       Pref.set('vioArrastre', true);
     }
     this.refrescarBotones(); this.guardarLocal();
@@ -3760,7 +3785,7 @@ const Rep = {
     if (a.marcaInicio >= 0) { a.marcaInicio = -1; aviso('Bandera verde apagada', 1400); }
     else {
       a.marcaInicio = Math.max(0, Math.min(this.dur - 0.5, Audio.ahora()));
-      aviso('Bandera verde en ' + fmtT(a.marcaInicio) + ': cada ▶ arranca ahí. Arrastrala en la barra para acomodarla.', 3600);
+      aviso('Bandera verde en ' + fmtT(a.marcaInicio) + ': cada ▶ arranca ahí. Para acomodarla, mantenela apretada en la barra.', 3600);
     }
     this.refrescarBotones(); this.guardarLocal();
   },
@@ -4483,7 +4508,6 @@ $('#tonoMenos').onclick = () => Rep.cambiarTono(-1);
 $('#tonoMas').onclick = () => Rep.cambiarTono(+1);
 $('#tonoKey').parentElement.onclick = () => Rep.cambiarNotacion();
 $('#tonoVal').onclick = () => { Rep.tono = Math.round(Rep.ajMac.tono || 0); Rep.aplicarTono(); Rep.guardarLocal(); aviso('Tono como en la Mac.'); };
-$('#btnCuenta').onclick = () => Rep.alternarCuenta();
 $('#pcCorrer').onclick = () => Rep.correrUno();
 $('#pcMedio').onclick = () => Rep.correrMedio();
 $('#pcX2').onclick = () => Rep.factorTempo(2);
@@ -4498,35 +4522,138 @@ $('#btnLoop').onclick = () => {
 };
 Audio.alTerminar = () => { Rep.reanudar = false; Rep.refrescarBotones(); pantallaPrendida(false); };
 
+// ══════════ (0.7.2) LUPA de las banderas: 7 compases grandes alrededor (número, sección, acorde, pulsos; la cuenta en violeta) ══════════
+const Lupa = {
+  N: 7,
+  abrir(cual, x) {
+    const an = Rep.an, comps = an.compasesEfectivos(), a = Rep.aj;
+    const t = cual === 'verde' ? a.marcaInicio : a.marcaCuenta;
+    let i = 0; for (let k = 0; k < comps.length; k++) if (comps[k] <= t + 0.02) i = k;
+    const g = { cual, x0: x, i0: i, t0: t, comps };
+    $('#lupaB').classList.add('ver'); $('#lupaB').classList.toggle('verde', cual === 'verde');
+    const rb = $('#barra').getBoundingClientRect(); $('#lupaB').style.bottom = Math.max(8, innerHeight - rb.top + 10) + 'px';   // justo encima de la barra
+    this.dibujar(g, i, t);
+    return g;
+  },
+  mover(g, x) {
+    const W = $('#lbComps').getBoundingClientRect().width || 300, paso = W / this.N, dx = x - g.x0, c = g.comps;
+    if (g.cual === 'violeta') {
+      const i = Math.max(0, Math.min(c.length - 1, g.i0 + Math.round(dx / paso)));
+      if (c[i] !== Rep.aj.marcaCuenta) { Rep.aj.marcaCuenta = c[i]; if (navigator.vibrate) navigator.vibrate(8); }
+      this.dibujar(g, i, c[i]);
+    } else {   // la verde: libre, en la escala de la lupa (un ancho de compás = un compás)
+      const dur = (c[g.i0 + 1] || c[g.i0] + 2) - c[g.i0];
+      const t = Math.max(0, Math.min(Rep.dur - 0.5, g.t0 + dx / paso * dur));
+      Rep.aj.marcaInicio = t;
+      let i = 0; for (let k = 0; k < c.length; k++) if (c[k] <= t + 0.02) i = k;
+      this.dibujar(g, i, t);
+    }
+  },
+  dibujar(g, i, t) {
+    const an = Rep.an, c = g.comps, N = this.N, nB = Math.max(2, an.compasN), nCuenta = Pref.get('cuentaCompases', 1);
+    let ini = Math.max(0, Math.min(c.length - N, i - 3));
+    const C = $('#lbComps'); C.innerHTML = '';
+    C.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+    for (let k = ini; k < Math.min(c.length, ini + N); k++) {
+      const t0 = c[k], t1 = k + 1 < c.length ? c[k + 1] : t0 + 2;
+      const d = el('div', 'lbC' + (g.cual === 'violeta' && k >= i - nCuenta && k < i ? ' cuenta' : ''));
+      d.appendChild(el('span', 'lbN', String(k + 1)));
+      const b = an.arreglo.find(x => t0 >= x.t - 0.05 && t0 < x.fin);
+      const sec = el('span', 'lbS', b && (Math.abs(b.t - t0) < (t1 - t0) * 0.5 || k === ini) ? (b.nombre || '') : '');
+      if (b) sec.style.background = PALETA_ARR[((b.color % 6) + 6) % 6];
+      if (!sec.textContent) sec.style.visibility = 'hidden';
+      d.appendChild(sec);
+      const cv = Rep.celdasViene && Rep.celdasViene[k], ac = cv && cv.acordes.find(x => !x.viene) || (cv && cv.acordes[0]);
+      d.appendChild(el('span', 'lbA', ac ? Rep.nombreAcorde(ac.nombre, ac.t) : ''));
+      const p = el('span', 'lbP'); for (let j = 0; j < nB; j++) p.appendChild(el('i')); d.appendChild(p);
+      C.appendChild(d);
+    }
+    // la bandera dentro de la lupa
+    const fin = Math.min(c.length, ini + N), tFin = fin < c.length ? c[fin] : c[c.length - 1] + 2;
+    let x = 0; for (let k = ini; k < fin; k++) { const t0 = c[k], t1 = k + 1 < c.length ? c[k + 1] : t0 + 2; if (t >= t0 - 0.02 && t < t1) { x = (k - ini + Math.max(0, Math.min(1, (t - t0) / (t1 - t0)))) / N; break; } if (t >= tFin) x = 1; }
+    const f = el('span', 'lbF'); f.style.left = (x * 100) + '%'; C.appendChild(f);
+    $('#lbTit').textContent = g.cual === 'violeta' ? 'Entrada: compás ' + (i + 1) + ' · ' + fmtT(t) : 'Arranca en ' + fmtT(t) + ' (compás ' + (i + 1) + ')';
+    $('#lbSub').textContent = g.cual === 'violeta' ? (nCuenta === 1 ? 'la cuenta, en el compás de antes' : 'la cuenta, en los ' + nCuenta + ' compases de antes') : '';
+    Rep.claveBarra = null;
+  },
+  cerrar() {
+    $('#lupaB').classList.remove('ver'); Rep.claveBarra = null;
+    const a = Rep.aj;
+    aviso($('#lupaB').classList.contains('verde') ? 'Bandera verde: ' + fmtT(a.marcaInicio) : 'Entrada: ' + Rep.textoEntrada(a.marcaCuenta), 1600);
+  }
+};
+
+// (0.7.2) 1·2·3·4: tocar = apagada → con sonido → muda; mantener apretado = cuántos compases cuenta (1 o 2)
+(() => {
+  const B = $('#btnCuenta'); let largo = null, hecho = false;
+  B.addEventListener('pointerdown', () => { hecho = false; largo = setTimeout(() => { hecho = true; largo = null; menuCuentaCompases(); }, 500); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => B.addEventListener(t, () => { if (largo) { clearTimeout(largo); largo = null; } }));
+  B.addEventListener('contextmenu', e => e.preventDefault());
+  B.onclick = e => { if (hecho) { hecho = false; e.preventDefault(); return; } Rep.alternarCuenta(); };
+})();
+function menuCuentaCompases() {
+  const M = $('#popCuenta'), n = Pref.get('cuentaCompases', 1);
+  M.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.n === n));
+  M.classList.add('ver');
+  const r = $('#btnCuenta').getBoundingClientRect(), w = M.offsetWidth, h = M.offsetHeight;
+  M.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
+  M.style.top = Math.max(8, r.top - h - 8) + 'px';
+  if (navigator.vibrate) navigator.vibrate(12);
+}
+$('#popCuenta').addEventListener('click', e => {
+  const b = e.target.closest('button[data-n]'); if (!b) return;
+  Pref.set('cuentaCompases', +b.dataset.n); $('#popCuenta').classList.remove('ver');
+  aviso('Cuenta: ' + b.dataset.n + (b.dataset.n === '1' ? ' compás (' : ' compases (') + (+b.dataset.n * Math.max(2, Rep.an ? Rep.an.compasN : 4)) + ' golpes)', 1800);
+});
+document.addEventListener('pointerdown', e => { const M = $('#popCuenta'); if (M.classList.contains('ver') && !e.target.closest('#popCuenta') && !e.target.closest('#btnCuenta')) M.classList.remove('ver'); }, true);
+
 // barra: tocar = ir ahí; mantener apretado sobre una parte del arreglo = repetir esa parte
 (() => {
   // (0.3.1) solo con el botón apretado / el dedo apoyado: con el mouse, pasar por encima NO mueve nada
-  const cv = $('#barra'); let tLargo = null, x0 = 0, arrastrando = false, apretado = false, bandera = null;
+  const cv = $('#barra'); let tLargo = null, x0 = 0, arrastrando = false, apretado = false, bandera = null, largoHecho = false;
   const seg = e => { const r = cv.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * Rep.dur; };
   const cerca = e => { if (!Rep.cancion) return null; const r = cv.getBoundingClientRect(); return Rep.banderaCerca(e.clientX - r.left, r.width, e.pointerType === 'mouse' ? 7 : 18); };
-  // (0.4.0) agarrar cerca de una bandera = moverla (la violeta salta de compás en compás, la verde va libre); lejos = ir ahí
-  cv.addEventListener('pointermove', e => { if (!apretado && e.pointerType === 'mouse') cv.style.cursor = cerca(e) ? 'ew-resize' : ''; });
+  // (0.7.2) las banderas se mueven SOLO manteniéndolas apretadas (medio segundo): aparece la lupa con los compases
+  // grandes y se arrastra en esa escala (un ancho de compás de la lupa = un compás). Tocar o deslizar = ir ahí (como siempre).
+  // La violeta salta de compás en compás; la verde va libre.
+  let candidata = null, tBand = null, agarre = null;
+  cv.addEventListener('pointermove', e => { if (!apretado && e.pointerType === 'mouse') cv.style.cursor = cerca(e) ? 'grab' : ''; });
   cv.addEventListener('pointerdown', e => {
     if (e.button > 0) return;
-    bandera = cerca(e);
-    if (bandera) { cv.setPointerCapture(e.pointerId); apretado = false; e.preventDefault(); return; }
+    candidata = cerca(e); bandera = null;
+    if (!candidata) return;
+    const x = e.clientX, cual = candidata;
+    tBand = setTimeout(() => {
+      tBand = null; if (candidata !== cual) return;
+      bandera = cual; apretado = false; if (tLargo) { clearTimeout(tLargo); tLargo = null; }
+      agarre = Lupa.abrir(cual, x);
+      if (navigator.vibrate) navigator.vibrate(20);
+    }, 500);
   });
-  cv.addEventListener('pointermove', e => { if (bandera) Rep.moverBandera(bandera, seg(e)); });
-  const soltarBandera = () => { if (!bandera) return false; bandera = null; Rep.guardarLocal(); Rep.refrescarBotones(); return true; };
+  cv.addEventListener('pointermove', e => {
+    if (bandera && agarre) { e.preventDefault(); Lupa.mover(agarre, e.clientX); return; }
+    if (candidata && tBand && Math.abs(e.clientX - x0) > 8) { clearTimeout(tBand); tBand = null; candidata = null; }   // deslizó: es ir, no la bandera
+  });
+  const soltarBandera = () => {
+    if (tBand) { clearTimeout(tBand); tBand = null; } candidata = null;
+    if (!bandera) return false;
+    bandera = null; agarre = null; Lupa.cerrar(); Rep.guardarLocal(); Rep.refrescarBotones(); return true;
+  };
   cv.addEventListener('pointerup', soltarBandera); cv.addEventListener('pointercancel', soltarBandera);
   cv.addEventListener('pointerdown', e => {
     if (e.button > 0 || bandera) return;
-    cv.setPointerCapture(e.pointerId); x0 = e.clientX; arrastrando = false; apretado = true;
+    cv.setPointerCapture(e.pointerId); x0 = e.clientX; arrastrando = false; apretado = true; largoHecho = false;
     const s = seg(e);
+    if (candidata) return;   // (0.7.2) sobre una bandera, mantener apretado = moverla (no repetir la parte)
     tLargo = setTimeout(() => {
-      tLargo = null;
+      tLargo = null; largoHecho = true;
       const b = Rep.an.arreglo.find(x => s >= x.t && s < x.fin);
       if (b) { Rep.aj.cicloIni = b.t; Rep.aj.cicloFin = b.fin; Rep.aj.loop = true; Rep.aplicarLoop(); Rep.guardarLocal(); aviso('Repitiendo: ' + (b.nombre || 'esta parte')); if (navigator.vibrate) navigator.vibrate(20); }
     }, 550);
   });
   cv.addEventListener('pointermove', e => { if (!apretado) return; if (Math.abs(e.clientX - x0) > 8) { arrastrando = true; if (tLargo) { clearTimeout(tLargo); tLargo = null; } Rep.ir(seg(e)); } });
   cv.addEventListener('pointercancel', () => { apretado = false; if (tLargo) { clearTimeout(tLargo); tLargo = null; } });
-  cv.addEventListener('pointerup', e => { if (!apretado) return; apretado = false; if (tLargo) { clearTimeout(tLargo); tLargo = null; Rep.reanudar = true; Rep.ir(seg(e)); } else if (arrastrando) Rep.reanudar = true; });
+  cv.addEventListener('pointerup', e => { if (!apretado) return; apretado = false; if (!arrastrando && !largoHecho) { if (tLargo) clearTimeout(tLargo); tLargo = null; Rep.reanudar = true; Rep.ir(seg(e)); } else if (arrastrando) Rep.reanudar = true; });
 })();
 
 addEventListener('resize', () => { if (Rep.cancion) requestAnimationFrame(() => Rep.medir()); });
