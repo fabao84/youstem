@@ -147,6 +147,24 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 #btnCuenta{font-size:9px;font-weight:800;letter-spacing:.2px}
 .tbot.on{color:#111;background:var(--texto)}
 #btnCuenta.on{background:#b48ef0;color:#111}
+#btnCuenta.muda{box-shadow:inset 0 0 0 3px #ff6b5e, 0 0 0 2px rgba(255,107,94,.25)}   /* (0.7.1) cuenta muda: borde rojo */
+/* (0.7.1) el cartel de la cuenta: ATENTO = banda arriba; cada golpe = casi toda la pantalla */
+#avisoC{position:fixed;left:0;right:0;top:0;z-index:40;display:none;pointer-events:none;padding:var(--sa-t) var(--sa-r) 0 var(--sa-l)}
+#avisoC.ver{display:block}
+#avisoC .acCaja{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;background:rgba(10,12,15,.95);border-bottom:2px solid rgba(255,255,255,.1);border-radius:0 0 22px 22px;padding:18px 16px 20px}
+#acCuantos{font:800 clamp(18px,4.5vw,30px)/1.1 -apple-system,system-ui,sans-serif;letter-spacing:1.5px;color:#e9edf2}
+#acGrande{font:900 clamp(58px,15vw,130px)/1 -apple-system,system-ui,sans-serif;letter-spacing:-1px;color:#ffd76a}
+.acBarraT{width:min(80vw,640px);height:14px;border-radius:8px;background:rgba(255,255,255,.12);overflow:hidden;display:flex;justify-content:flex-end}
+#acBarra{display:block;height:100%;background:#4cd97b;border-radius:8px}
+#acPuntos{display:none;gap:12px;flex-wrap:wrap;justify-content:center}
+#acPuntos i{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.18)}
+#acPuntos i.on{background:#e9edf2}
+#acPuntos i.suena{background:#4cd97b;transform:scale(1.35);box-shadow:0 0 14px rgba(76,217,123,.7)}
+#avisoC.golpe{bottom:0}
+#avisoC.golpe .acCaja{height:100%;border-radius:0;border:0;background:rgba(10,12,15,.96)}
+#avisoC.golpe #acCuantos,#avisoC.golpe .acBarraT{display:none}
+#avisoC.golpe #acGrande{font-size:min(78vh,82vw);line-height:.85;letter-spacing:-.04em;color:#e9edf2}
+#avisoC.golpe #acPuntos{display:flex}
 #btnVerde{color:#4cd97b}
 #btnVerde.on{background:#4cd97b;color:#111}
 #btnLoop.on{background:var(--acento);color:#fff}
@@ -638,6 +656,8 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 <input id="archivoImp" type="file" multiple style="display:none">
 <div id="soltar" class="soltar"><div>Soltá acá los .youstem o .youstemcorr</div></div>
 
+<!-- (0.7.1) el cartel de la cuenta -->
+<div id="avisoC" aria-live="polite"><div class="acCaja"><span id="acCuantos"></span><span id="acGrande"></span><span class="acBarraT"><i id="acBarra"></i></span><span id="acPuntos"></span></div></div>
 <script type="text/plain" id="codigoWorklet">// YouSTEM web — motor de audio (AudioWorklet).
 // Mezcla las pistas (Int16 en memoria, para que entren en el iPhone), suma el click y la cuenta,
 // y aplica el TONO una sola vez sobre la mezcla (remuestreo + WSOLA), como Rubber Band en la Mac.
@@ -2854,7 +2874,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.7.0';
+const VERSION = '0.7.1';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -3680,7 +3700,7 @@ const Rep = {
   // cuenta y banderas) no se usa. Se quedan el tono, los nombres, colores, grupos y tramos de la Mac.
   limpio(aj) {
     return { ...aj, ganancias: {}, mutes: new Set(), solos: new Set(), muteAntes: new Set(), master: 1, masterMute: false,
-             clickEncendido: false, cuenta: false, marcaInicio: -1, marcaCuenta: -1, loop: false };
+             clickEncendido: false, cuenta: false, cuentaMuda: false, marcaInicio: -1, marcaCuenta: -1, loop: false };
   },
   conLocal(aj) {
     const a = this.limpio(aj);
@@ -3691,7 +3711,7 @@ const Rep = {
     if (l.solos) a.solos = new Set(l.solos);
     a.muteAntes = new Set(l.muteAntes || []);
     // lo que cambiaste en ESTE aparato (las banderas quedan solo acá: no van a la nube ni a la Mac)
-    for (const k of ['tono', 'loop', 'cicloIni', 'cicloFin', 'cuenta', 'clickEncendido', 'master', 'masterMute', 'vozMidi', 'marcaInicio', 'marcaCuenta']) if (k in l) a[k] = l[k];
+    for (const k of ['tono', 'loop', 'cicloIni', 'cicloFin', 'cuenta', 'clickEncendido', 'master', 'masterMute', 'vozMidi', 'marcaInicio', 'marcaCuenta', 'cuentaMuda']) if (k in l) a[k] = l[k];
     if (!(a.marcaCuenta >= 0)) { a.cuenta = false; a.marcaCuenta = -1; }   // la cuenta va con la bandera violeta
     if (!(a.marcaInicio >= 0)) a.marcaInicio = -1;
     a.local = true;
@@ -3704,7 +3724,7 @@ const Rep = {
     const click = this.filas.find(f => f.tipo === 'click');
     const l = { ganancias: g, mutes: m, solos: s, tono: this.tono, loop: a.loop, cicloIni: a.cicloIni, cicloFin: a.cicloFin, cuenta: a.cuenta,
                 clickEncendido: click ? !click.mute : a.clickEncendido, master: a.master, masterMute: !!a.masterMute, vozMidi: a.vozMidi, muteAntes: ma,
-                marcaInicio: a.marcaInicio, marcaCuenta: a.marcaCuenta };
+                marcaInicio: a.marcaInicio, marcaCuenta: a.marcaCuenta, cuentaMuda: !!a.cuentaMuda };
     try { localStorage.setItem(this.claveLocal(), JSON.stringify(l)); } catch {}
   },
   volverALaMac() {
@@ -3723,11 +3743,13 @@ const Rep = {
   textoEntrada(t) { const c = this.compasCercano(t); return c ? 'compás ' + (c.i + 1) + ' (' + fmtT(c.t) + ')' : fmtT(t); },
   alternarCuenta() {
     const a = this.aj;
-    if (a.cuenta) { a.cuenta = false; a.marcaCuenta = -1; aviso('Cuenta apagada', 1400); }
+    // (0.7.1) apagada → con sonido (morado) → muda (morado con borde rojo) → apagada
+    if (a.cuenta && !a.cuentaMuda) { a.cuentaMuda = true; aviso('Cuenta MUDA: no suena, se ve en grande arriba', 2200); }
+    else if (a.cuenta) { a.cuenta = false; a.cuentaMuda = false; a.marcaCuenta = -1; aviso('Cuenta apagada', 1400); }
     else {
       if (!this.an.valido) { aviso('Esta canción no tiene pulso todavía: no hay cuenta.', 3000); return; }
       const c = this.compasCercano(Audio.ahora()); if (!c) return;
-      a.cuenta = true; a.marcaCuenta = c.t;
+      a.cuenta = true; a.cuentaMuda = false; a.marcaCuenta = c.t;
       aviso('Cuenta: entrada en el ' + this.textoEntrada(c.t) + (Pref.get('vioArrastre', false) ? '' : ' · arrastrá la bandera violeta en la barra para moverla'), 3600);
       Pref.set('vioArrastre', true);
     }
@@ -3947,7 +3969,7 @@ const Rep = {
     $('#btnLoop').classList.toggle('on', !!ok);
     $('#btnLoop').classList.toggle('apagado', !(a.cicloFin > a.cicloIni + 0.2));
   },
-  ir(seg) { Audio.pos = Math.max(0, Math.min(this.dur, seg)); Audio.enviar({ t: 'ir', pos: Audio.pos * Audio.sr }); this.saltoTele = true; },
+  ir(seg) { this.avisoC = null; Audio.pos = Math.max(0, Math.min(this.dur, seg)); Audio.enviar({ t: 'ir', pos: Audio.pos * Audio.sr }); this.saltoTele = true; },
   async tocar() {
     Audio.fondoTocar();   // (0.6.3) dentro del toque (el navegador lo pide)
     await Audio.iniciar();
@@ -3961,7 +3983,7 @@ const Rep = {
     let desde = Audio.pos >= this.dur - 0.05 ? 0 : Audio.pos;
     if (a.marcaInicio >= 0 && !this.reanudar) desde = a.marcaInicio;      // como la Mac: la bandera verde manda
     Audio.enviar({ t: 'cuenta', desde: 0, hasta: -1, pos: [], fuerte: [] });
-    let previa = null;
+    let previa = null, aviso1 = null;
     if (a.cuenta && a.marcaCuenta >= 0 && an.valido && !Editor.abierto && !Pulso.abierto) {
       // (0.5.11) fabao: "la bandera morada es solo el lugar donde debe TERMINAR la cuenta". La canción arranca donde
       // arranca (la verde o donde estés); la cuenta suena en los 1 o 2 compases antes de la morada, con el tempo del
@@ -3974,35 +3996,44 @@ const Rep = {
       if (paso <= 0 && comps.length >= 2) paso = Math.max(0.8, Math.min(8, comps[1] - comps[0])) / nB;
       if (paso < 0.15 || paso > 2.5) paso = 0.5;
       const total = nComp * nB, ini = destino - paso * total;
+      const muda = !!a.cuentaMuda, compas = paso * nB, v = Math.pow(2, this.centsRef / 1200);   // v = la velocidad de la corrección a 440
       if (desde < destino - 0.05) {   // después de la morada no hay cuenta
-        const pos = [], fuerte = [], antes = [];
+        const pos = [], fuerte = [], antes = [], golpes = [];
         for (let k = total; k >= 1; k--) {
           const t = destino - paso * k, f = k % nB === 0 ? 1 : 0;
-          if (t >= desde - 0.02 && t >= 0) { pos.push(Math.round(t * Audio.sr)); fuerte.push(f); }
-          else if (t < 0 && desde < 0.05) antes.push({ t, f });   // no entra antes del audio: va en silencio
+          if (t >= desde - 0.02 && t >= 0) { pos.push(Math.round(t * Audio.sr)); fuerte.push(f); golpes.push(t); }
+          else if (t < 0 && desde < 0.05) { antes.push({ t, f }); golpes.push(t); }   // no entra antes del audio: va en silencio
         }
-        if (pos.length) Audio.enviar({ t: 'cuenta', desde: Math.max(0, Math.min(desde, ini)) * Audio.sr, hasta: destino * Audio.sr, pos, fuerte });
-        if (antes.length) {
-          const v = Math.pow(2, this.centsRef / 1200);   // la velocidad de la corrección a 440
-          previa = { t: 'previa', n: Math.round(-ini * Audio.sr / v), pos: antes.map(x => Math.round((x.t - ini) * Audio.sr / v)), fuerte: antes.map(x => x.f) };
+        // (0.7.1) ATENTO: el compás antes del primer golpe. Desde el comienzo de la canción, si no entra, va en silencio
+        // antes del audio (como la cuenta que no entra)
+        const V = desde < 0.05 && golpes.length ? Math.min(0, golpes[0] - compas) : desde;
+        // muda: los golpes no suenan (el click igual se calla durante la cuenta)
+        if (pos.length) Audio.enviar({ t: 'cuenta', desde: Math.max(0, Math.min(desde, ini)) * Audio.sr, hasta: destino * Audio.sr, pos: muda ? [] : pos, fuerte: muda ? [] : fuerte });
+        if (V < -0.01) {
+          previa = { t: 'previa', n: Math.round(-V * Audio.sr / v), pos: muda ? [] : antes.map(x => Math.round((x.t - V) * Audio.sr / v)), fuerte: muda ? [] : antes.map(x => x.f) };
           desde = 0;
         }
-      }
+        if (golpes.length) aviso1 = { golpes, total, destino, atIni: Math.max(V, golpes[0] - compas), V: V < -0.01 ? V : null, v };
+        anotar('cuenta:', muda ? 'MUDA' : 'con sonido', '· morada', destino.toFixed(2), '· ▶ desde', desde.toFixed(2), '· golpes', golpes.map(x => x.toFixed(2)).join(' '),
+          '· pulso', paso.toFixed(3), '· compás de', nB, (V < -0.01 ? '· en silencio antes del audio ' + (-V).toFixed(2) + ' s' : ''), '· tono', this.tono, '· vel', v.toFixed(4));
+      } else anotar('cuenta: ▶ después de la morada (' + destino.toFixed(2) + '), sin cuenta');
     }
     this.ir(desde);
     if (previa) Audio.enviar(previa);   // después de "ir" (que la borra)
+    this.avisoC = aviso1;
     Audio.enviar({ t: 'play' }); Audio.sonando = true; Audio.posCt = Audio.ctx.currentTime;
     Audio.tocadoCt = Audio.ctx.currentTime; Audio.desdeToque = desde;
     if (document.hidden) Audio.fondoCambiar(true);   // (0.6.3) ▶ desde la pantalla bloqueada
     this.reanudar = false;
     pantallaPrendida(true); this.refrescarBotones(); Medios.estado();
   },
-  pausa() { Audio.enviar({ t: 'pausa' }); Audio.sonando = false; Audio.fondoPausa(); pantallaPrendida(false); this.refrescarBotones(); Medios.estado(); },
+  pausa() { this.avisoC = null; Audio.enviar({ t: 'pausa' }); Audio.sonando = false; Audio.fondoPausa(); pantallaPrendida(false); this.refrescarBotones(); Medios.estado(); },
   parar() { if (Audio.nodo) Audio.enviar({ t: 'pausa' }); Audio.sonando = false; Audio.fondoPausa(); pantallaPrendida(false); },
   alInicio() { this.reanudar = false; this.ir(this.aj.marcaInicio >= 0 ? this.aj.marcaInicio : 0); if (Audio.sonando) this.tocar(); },
   refrescarBotones() {
     $('#btnPlay').classList.toggle('sonando', Audio.sonando);
     $('#btnCuenta').classList.toggle('on', !!this.aj.cuenta);
+    $('#btnCuenta').classList.toggle('muda', !!(this.aj.cuenta && this.aj.cuentaMuda));
     $('#btnVerde').classList.toggle('on', this.aj.marcaInicio >= 0);
   },
 
@@ -4154,6 +4185,7 @@ const Rep = {
     // (0.5.14) Android: la pantalla se actualiza 30 veces por segundo (sobra para la letra y los acordes) y deja más aire al audio
     if (ES_ANDROID && (this.saltoCuadro = !this.saltoCuadro) && !this.saltoTele) return;
     const t = Audio.ahora(), an = this.an;
+    this.pintarAvisoCuenta();
     $('#tiempo').textContent = fmtT(t) + ' / ' + fmtT(this.dur);
     this.dibujarBarra(t);
     // fila actual
@@ -4209,6 +4241,38 @@ const Rep = {
     this.dibujarPulso(t);
     if (an.cambiosTono.length) { const k = an.tonoEn(t); if (k !== this.tonoMostrado) { this.tonoMostrado = k; this.aplicarTonoTexto(); } }
     this.saltoTele = false;
+  },
+  // ── (0.7.1) el cartel de la cuenta: CUENTA N · ATENTO con la barra verde (el compás antes) → cada golpe gigante ──
+  tiempoCuenta() {
+    const A = this.avisoC; if (!A || !Audio.sonando || !Audio.ctx) return null;
+    if (A.V != null) {   // en el silencio antes del audio el motor está en 0: el tiempo "de la canción" va de V a 0
+      const el = (Audio.ctx.currentTime - Audio.tocadoCt - Audio.retraso - Audio.salida()) * A.v;
+      if (el < -A.V) return A.V + Math.max(0, el);
+    }
+    return Audio.ahora();
+  },
+  pintarAvisoCuenta() {
+    const A = this.avisoC, E = $('#avisoC');
+    const ocultar = () => { if (E.className) E.className = ''; };
+    if (!A) return ocultar();
+    const t = this.tiempoCuenta();
+    if (t == null) return ocultar();
+    if (t >= A.destino - 0.02) { this.avisoC = null; return ocultar(); }
+    if (t < A.atIni - 0.02) return ocultar();
+    const g = A.golpes; let k = -1;
+    for (let i = 0; i < g.length; i++) if (g[i] <= t + 0.01) k = i;
+    if (E.dataset.total !== String(A.total)) { E.dataset.total = A.total; $('#acPuntos').innerHTML = '<i></i>'.repeat(A.total); $('#acCuantos').textContent = 'CUENTA ' + A.total; }
+    if (k < 0) {
+      E.className = 'ver atento'; $('#acGrande').textContent = 'ATENTO';
+      const p = (t - A.atIni) / Math.max(0.05, g[0] - A.atIni);
+      $('#acBarra').style.width = Math.max(0, Math.min(100, 100 * (1 - p))).toFixed(1) + '%';
+    } else {
+      const n = A.total - g.length + k + 1;
+      if (E.dataset.n !== String(n) || !E.classList.contains('golpe')) {
+        E.className = 'ver golpe'; E.dataset.n = n; $('#acGrande').textContent = n;
+        $('#acPuntos').querySelectorAll('i').forEach((d, j) => { d.classList.toggle('on', j < n - 1); d.classList.toggle('suena', j === n - 1); });   // el que suena, verde
+      }
+    }
   },
   dibujarPulso(t) {
     const an = this.an, cont = $('#pulsos');
