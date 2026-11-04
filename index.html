@@ -226,6 +226,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .hojaCaja>button{text-align:left;padding:13px 14px;border-radius:12px;background:var(--panel2);display:flex;flex-direction:column}
 .hojaCaja>button .gris{font-size:12px;margin-top:2px}
 .hojaCaja .rojo{color:#ff7a7a}
+.hojaCaja>button.chico{padding:8px 14px;background:none;color:var(--gris);font-size:13px;align-items:center}   /* (0.7.3) Ver registro, abajo y chico */
+.hojaCaja>button:has(.enLinea){flex-direction:row;align-items:baseline;gap:6px}
+.hojaCaja>button .gris.enLinea{font-size:13px;margin-top:0}
 .hojaCaja .cerrar{text-align:center;align-items:center;background:none;color:var(--gris)}
 .reg pre{flex:1;overflow:auto;font-size:11px;white-space:pre-wrap;background:#0e1013;padding:10px;border-radius:10px;margin:0;min-height:40dvh}
 .fila2{display:flex;gap:8px}.fila2 button{flex:1;padding:12px;border-radius:12px;background:var(--panel2)}
@@ -618,25 +621,23 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 <div id="menu" class="hoja">
   <div class="hojaCaja">
     <div class="hojaTit"><span id="menuVersion"></span><span id="menuUsuario" class="gris"></span></div>
-    <button id="menuPedir">Pedir una canción a tu Mac<span class="gris">Pegás un link de YouTube; tu Mac la separa en Máxima y la sube</span></button>
-    <button id="menuImportar">Importar .youstem o correcciones (.youstemcorr)</button>
+    <button id="menuPedir">Pedir una canción a mi Mac</button>
+    <button id="menuImportar">Importar canción o correcciones</button>
     <button id="menuCarpeta" style="display:none">Carpeta de canciones…<span id="menuCarpetaNombre" class="gris"></span></button>
     <button id="menuConectar">Conectar con Microsoft (OneDrive)</button>
-    <button id="menuEditar">✎ Editar acordes y arreglos</button>
-    <button id="menuPulso">Ajustar pulso (tocá en el 1)</button>
+    <button id="menuEditar">✎ Editar acordes y secciones</button>
+    <button id="menuPulso">Ajustar el pulso…</button>
     <button id="menuAvisar">⚠ Avisar un error en esta parte</button>
-    <button id="menuEnviar">Enviar correcciones (.youstemcorr)</button>
+    <button id="menuEnviar">Enviar mis correcciones</button>
     <button id="menuDescartar">Descartar mis correcciones de esta canción</button>
-    <button id="menuAudio">Reiniciar el audio (si suena raro)</button>
-    <button id="menuMac">Empezar de cero esta canción (todo en 0 dB, sin banderas)</button>
-    <button id="menuCuenta">Cuenta: 1 compás</button>
-    <button id="menuBloqueada">Seguir sonando con la pantalla bloqueada: sí</button>
+    <button id="menuAudio">Reiniciar el audio</button>
+    <button id="menuMac">Mezcla de cero (0 dB, sin banderas)</button>
+    <button id="menuBloqueada">Sonar con la pantalla bloqueada: sí</button>
     <button id="menuRecargar">Recargar la biblioteca</button>
     <button id="menuCrearLib">☁ Crear mi biblioteca en OneDrive…</button>
-    <button id="menuBajarLista">⬇ Guardar las de la lista (para sin conexión)</button>
-    <button id="menuBorrar">Borrar canciones guardadas en el iPhone<span id="menuEspacio" class="gris"></span></button>
-    <button id="menuRegistro">Ver registro</button>
+    <button id="menuBorrar">Liberar espacio<span id="menuEspacio" class="gris enLinea"></span></button>
     <button id="menuSalir" class="rojo">Cerrar sesión</button>
+    <button id="menuRegistro" class="chico">Ver registro</button>
     <button id="menuCerrar" class="cerrar">Cerrar</button>
   </div>
 </div>
@@ -2899,7 +2900,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.7.2';
+const VERSION = '0.7.3';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -3370,7 +3371,7 @@ const Bib = {
     if (qq && this.vistas.length > elegidas.length)
       for (const v of this.vistas) if (!this.sel.has(v.id)) for (const c of this.porLib[v.lib.clave] || []) if (v.filtro(c) && coincide(c)) otras++;
     const soloLocal = elegidas.length === 1 && elegidas[0].lib.local;
-    if (soloGuardadas && !lista.length && todos.length && !qq) this.estado('Ninguna de estas está guardada en ' + EQUIPO + ' todavía. Tocá ⋯ en una canción › «Guardar para sin conexión», o Menú ⋯ › «Guardar las de la lista».');
+    if (soloGuardadas && !lista.length && todos.length && !qq) this.estado('Ninguna de estas está guardada en ' + EQUIPO + ' todavía. Tocá ⋯ en una canción › «Guardar para sin conexión» (o abrila una vez).');
     else if (qq && !lista.length) this.estado('Nada coincide con “' + q + '” acá.' + (otras ? ' En otras pestañas hay ' + otras + ': tocá «Todas».' : ''));
     else if (!todos.length && cargando) this.estado('Leyendo tu biblioteca…');
     else if (!todos.length && soloLocal) this.estado('Todavía no hay canciones en ' + EQUIPO + '. Tocá «Importar .youstem» y elegí los archivos que te pasaron (podés elegir varios).');
@@ -3533,10 +3534,14 @@ async function abrirCancion(c, lib, op = {}) {
     const total = pistas.reduce((s, p) => s + (p.f.size || 0), 0) || 1;
     let hecho = 0, memoria = 0;
     // (0.3.8) antes de cargar: el motor suelta la canción anterior y la pantalla también, y se le da un respiro al navegador
-    Audio.enviar({ t: 'vaciar' });
+    // (0.7.3) fabao: "que se reinicie el audio al entrar a la canción". Cada canción arranca con un motor de audio NUEVO
+    // (lo mismo que Menú › Reiniciar el audio), armado justo antes de cargar las pistas: nada de la canción anterior
+    // ni de una salida que se trabó queda colgado. (Las pistas pasan al motor a medida que se decodifican, por eso el
+    // motor nuevo va antes de la carga y no después.)
     Rep.liberar();
-    await Audio.listo();
+    await Audio.cerrar();
     await new Promise(r => setTimeout(r, 120));
+    await Audio.iniciar();
     const cargadas = [];
     for (let i = 0; i < pistas.length; i++) {
       const p = pistas[i];
@@ -4663,20 +4668,18 @@ addEventListener('orientationchange', () => setTimeout(() => Rep.cancion && Rep.
 async function abrirMenu() {
   $('#menu').classList.add('ver');
   const n = await Nube.espacio();
-  $('#menuEspacio').textContent = n ? (n / 1048576).toFixed(0) + ' MB en total en ' + EQUIPO : '';
+  $('#menuEspacio').textContent = n ? ' (' + (n / 1048576).toFixed(0) + ' MB ' + (EQUIPO === 'este dispositivo' ? 'en este dispositivo' : 'en ' + EQUIPO) + ')' : '';
   const con = Nube.conectado();
   $('#menuConectar').style.display = con ? 'none' : '';
   $('#menuSalir').style.display = con ? '' : 'none';
   $('#menuBorrar').style.display = con ? '' : 'none';
-  $('#menuBajarLista').style.display = con && $('#pBib').classList.contains('activa') ? '' : 'none';
-  $('#menuRecargar').style.display = con ? '' : 'none';
+  $('#menuRecargar').style.display = con && !matchMedia('(pointer: coarse)').matches ? '' : 'none';   // (0.7.3) en el celular: estirar la lista
   $('#menuCrearLib').style.display = con && !(Bib.libs || []).some(l => l.mia) ? '' : 'none';   // (0.7.0)
   $('#menuPedir').style.display = con && Pedidos.raiz() ? '' : 'none';   // (0.5.0)
   $('#menuCarpeta').style.display = Local.hayCarpetas() ? '' : 'none';
   if (Local.hayCarpetas()) Local.carpeta().then(h => $('#menuCarpetaNombre').textContent = h ? ' · ' + h.name : ' · ninguna');
   $('#menuBloqueada').style.display = matchMedia('(pointer: coarse)').matches ? '' : 'none';
-  $('#menuBloqueada').textContent = 'Seguir sonando con la pantalla bloqueada: ' + (Pref.get('bloqueada', true) ? 'sí' : 'no');
-  $('#menuCuenta').textContent = 'Cuenta: ' + Pref.get('cuentaCompases', 1) + (Pref.get('cuentaCompases', 1) === 1 ? ' compás' : ' compases');
+  $('#menuBloqueada').textContent = 'Sonar con la pantalla bloqueada: ' + (Pref.get('bloqueada', true) ? 'sí' : 'no');
   const enRep = !!Rep.cancion && $('#pRep').classList.contains('activa');
   $('#menuMac').style.display = enRep ? '' : 'none';
   $('#menuAudio').style.display = enRep ? '' : 'none';
@@ -4691,7 +4694,6 @@ $('#btnMenu').onclick = abrirMenu; $('#btnMenu2').onclick = abrirMenu;
 $('#menu').addEventListener('click', e => { if (e.target.id === 'menu') cerrarMenu(); });
 $('#menuCerrar').onclick = cerrarMenu;
 $('#menuRecargar').onclick = () => { cerrarMenu(); pantalla('pBib'); Bib.iniciar(); };
-$('#menuCuenta').onclick = () => { Pref.set('cuentaCompases', Pref.get('cuentaCompases', 1) === 1 ? 2 : 1); abrirMenu(); };
 $('#menuBloqueada').onclick = () => { const on = !Pref.get('bloqueada', true); Pref.set('bloqueada', on); if (on) { if (Audio.sonando) Audio.fondoTocar(); } else Audio.fondoPausa(); abrirMenu(); };
 $('#menuMac').onclick = () => { cerrarMenu(); Rep.volverALaMac(); };
 $('#menuAudio').onclick = () => { cerrarMenu(); Rep.reiniciarAudio('a pedido'); };
@@ -4711,14 +4713,6 @@ $('#menuDescartar').onclick = () => {
   cerrarMenu(); abrirCancion(c, lib);
 };
 $('#btnGuardadas').onclick = () => { Pref.set('soloGuardadas', !Pref.get('soloGuardadas', false)); Bib.dibujar(); aviso(Pref.get('soloGuardadas', false) ? 'Solo las guardadas en ' + EQUIPO + ' (se escuchan sin conexión).' : 'Todas.', 1800); };
-$('#menuBajarLista').onclick = () => {
-  cerrarMenu();
-  const faltan = (Bib.listaVisible || []).filter(x => !x.lib.local && !Bib.guardadas.has(x.lib.clave + '|' + x.c.id));
-  if (!faltan.length) { aviso('Las de la lista ya están todas guardadas en ' + EQUIPO + '.'); return; }
-  const mb = faltan.reduce((s, x) => s + Object.entries(x.c.archivos || {}).filter(([k]) => /\.mp3$/i.test(k) && k.startsWith('pistas-' + x.c.nivel + '/')).reduce((a, [, v]) => a + v, 0), 0) / 1048576;
-  if (!confirm('¿Guardar en ' + EQUIPO + ' las ' + faltan.length + ' canciones de la lista para escucharlas sin conexión?' + (mb > 1 ? '\n\nSon unos ' + Math.round(mb) + ' MB: mejor con wifi.' : ''))) return;
-  Descargas.agregar(faltan);
-};
 $('#bajCortar').onclick = () => Descargas.cortar();
 $('#accCerrar').onclick = () => $('#acciones').classList.remove('ver');
 $('#acciones').addEventListener('click', e => { if (e.target.id === 'acciones') $('#acciones').classList.remove('ver'); });
