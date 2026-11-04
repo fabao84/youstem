@@ -737,6 +737,7 @@ class YouStem extends AudioWorkletProcessor {
     this.bClickF = sintetizarBeep(sampleRate, 0.05, 1568, 0.8, false);
     this.bClickD = sintetizarBeep(sampleRate, 0.05, 1046.5, 0.55, false);
     this.bCuentaF = sintetizarBeep(sampleRate, 0.085, 660, 1.15, true);
+    { let m = 0; for (const v of this.bCuentaF) m = Math.max(m, Math.abs(v)); if (m > 0.98) for (let i = 0; i < this.bCuentaF.length; i++) this.bCuentaF[i] *= 0.98 / m; }   // (0.8.0) C40: sin clip
     this.bCuentaD = sintetizarBeep(sampleRate, 0.085, 495, 0.85, true);
     this.tmpL = new Float32Array(4096); this.tmpR = new Float32Array(4096);
     this.tmpFL = new Float32Array(4096); this.tmpFR = new Float32Array(4096);   // (0.3.11) lo que NO cambia de tono: batería, click y cuenta
@@ -770,12 +771,12 @@ class YouStem extends AudioWorkletProcessor {
       case 'ctl': this.ctl.set(m.g); break;
       case 'master': this.master = m.v; break;
       case 'play': this.sonando = true; break;
-      case 'pausa': this.sonando = false; this.previa = null; this.reiniciarTono(); this.avisar(); break;
+      case 'pausa': this.sonando = false; this.previa = null; this.pos = Math.round(this.posOida()); this.reiniciarTono(); this.avisar(); break;   // (0.8.0) B11: lo en vuelo se tira: pos = lo oído
       case 'previa': this.previa = m.n > 0 ? { n: Math.round(m.n), t: 0, pos: m.pos, fuerte: m.fuerte } : null; break;
       case 'ir': this.previa = null; this.pos = Math.max(0, Math.min(this.largo, Math.round(m.pos))); this.reiniciarTono(); this.click.i = 0; this.avisar(); break;
       case 'loop': this.loopOn = m.on; this.loopA = Math.round(m.a); this.loopB = Math.round(m.b); break;
-      case 'externo': if (!!m.on !== this.externo) { this.externo = !!m.on; this.reiniciarTono(); } break;
-      case 'tono': { const rw = m.rw == null ? m.r : m.rw; if (Math.abs(m.r - this.ratio) > 1e-6 || Math.abs(rw - this.rw) > 1e-6) { this.ratio = m.r; this.rw = rw; this.reiniciarTono(); } break; }
+      case 'externo': if (!!m.on !== this.externo) { this.pos = Math.round(this.posOida()); this.externo = !!m.on; this.reiniciarTono(); } break;   // (0.8.0) B11
+      case 'tono': { const rw = m.rw == null ? m.r : m.rw; if (Math.abs(m.r - this.ratio) > 1e-6 || Math.abs(rw - this.rw) > 1e-6) { this.pos = Math.round(this.posOida()); this.ratio = m.r; this.rw = rw; this.reiniciarTono(); } break; }   // (0.8.0) B11
       case 'hola': this.port.postMessage({ t: 'hola', n: m.n }); break;
       case 'click': Object.assign(this.click, m.c); this.click.i = 0; break;
       case 'cuenta': this.cuenta = { desde: Math.round(m.desde), hasta: Math.round(m.hasta), pos: m.pos, fuerte: m.fuerte }; break;
@@ -815,7 +816,10 @@ class YouStem extends AudioWorkletProcessor {
       const k = Math.min(n - hecho, lim - this.pos);
       this.mezclarTramo(L, R, hecho, k, this.pos, FL || L, FR || R);
       this.pos += k; hecho += k;
-      if (this.cuenta.hasta > 0 && this.pos >= this.cuenta.hasta) this.cuenta = { desde: 0, hasta: -1, pos: [], fuerte: [] };
+      if (this.cuenta.hasta > 0 && this.pos >= this.cuenta.hasta) {
+        this.cuenta = { desde: 0, hasta: -1, pos: [], fuerte: [] };
+        if (this.loopOn && this.loopB > this.loopA && this.pos >= this.loopB) { this.pos = this.loopA; this.click.i = 0; }   // (0.8.0) B12: la cuenta terminó pasado el loop: se vuelve al principio del loop
+      }
     }
     return n;
   }
@@ -2110,7 +2114,7 @@ const Modelo = (() => {
       const c = claseNota(x.nombre); if (!c) continue;
       const d = Math.max(0, x.fin - x.t); total += d;
       if (c.pc !== k.pc) continue;
-      const tipo = x.nombre.slice(c.largo).split('/')[0];
+      const tipo = normalizarTipo(x.nombre.slice(c.largo).split('/')[0]);   // (0.8.0) C39: "A-7", "Aø7", "A°" también cuentan como menor
       const menor = (tipo.startsWith('m') && !tipo.startsWith('maj')) || tipo.startsWith('dim');
       if (menor) men += d; else may += d;
     }
@@ -2229,13 +2233,14 @@ const Modelo = (() => {
   function normalizarTipo(t) {
     t = t.trim().replace(/♯/g, '#').replace(/♭/g, 'b').replace(/−/g, '-').replace('(b5)', 'b5').replace('(#5)', '#5').replace('min', 'm');
     if (t.startsWith('ø')) { let r = t.slice(1); if (r.startsWith('7')) r = r.slice(1); return 'm7b5' + r; }
-    if (t.startsWith('°') || t.startsWith('o')) { const r = t.slice(1); return r.startsWith('7') ? 'dim7' + r.slice(1) : 'dim' + r; }
+    if (t.startsWith('°') || (t.startsWith('o') && !t.startsWith('omit'))) { const r = t.slice(1); return r.startsWith('7') ? 'dim7' + r.slice(1) : 'dim' + r; }   // (0.8.0) C39: "omit3" no es dim
     if (t.startsWith('mmaj7')) return 'm(maj7)' + t.slice(5);
     if (t.startsWith('-')) return 'm' + t.slice(1);
     if (t.startsWith('Δ')) { const r = t.slice(1); return r.startsWith('7') ? 'maj7' + r.slice(1) : (/^\d/.test(r) ? 'maj' + r : 'maj7' + r); }
     if (t.startsWith('+')) return 'aug' + t.slice(1);
     if (t === 'M') return '';
     if (/^M\d/.test(t)) return 'maj' + t.slice(1);
+    if (/^maj/i.test(t) && !t.startsWith('maj')) return 'maj' + t.slice(3);   // (0.8.0) C39: "Maj7", "MAJ7"
     return t;
   }
   function grado(nombre, tono) {
@@ -2327,13 +2332,21 @@ const Nube = (() => {
   const conectado = () => !!sesion();
   function salir() { localStorage.removeItem(LS); }
 
+  // (0.8.0) C29: con 429 se respeta Retry-After (hasta 30 s); un POST/PUT/PATCH/DELETE con 5xx no se repite a ciegas (pudo
+  // haberse hecho): se devuelve y decide quien llamó
   async function g(ruta, opc = {}) {
+    const escribe = /^(POST|PUT|PATCH|DELETE)$/i.test(opc.method || 'GET');
+    let r = null;
     for (let intento = 0; intento < 4; intento++) {
-      const r = await fetch(ruta.startsWith('http') ? ruta : GRAPH + ruta, { ...opc, headers: { Authorization: 'Bearer ' + await token(), ...(opc.headers || {}) } });
+      r = await fetch(ruta.startsWith('http') ? ruta : GRAPH + ruta, { ...opc, headers: { Authorization: 'Bearer ' + await token(), ...(opc.headers || {}) } });
       if (r.status === 401 && intento === 0) { const s = sesion(); if (s) { s.vence = 0; guardar(s); } continue; }
-      if (r.status === 429 || r.status >= 500) { await new Promise(res => setTimeout(res, 800 * (intento + 1))); continue; }
+      if (r.status === 429 || (r.status >= 500 && !escribe)) {
+        const ra = +r.headers.get('Retry-After') || 0;
+        await new Promise(res => setTimeout(res, ra ? Math.min(30000, ra * 1000) : 800 * (intento + 1))); continue;
+      }
       return r;
     }
+    if (r) return r;
     throw new Error('OneDrive no responde');
   }
   async function gj(ruta) { const r = await g(ruta); if (!r.ok) { const e = new Error(ruta + ' → ' + r.status); e.status = r.status; throw e; } return r.json(); }
@@ -2352,14 +2365,18 @@ const Nube = (() => {
     const raiz = await hijos('/me/drive/root/children?$select=id,name,folder,remoteItem,parentReference');
     const carpeta = it => it.remoteItem ? { drive: it.remoteItem.parentReference.driveId, id: it.remoteItem.id }
                                          : { drive: it.parentReference.driveId, id: it.id };
-    const priv = raiz.find(x => !x.remoteItem && x.name.toLowerCase() === 'youstem privado');
+    const priv = raiz.find(x => !x.remoteItem && x.folder && x.name.toLowerCase() === 'youstem privado');   // (0.8.0) C32: tiene que ser carpeta
     let marca = '';
     if (priv) {
       try { const r = await g(rutaItem(carpeta(priv), 'carpeta.txt') + '/content'); if (r.ok) marca = (await r.text()).split('\n')[0].trim(); } catch {}
     }
     const propias = raiz.filter(x => !x.remoteItem && x.folder && /^youstem(-.+)?$/i.test(x.name));
-    let mia = propias.find(x => marca && x.name.toLowerCase() === marca.toLowerCase())
-           || propias.find(x => /^youstem-/i.test(x.name)) || propias.find(x => /^youstem$/i.test(x.name));
+    let mia = propias.find(x => marca && x.name.toLowerCase() === marca.toLowerCase());
+    if (!mia) {   // (0.8.0) C32: sin marca y con varias YouSTEM-*: la más nueva por nombre no sirve; se elige la que tenga catálogo y se anota
+      const cand = propias.filter(x => /^youstem-/i.test(x.name));
+      if (cand.length > 1) anotar('bibliotecas: hay varias carpetas YouSTEM-* propias sin marca en «YouSTEM Privado/carpeta.txt»:', cand.map(x => x.name).join(', '), '· tomo', cand[0].name);
+      mia = cand[0] || propias.find(x => /^youstem$/i.test(x.name));
+    }
     const libs = [];
     if (mia || priv) {
       const raices = [];
@@ -2386,8 +2403,13 @@ const Nube = (() => {
 
   // ── catálogo: catalogo/<id>.json (con caché por eTag) + miniaturas ──
   const CAT = 'ys.cat.';
-  function leerCache(clave) { try { return JSON.parse(localStorage.getItem(CAT + clave) || 'null'); } catch { return null; } }
-  function grabarCache(clave, v) { try { localStorage.setItem(CAT + clave, JSON.stringify(v)); } catch {} }
+  // (0.8.0) C30: el catálogo entero (todas las fichas) iba a localStorage (~5 MB en iOS): con muchas canciones fallaba en
+  // silencio y cada carga volvía a bajar todo. Ahora va a IndexedDB (sin ese tope); lo viejo de localStorage se lee una vez y se saca.
+  async function leerCache(clave) {
+    try { const v = await IDB.get('cat:' + clave); if (v) return v; } catch {}
+    try { const v = JSON.parse(localStorage.getItem(CAT + clave) || 'null'); if (v) { localStorage.removeItem(CAT + clave); try { await IDB.set('cat:' + clave, v); } catch {} } return v; } catch { return null; }
+  }
+  async function grabarCache(clave, v) { try { await IDB.set('cat:' + clave, v); } catch (e) { anotar('catálogo: no pude guardar la caché', e && e.message); } }
 
   async function enParalelo(lista, n, fn) {
     let i = 0; const res = new Array(lista.length);
@@ -2396,7 +2418,7 @@ const Nube = (() => {
   }
 
   async function catalogo(lib, progreso) {
-    const viejo = leerCache(lib.clave) || { entradas: {} };
+    const viejo = (await leerCache(lib.clave)) || { entradas: {} };
     const nuevo = { entradas: {}, fecha: Date.now() };
     const miniaturas = {}, cambiadas = [];
     for (const r of lib.raices) {
@@ -2432,10 +2454,10 @@ const Nube = (() => {
           if (m['@microsoft.graph.downloadUrl']) miniaturas[m.name.replace(/\.jpg$/i, '')] = { url: m['@microsoft.graph.downloadUrl'], eTag: m.eTag || '' };   // (0.5.8) con eTag: se baja solo si cambió
       } catch {}
     }
-    grabarCache(lib.clave, nuevo);
+    await grabarCache(lib.clave, nuevo);
     return { canciones: aCanciones(nuevo), miniaturas, cambiadas };
   }
-  function catalogoGuardado(lib) { const c = leerCache(lib.clave); return c ? aCanciones(c) : null; }
+  async function catalogoGuardado(lib) { const c = await leerCache(lib.clave); return c ? aCanciones(c) : null; }
   function aCanciones(c) {
     const vistas = {};
     for (const k in c.entradas) {
@@ -2443,7 +2465,11 @@ const Nube = (() => {
       // SOLO la Máxima (decisión de fabao): el nivel máximo, o el editado (que sale de la máxima)
       if (datos.nivel !== 'maximo' && datos.nivel !== 'editado') continue;
       const previa = vistas[datos.id];
-      if (previa && (previa.editado || 0) >= (datos.editado || 0)) continue;
+      if (previa) {   // (0.8.0) C31: la misma canción en las dos carpetas: gana la más nueva; a igual fecha, la que está donde la ficha pide
+        const ep = previa.editado || 0, ed = datos.editado || 0;
+        if (ep > ed) continue;
+        if (ep === ed) { const quiere = typeof datos.privadaPedida === 'boolean' ? datos.privadaPedida : null; const bien = quiere === null ? privada : quiere === privada; const bienPrev = previa.privadaCarpeta === previa.privada; if (bienPrev || !bien) continue; }
+      }
       vistas[datos.id] = { ...datos, raiz, privada: typeof datos.privadaPedida === 'boolean' ? datos.privadaPedida : privada, privadaCarpeta: privada };   // (0.3.13) lo pedido manda (protocolo 1.4.5)
     }
     return Object.values(vistas);
@@ -2468,7 +2494,7 @@ const Nube = (() => {
     const cache = await caches.open(CACHE);
     const hay = await cache.match(clave);
     if (hay && (!item || hay.headers.get('x-etag') === item.eTag)) return hay.arrayBuffer();
-    if (!item) throw new Error('sin conexión y sin copia en el iPhone');
+    if (!item) throw new Error('falta ' + clave.split('/').pop() + ' en la copia guardada');   // (0.8.0) C12
     const url = item['@microsoft.graph.downloadUrl'];
     const r = url ? await fetch(url) : await g(`/drives/${item.parentReference.driveId}/items/${item.id}/content`);
     if (!r.ok) throw new Error('no pude bajar ' + item.name + ' (' + r.status + ')');
@@ -2533,11 +2559,16 @@ const Nube = (() => {
     datos.privadaPedida = !!hasta.privada; datos.privadaCambio = Date.now(); delete datos.privada;
     await escribir(desde, ruta, JSON.stringify(datos));
     const dir = await itemEn(desde, 'canciones/' + id);
-    if (dir) await moverItem(dir, await carpetaEn(hasta, 'canciones'));
+    let juntar = false;
+    if (dir && !(await moverItem(dir, await carpetaEn(hasta, 'canciones')))) juntar = true;   // (0.8.0) B14: ya había una carpeta: quedan las dos (la Mac las junta)
     const mini = await itemEn(desde, 'miniaturas/' + id + '.jpg');
-    if (mini) await moverItem(mini, await carpetaEn(hasta, 'miniaturas'));
+    if (mini) { if (!(await moverItem(mini, await carpetaEn(hasta, 'miniaturas')))) await borrarEn(desde, 'miniaturas/' + id + '.jpg'); }
     const ficha = await itemEn(desde, ruta);
-    if (ficha) await moverItem(ficha, await carpetaEn(hasta, 'catalogo'));
+    if (ficha && !(await moverItem(ficha, await carpetaEn(hasta, 'catalogo')))) {   // la ficha ya estaba en el destino: gana la más nueva
+      try { const otra = await leerJson(hasta, ruta); if ((otra.editado || 0) <= (datos.editado || 0)) await escribir(hasta, ruta, JSON.stringify(datos)); } catch {}
+      await borrarEn(desde, ruta);
+    }
+    return { juntar };
   }
   function pedirEscritura() { try { localStorage.setItem('ys.escribir', '1'); } catch {} return entrar(); }
   // (0.5.0) pedidos a tu Mac: los archivos de una carpeta (si no existe, ninguno) y borrar un archivo
@@ -2566,17 +2597,21 @@ const Nube = (() => {
     if (!s.ok) throw err(s, 'sesión');
     const { uploadUrl } = await s.json();
     const PARTE = 320 * 1024 * 16;   // 5 MiB
+    // (0.8.0) B10: 429 (OneDrive ocupado) y red cortada se reintentan; si una parte ya llegó (416) se pregunta a la sesión
+    // por dónde seguir (nextExpectedRanges) en vez de tirar toda la subida
+    const siguiente = async () => { try { const q = await fetch(uploadUrl); if (!q.ok) return null; const j = await q.json(); const nr = (j.nextExpectedRanges || [])[0]; return nr ? parseInt(nr, 10) : tam; } catch { return null; } };
+    let fallos = 0;
     for (let o = 0; o < tam;) {
       const fin = Math.min(tam, o + PARTE);
       let r = null;
-      for (let intento = 0; intento < 4; intento++) {
-        try { r = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Range': `bytes ${o}-${fin - 1}/${tam}` }, body: datos.slice(o, fin) }); } catch (e) { r = null; }
-        if (r && (r.ok || r.status < 500)) break;
-        await new Promise(res => setTimeout(res, 1000 * (intento + 1)));
-      }
-      if (!r || !r.ok) { try { await fetch(uploadUrl, { method: 'DELETE' }); } catch {} throw err(r || { status: 0 }, 'parte'); }
-      o = fin; alAvanzar && alAvanzar(o, tam);
-      if (o >= tam) return r.json();
+      try { r = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Range': `bytes ${o}-${fin - 1}/${tam}` }, body: datos.slice(o, fin) }); } catch (e) { r = null; }
+      if (r && r.ok) { fallos = 0; o = fin; alAvanzar && alAvanzar(o, tam); if (o >= tam) return r.json(); continue; }
+      const st = r ? r.status : 0;
+      if (st === 401 || st === 403 || st === 404 || st === 507 || st === 413) { try { await fetch(uploadUrl, { method: 'DELETE' }); } catch {} throw err(r, 'parte'); }
+      if (++fallos > 8) { try { await fetch(uploadUrl, { method: 'DELETE' }); } catch {} throw err(r || { status: 0 }, 'parte: ' + fallos + ' fallos seguidos'); }
+      const ra = r && +r.headers.get('Retry-After');
+      await new Promise(res => setTimeout(res, ra ? Math.min(30000, ra * 1000) : 1500 * fallos));
+      if (st === 416 || st === 0 || st >= 500) { const n = await siguiente(); if (n != null) { if (n >= tam) { const q = await fetch(uploadUrl); return q.ok ? q.json() : {}; } o = Math.max(0, Math.min(fin, n)); } }
     }
   }
   // una carpeta en la raíz de TU OneDrive (si ya existe, esa)
@@ -2597,11 +2632,15 @@ const Nube = (() => {
       body: JSON.stringify({ parentReference: { driveId: destino.drive, id: destino.id }, name: nombre || it.name }) });
     if (r.status !== 202 && !r.ok) { const e = new Error('no pude copiar ' + it.name + ' (' + r.status + ')'); e.status = r.status; e.sinPermiso = r.status === 401 || r.status === 403; e.lleno = r.status === 507; throw e; }
     const mon = r.headers.get('Location');
-    if (!mon) return true;
+    const existe = async () => { const q = await g(`/drives/${destino.drive}/items/${destino.id}:/${enc(nombre || it.name)}:`); return q.ok; };
+    if (!mon) {   // (0.8.0) C33: sin monitor, se espera a verlo en el destino
+      for (let k = 0; k < 60; k++) { await new Promise(res => setTimeout(res, 1000)); if (await existe()) return true; }
+      throw new Error('la copia de ' + it.name + ' no apareció en el destino');
+    }
     for (let k = 0; k < 240; k++) {
       await new Promise(res => setTimeout(res, k < 5 ? 400 : 1000));
       let j = null; try { const m = await fetch(mon); j = await m.json(); } catch { continue; }
-      if (j.status === 'completed' || j.resourceId || (j.id && !j.status)) return true;
+      if (j.status === 'completed' || (j.resourceId && j.status !== 'inProgress' && j.status !== 'notStarted') || (j.id && !j.status)) return true;
       if (j.status === 'failed') { const e = new Error('OneDrive no pudo copiar ' + it.name + (j.error && j.error.message ? ': ' + j.error.message : '')); e.lleno = /quota|space|storage/i.test(JSON.stringify(j)); throw e; }
     }
     throw new Error('la copia de ' + it.name + ' tarda demasiado');
@@ -2639,15 +2678,17 @@ const Zip = {
     let p = 0;
     for (let k = 0; k < n && p + 46 <= cd.byteLength; k++) {
       if (cd.getUint32(p, true) !== 0x02014b50) break;
-      const metodo = cd.getUint16(p + 10, true);
+      const flags = cd.getUint16(p + 8, true), metodo = cd.getUint16(p + 10, true);
       let comp = cd.getUint32(p + 20, true), real = cd.getUint32(p + 24, true), off = cd.getUint32(p + 42, true);
       const ln = cd.getUint16(p + 28, true), le = cd.getUint16(p + 30, true), lc = cd.getUint16(p + 32, true);
-      const nombre = dec.decode(new Uint8Array(cd.buffer, cd.byteOffset + p + 46, ln));
+      const nb = new Uint8Array(cd.buffer, cd.byteOffset + p + 46, ln);
+      let nombre;   // (0.8.0) C38: sin el bit 11 (UTF-8) el nombre viene en la página de códigos del que lo armó: Latin-1 como aproximación
+      if (flags & 0x800) nombre = dec.decode(nb); else { try { nombre = new TextDecoder('utf-8', { fatal: true }).decode(nb); } catch { nombre = new TextDecoder('windows-1252').decode(nb); } }
       // extra zip64 con tamaños/offset grandes
       let q = p + 46 + ln; const qf = q + le;
       while (q + 4 <= qf) {
         const id = cd.getUint16(q, true), sz = cd.getUint16(q + 2, true);
-        if (id === 1) { let r = q + 4; if (real === 0xffffffff) { real = Number(cd.getBigUint64(r, true)); r += 8; } if (comp === 0xffffffff) { comp = Number(cd.getBigUint64(r, true)); r += 8; } if (off === 0xffffffff) off = Number(cd.getBigUint64(r, true)); }
+        if (id === 1) { let r = q + 4; const fin64 = Math.min(qf, q + 4 + sz); if (real === 0xffffffff && r + 8 <= fin64) { real = Number(cd.getBigUint64(r, true)); r += 8; } if (comp === 0xffffffff && r + 8 <= fin64) { comp = Number(cd.getBigUint64(r, true)); r += 8; } if (off === 0xffffffff && r + 8 <= fin64) off = Number(cd.getBigUint64(r, true)); }
         q += 4 + sz;
       }
       entradas[nombre] = { nombre, metodo, comp, real, off };
@@ -2666,12 +2707,14 @@ const Zip = {
   },
   // armar un zip sin comprimir (los .youstemcorr son chicos)
   armar(archivos) {
+    if (archivos.length > 65000) throw new Error('demasiados archivos para un zip simple');   // (0.8.0) C38
     const T = Zip._crcT || (Zip._crcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })());
     const crc = d => { let c = 0xffffffff; for (let i = 0; i < d.length; i++) c = T[(c ^ d[i]) & 255] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
     const enc = new TextEncoder(), partes = [], centro = []; let off = 0;
     const ahora = new Date(), dt = ((ahora.getHours() << 11) | (ahora.getMinutes() << 5) | (ahora.getSeconds() >> 1)), dd = (((ahora.getFullYear() - 1980) << 9) | ((ahora.getMonth() + 1) << 5) | ahora.getDate());
     for (const a of archivos) {
-      const nom = enc.encode(a.nombre), d = typeof a.datos === 'string' ? enc.encode(a.datos) : a.datos, c = crc(d);
+      const nom = enc.encode(a.nombre), d = typeof a.datos === 'string' ? enc.encode(a.datos) : a.datos instanceof ArrayBuffer ? new Uint8Array(a.datos) : a.datos, c = crc(d);
+      if (off + d.length > 0xfffffff0) throw new Error('el zip supera los 4 GB');
       const h = new DataView(new ArrayBuffer(30));
       h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(8, 0, true);
       h.setUint16(10, dt, true); h.setUint16(12, dd, true); h.setUint32(14, c, true); h.setUint32(18, d.length, true); h.setUint32(22, d.length, true);
@@ -2730,7 +2773,7 @@ const Local = (() => {
     const manTxt = await Zip.texto(z, 'cancion.json');
     if (!manTxt) throw new Error('no es un .youstem (falta cancion.json).');
     const man = JSON.parse(manTxt), c = man.cancion || {};
-    const id = c.id || (Object.keys(z.entradas).find(n => n.includes('/')) || '').split('/')[0];
+    const id = c.id || (Object.keys(z.entradas).find(n => n.includes('/') && !/^(__MACOSX|\.)/.test(n)) || '').split('/')[0];   // (0.8.0) C37
     if (!id) throw new Error('no dice de qué canción es.');
     return { z, c, id, titulo: c.titulo || id, nombre: archivo.name };
   }
@@ -2751,10 +2794,16 @@ const Local = (() => {
     const audio = enDir.filter(r => r.endsWith('/stems.json') || (/\.(mp3|flac|wav|m4a)$/i.test(r) && (/\.mp3$/i.test(r) || !bases.has(r.replace(/\.[^.]+$/, '')))));
     const datos = rels.filter(r => !r.includes('/') && (/\.(json|txt)$/i.test(r) || r === 'miniatura.jpg') && !/\(.*\)\.json$/.test(r));
     let hecho = 0; const total = [...audio, ...datos].reduce((s, r) => s + (z.entradas[pre + r].comp || 0), 0) || 1;
-    for (const r of [...datos, ...audio]) {
-      const buf = await Zip.leer(z, z.entradas[pre + r]);
-      await poner(id, r, buf);
-      hecho += z.entradas[pre + r].comp || 0; avance && avance(hecho / total);
+    const yaEstaba = !!leerCat()[id];
+    try {
+      for (const r of [...datos, ...audio]) {
+        const buf = await Zip.leer(z, z.entradas[pre + r]);
+        await poner(id, r, buf);
+        hecho += z.entradas[pre + r].comp || 0; avance && avance(hecho / total);
+      }
+    } catch (e) {   // (0.8.0) C36: a mitad de camino no queda nada colgado ocupando lugar
+      if (!yaEstaba) { try { await borrar('local', id); } catch {} }
+      throw e && e.name === 'QuotaExceededError' ? new Error('no hay más lugar en ' + EQUIPO + ' para guardarla') : e;
     }
     // la mezcla viaja en cancion.json (el índice de la Mac): se guarda como ajustes.json si no vino aparte
     if (!datos.includes('ajustes.json') && c.ajustes)
@@ -2900,7 +2949,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.7.3';
+const VERSION = '0.8.0';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -3010,7 +3059,10 @@ const Audio = {
   // cierra el motor (para armar uno nuevo)
   async cerrar() {
     const ctx = this.ctx; this.ctx = null; this.nodo = null; this.sonando = false; this.stretch = null; this.stretchP = null; this.externo = false; this.retraso = 0;
-    if (ctx) { ctx.onstatechange = null; try { await ctx.close(); } catch {} }
+    this.interrumpido = false; this.usado = false; this.porFondo = false;   // (0.8.0) C8
+    this.fondoPausa();
+    // (0.8.0) C9: en iOS close() a veces no vuelve (motor "interrupted"): no se espera más de 1,5 s
+    if (ctx) { ctx.onstatechange = null; try { await Promise.race([ctx.close(), new Promise(r => setTimeout(r, 1500))]); } catch {} }
   },
   enviar(m, tr) { this.nodo && this.nodo.port.postMessage(m, tr || []); },
   // espera a que el motor haya procesado todo lo mandado antes (p. ej. que soltó la canción anterior)
@@ -3041,16 +3093,18 @@ const Audio = {
     this.stretchP = (async () => {
       try {
         const st = await SignalsmithStretch(ctx);
+        if (ctx !== this.ctx) return null;   // (0.8.0) B7: el motor cambió mientras cargaba: este no sirve (y no es un fallo)
         if (ES_ANDROID) await st.configure({ preset: 'cheaper', splitComputation: true });
         else await st.configure({ splitComputation: true });
+        if (ctx !== this.ctx) return null;
         st.connect(this.bus);
         this.latStretch = (await st.latency()) || 0;
         if (ctx !== this.ctx) return null;
         this.stretch = st;
         anotar('tono: motor Signalsmith listo', Math.round(this.latStretch * 1000) + ' ms', ES_ANDROID ? '(liviano)' : '');
         return st;
-      } catch (e) { anotar('tono: Signalsmith no cargó, uso el estirado de siempre', e); this.sinStretch = true; return null; }
-      finally { this.stretchP = null; }
+      } catch (e) { if (ctx !== this.ctx) return null; anotar('tono: Signalsmith no cargó, uso el estirado de siempre', e); this.sinStretch = true; return null; }
+      finally { if (ctx === this.ctx || this.ctx === null) this.stretchP = null; }
     })();
     return this.stretchP;
   },
@@ -3168,7 +3222,7 @@ $('#btnSinCuenta').onclick = () => { Pref.set('sinCuenta', true); pantalla('pBib
 
 // ══════════════════════ Biblioteca ══════════════════════
 const Bib = {
-  libs: [], vistas: [], sel: new Set(), porLib: {}, miniaturas: {}, guardadas: new Set(),
+  libs: [], vistas: [], sel: new Set(), porLib: {}, miniaturas: {}, guardadas: new Set(), sinMini: new Set(),
   // las de OneDrive (si hay cuenta) + "En este dispositivo" (si no hay cuenta o si ya importaste algo)
   conLocal(libs) { return (!Nube.conectado() || Local.lista().length) ? [...libs, Local.LIB] : libs; },
   async iniciar() {
@@ -3263,10 +3317,10 @@ const Bib = {
   },
   // lee el catálogo de TODAS las bibliotecas (lo guardado primero, después lo de la nube): cambiar de pestaña y buscar es instantáneo
   async cargarTodo(soloCache) {
-    this.guardadas = await Nube.idsGuardados();
+    for (const k of await Nube.idsGuardados()) this.guardadas.add(k);   // (0.8.0) C7: unión (una apertura en curso ya pudo sumar la suya)
     for (const l of this.libs) {
       if (l.local) { this.porLib[l.clave] = Local.lista(); for (const c of this.porLib[l.clave]) if (c.miniatura && !this.miniaturas['local|' + c.id]) Local.miniatura(c.id).then(u => { if (u) { this.miniaturas['local|' + c.id] = u; this.dibujar(); } }); continue; }
-      const cache = Nube.catalogoGuardado(l); if (cache) { this.porLib[l.clave] = cache; this.minisDeCache(l, cache); }
+      const cache = await Nube.catalogoGuardado(l); if (cache) { this.porLib[l.clave] = cache; this.minisDeCache(l, cache); }
     }
     this.dibujar();
     if (soloCache) return;
@@ -3342,7 +3396,9 @@ const Bib = {
       const f = el('button', 'tema');
       const mini = el('div', 'mini');
       const url = this.miniaturas[(lib.local ? 'local' : lib.clave) + '|' + c.id];
-      const deCache = () => { if (lib.local || !this.guardadas.has(lib.clave + '|' + c.id)) return; Nube.enCache(Nube.claveCache(lib.clave, c.id, 'miniatura.jpg')).then(b => { if (b) { const u = URL.createObjectURL(new Blob([b], { type: 'image/jpeg' })); this.miniaturas[lib.clave + '|' + c.id] = u; mini.innerHTML = ''; const im = new Image(); im.src = u; mini.appendChild(im); } }); };
+      // (0.8.0) C13: se busca en la caché una sola vez por canción (no en cada redibujo) y se revoca la URL anterior
+      const kk = lib.clave + '|' + c.id;
+      const deCache = () => { if (lib.local || !this.guardadas.has(kk) || this.sinMini.has(kk)) return; this.sinMini.add(kk); Nube.enCache(Nube.claveCache(lib.clave, c.id, 'miniatura.jpg')).then(b => { if (b) { const v = this.miniaturas[kk]; if (v && v.startsWith('blob:')) URL.revokeObjectURL(v); const u = URL.createObjectURL(new Blob([b], { type: 'image/jpeg' })); this.miniaturas[kk] = u; mini.innerHTML = ''; const im = new Image(); im.src = u; mini.appendChild(im); } }); };
       if (url) { const im = new Image(); im.loading = 'lazy'; im.src = url; im.onerror = () => { im.remove(); deCache(); }; mini.appendChild(im); } else deCache();
       f.appendChild(mini);
       const tx = el('div', 'tx');
@@ -3464,8 +3520,12 @@ let abriendo = 0;
 
 async function abrirCancion(c, lib, op = {}) {
   const turno = ++abriendo;
+  // (0.8.0) A3: `vivo` = esta apertura sigue siendo la última (si tocaste otra canción, esta se abandona en silencio)
+  const vivo = () => turno === abriendo;
+  let liberada = false;
+  abrirCancion.enCurso = turno;   // (0.8.0) B1: mientras se abre, un reinicio de audio espera
   try {
-    await Audio.iniciar();
+    if (!Audio.ctx) await Audio.iniciar();   // (0.8.0) C10: el motor se arma UNA vez acá (dentro del toque); abajo se renueva solo si ya se usó
     Rep.parar();
     cargando('Abriendo ' + (c.titulo || c.id) + '…');
     const clave = rel => Nube.claveCache(lib.clave, c.id, rel);
@@ -3482,12 +3542,13 @@ async function abrirCancion(c, lib, op = {}) {
     const deLaRed = async () => {
       try {
         const a = await Nube.archivosDe(c);
-        Nube.guardarManifiesto(clave('manifiesto'), { raiz: a.raiz.map(x => ({ name: x.name })), pistas: a.pistas.map(x => ({ name: x.name })), dir: a.dirPistas });
+        Nube.guardarManifiesto(clave('manifiesto'), { raiz: a.raiz.map(x => ({ name: x.name, size: x.size })), pistas: a.pistas.map(x => ({ name: x.name, size: x.size })), dir: a.dirPistas });   // (0.8.0) C11: con tamaños
         return { raiz: a.raiz, pistas: a.pistas, dir: a.dirPistas };
       } catch (e) {
         anotar('lista de archivos', e);
         if (e.sinSesion) throw e;
         const m = await deManifiesto();
+        if (!m && e.status === 404) throw new Error('No encuentro los archivos de esta canción en OneDrive. Si la acabás de pasar de privada a banda (o al revés), tocá «Recargar la biblioteca» o estirá la lista y probá de nuevo.');   // (0.8.0) B14
         if (!m) throw new Error('Sin conexión, y esta canción todavía no está guardada en ' + EQUIPO + '.');
         m.offline = true; return m;
       }
@@ -3523,10 +3584,11 @@ async function abrirCancion(c, lib, op = {}) {
       man = await deLaRed();
       if (turno !== abriendo) return;
     }
+    if (!vivo()) return;
     const item = (lista, n) => man.offline ? null : lista.find(x => x.name === n);
     const notasVoz = Melodia.leer(vmJ);
     const edPend = edicionGuardada(lib, c.id);   // tus correcciones guardadas en el dispositivo (de un colega, o esperando subir)
-    if (edPend && anJ) anJ = mezclarEdiciones(anJ, edPend.ed);
+    if (edPend && anJ) anJ = mezclarPendiente(anJ, edPend);   // (0.8.0) A1
     if (!pistas.length) anotar('abrir', c.id, 'SIN PISTAS · nivel', c.nivel, '· carpeta', (c.raiz && c.raiz.privada) ? 'privada' : 'banda', '· archivos:', man.raiz.map(x => x.name).join(','), '·', man.dir + ':', man.pistas.map(x => x.name).join(',') || '(vacía)', man.offline ? '· (de lo guardado)' : '');
     if (!pistas.length) throw new Error(lib.local ? 'Faltan las pistas de esta canción: importala de nuevo.' : 'No encontré las pistas Máxima de esta canción en OneDrive.');
 
@@ -3538,10 +3600,15 @@ async function abrirCancion(c, lib, op = {}) {
     // (lo mismo que Menú › Reiniciar el audio), armado justo antes de cargar las pistas: nada de la canción anterior
     // ni de una salida que se trabó queda colgado. (Las pistas pasan al motor a medida que se decodifican, por eso el
     // motor nuevo va antes de la carga y no después.)
-    Rep.liberar();
-    await Audio.cerrar();
-    await new Promise(r => setTimeout(r, 120));
-    await Audio.iniciar();
+    if (!vivo()) return;
+    Rep.liberar(); liberada = true;
+    if (Audio.usado) {   // (0.8.0) C10: si el motor es nuevo y sin pistas, se usa ese (no se tira para armar otro igual)
+      await Audio.cerrar();
+      await new Promise(r => setTimeout(r, 120));
+      if (!vivo()) return;
+      await Audio.iniciar();
+    }
+    if (!vivo()) return;
     const cargadas = [];
     for (let i = 0; i < pistas.length; i++) {
       const p = pistas[i];
@@ -3550,9 +3617,11 @@ async function abrirCancion(c, lib, op = {}) {
       const buf = await Nube.bajar(item(man.pistas, p.f.name), clave(man.dir + '/' + p.f.name), (n) => cargando(`Bajando ${p.nombre}…`, Math.min(1, (base + n) / total)));
       hecho += p.f.size || buf.byteLength;
       cargando(`Preparando ${p.nombre}…`, Math.min(1, hecho / total));
+      if (!vivo()) return;
       const ab = await Audio.decodificar(buf);
+      if (!vivo()) return;
       const n = ab.length, L = new Int16Array(n), R = new Int16Array(n);
-      const k = Math.max(1, +compensacion[p.id] || 1);
+      const k = Math.max(0.05, +compensacion[p.id] || 1);   // (0.8.0) C14: también atenuaciones
       const a0 = ab.getChannelData(0), a1 = ab.numberOfChannels > 1 ? ab.getChannelData(1) : a0;
       for (let j = 0; j < n; j++) {
         let x = a0[j] * k * 32767; L[j] = x > 32767 ? 32767 : x < -32768 ? -32768 : x;
@@ -3560,7 +3629,7 @@ async function abrirCancion(c, lib, op = {}) {
       }
       // (0.3.11) la batería (y el click y la cuenta) no cambian de tono: solo los instrumentos y la voz
       const fija = /bater|drum|percus/i.test(p.id + ' ' + (p.nombre || ''));
-      Audio.enviar({ t: 'pista', i, L, R, len: n, fija }, [L.buffer, R.buffer]);
+      Audio.enviar({ t: 'pista', i, L, R, len: n, fija }, [L.buffer, R.buffer]); Audio.usado = true;
       let mel = false;
       if (p.id === 'voz' && notasVoz) {   // voz → MIDI: la melodía (flauta) al lado de la voz, al mismo nivel que el canto
         try {
@@ -3577,7 +3646,7 @@ async function abrirCancion(c, lib, op = {}) {
       await new Promise(r => setTimeout(r, 30));   // un respiro entre pista y pista (deja limpiar la memoria del decodificado)
     }
     anotar('abierta', c.id, pistas.length + ' pistas', fmtT(Math.max(...cargadas.map(x => x.largo), 0)), Math.round(memoria / 1048576) + ' MB de audio en memoria', Audio.sr + ' Hz');
-    if (!man.offline) Nube.guardarManifiesto(clave('manifiesto'), { raiz: man.raiz.map(x => ({ name: x.name })), pistas: man.pistas.map(x => ({ name: x.name })), dir: man.dir });
+    if (!man.offline) Nube.guardarManifiesto(clave('manifiesto'), { raiz: man.raiz.map(x => ({ name: x.name, size: x.size })), pistas: man.pistas.map(x => ({ name: x.name, size: x.size })), dir: man.dir });
     Bib.guardadas.add(lib.clave + '|' + c.id);
     if (turno !== abriendo) return;
     cargando(null);
@@ -3588,10 +3657,13 @@ async function abrirCancion(c, lib, op = {}) {
     if (man.deCache) setTimeout(() => ponerAlDia(c, lib, turno), 400);
   } catch (e) {
     anotar('abrir', c.id, e);
+    if (!vivo()) return;   // (0.8.0) B5: una apertura abandonada no tapa a la nueva con su error
     cargando(null);
+    // (0.8.0) B6: si falló después de soltar la canción anterior, no se puede quedar en Reproducción con la UI vieja
+    if (liberada && $('#pRep').classList.contains('activa')) { Rep.parar(); pantalla('pBib'); Bib.dibujar(); }
     if (e.sinSesion) { sesionVencida(); return; }
-    aviso(e.message || String(e), 6000);
-  }
+    aviso(/failed to fetch|load failed|network/i.test(e.message || '') ? 'Se cortó la conexión mientras bajaba la canción. Probá de nuevo.' : (e.message || String(e)), 6000);
+  } finally { if (abrirCancion.enCurso === turno) abrirCancion.enCurso = 0; }
 }
 
 // (0.4.1) después de abrir desde lo guardado: si hay conexión, se fija si en OneDrive cambió algo y lo baja.
@@ -3609,11 +3681,12 @@ async function traerCambios(c, lib) {
   const datos = a.raiz.filter(x => /\.(json|txt)$/i.test(x.name));
   const mp3 = new Set(a.pistas.filter(x => /\.mp3$/i.test(x.name)).map(x => x.name.replace(/\.[^.]+$/, '')));
   const audio = a.pistas.filter(x => x.name === 'stems.json' || (/\.(mp3|m4a|flac|wav)$/i.test(x.name) && (/\.mp3$/i.test(x.name) || !mp3.has(x.name.replace(/\.[^.]+$/, '')))));
-  const cambio = async (x, rel) => { const e = await Nube.etagCache(clave(rel)); return e !== null && e !== x.eTag; };
+  // (0.8.0) B9: un archivo que no está guardado (p. ej. ajustes.json, voz-midi.json o stems.json creados en la Mac después) también es un cambio
+  const cambio = async (x, rel) => { const e = await Nube.etagCache(clave(rel)); return e === null || e !== x.eTag; };
   const datosNuevos = [], audioNuevo = [];
-  for (const x of datos) if (await cambio(x, x.name) || (!(await Nube.hay(clave(x.name))) && /^(analisis|letra)\.json$/.test(x.name))) datosNuevos.push(x);
+  for (const x of datos) if (await cambio(x, x.name)) datosNuevos.push(x);
   for (const x of audio) if (await cambio(x, a.dirPistas + '/' + x.name)) audioNuevo.push(x);
-  await Nube.guardarManifiesto(clave('manifiesto'), { raiz: a.raiz.map(x => ({ name: x.name })), pistas: a.pistas.map(x => ({ name: x.name })), dir: a.dirPistas });
+  await Nube.guardarManifiesto(clave('manifiesto'), { raiz: a.raiz.map(x => ({ name: x.name, size: x.size })), pistas: a.pistas.map(x => ({ name: x.name, size: x.size })), dir: a.dirPistas });
   if (!datosNuevos.length && !audioNuevo.length) { anotar('al día', c.id); return null; }
   anotar('al día', c.id, 'cambió:', [...datosNuevos, ...audioNuevo].map(x => x.name).join(', '));
   try {
@@ -3626,14 +3699,14 @@ async function traerCambios(c, lib) {
 function mostrarCambios(c, lib, turno, { datosNuevos, audioNuevo }) {
   const clave = rel => Nube.claveCache(lib.clave, c.id, rel);
   const t = '«' + (c.titulo || c.id) + '»';
-  const sigue = (turno == null || turno === abriendo) && Rep.cancion && Rep.cancion.id === c.id && Rep.lib && Rep.lib.clave === lib.clave && !Editor.abierto && !Corr.viendo;
+  const sigue = (turno == null || turno === abriendo) && Rep.cancion && Rep.cancion.id === c.id && Rep.lib && Rep.lib.clave === lib.clave && !Editor.abierto && !Pulso.abierto && !Corr.viendo;   // (0.8.0) B3
   if (!sigue && turno == null) return;   // (cola de la biblioteca) ya quedó guardada: se ve al abrirla
   (async () => {
   if (sigue && datosNuevos.some(x => /^(analisis|letra)\.json$/.test(x.name))) {
     const leer = async n => { try { const b = await Nube.enCache(clave(n)); return b ? JSON.parse(new TextDecoder().decode(b)) : null; } catch { return null; } };
     let anJ = await leer('analisis.json'); const leJ = await leer('letra.json');
-    const p = edicionGuardada(lib, c.id); if (p && anJ) anJ = mezclarEdiciones(anJ, p.ed);
-    if (anJ) { Rep.anJson = anJ; Rep.an = Modelo.Analisis.deJson(anJ); Rep.armarClick(); }
+    const p = edicionGuardada(lib, c.id); if (p && anJ) anJ = mezclarPendiente(anJ, p);   // (0.8.0) A1
+    if (anJ) { const teniaPulso = Rep.an.valido; Rep.anJson = anJ; Rep.an = Modelo.Analisis.deJson(anJ); if (Rep.an.valido !== teniaPulso) { Rep.armarFilas(); Rep.dibujarMezcla(); } Rep.armarClick(); }   // (0.8.0) B3: si ahora hay pulso, aparece el canal Click
     if (leJ) Rep.letra = Modelo.letraDeJson(leJ);
     Rep.armarTele(); Rep.medir(); Rep.iViene = -2; Rep.iAc = -2;
     aviso(t + ' se actualizó (acordes/letra).', 3500);
@@ -3699,22 +3772,34 @@ const Rep = {
       if (Audio.ctx && Audio.ctx.state !== 'running') { this.pausa(); aviso('Tocá ▶ para seguir.', 4000); }   // sin un toque, iOS no deja arrancar el audio
     }, 150);
     this.refrescarBotones();
-    requestAnimationFrame(() => { this.medir(); this.cuadro(); });
+    const gen = (this.genCuadro = (this.genCuadro || 0) + 1);   // (0.8.0) B8: un solo bucle de cuadro por canción
+    requestAnimationFrame(() => { this.medir(); this.cuadro(gen); });
     Corr.alAbrir(c, lib).catch(e => anotar('correcciones', e));
   },
 
   // (0.3.9) motor de audio nuevo con la misma canción, en el mismo lugar (lo que hacía cerrar y abrir la app)
   async reiniciarAudio(motivo, sonarSiOSi) {
     if (!this.cancion || this.reiniciando) return;
+    if (abrirCancion.enCurso) { anotar('audio: reinicio pedido mientras se abre una canción, se ignora', motivo); return; }   // (0.8.0) B1
+    // (0.8.0) A4: si el motor nuevo tampoco arranca (iOS sin un toque), no se entra en un bucle de reinicios: se pide un toque
+    if (motivo === 'no arrancaba' && Date.now() - (this.ultimoReinicio || 0) < 15000) { anotar('audio: sigue sin arrancar; espero un toque en ▶'); aviso('El audio no arranca solo: tocá ▶.', 4000); this.refrescarBotones(); return; }
     this.ultimoReinicio = Date.now();
     this.reiniciando = true;
     try {
       const c = this.cancion, lib = this.lib, pos = Audio.ahora(), sonar = Audio.sonando || !!sonarSiOSi;
-      anotar('audio: reinicio', motivo, 'en ' + fmtT(pos));
+      // (0.8.0) B2: si estás corrigiendo (editor / Pulso), lo que tenés a medio hacer se conserva: el reinicio es solo del audio
+      const enEdicion = Editor.abierto || Pulso.abierto, anViejo = this.an, anJsonViejo = this.anJson;
+      anotar('audio: reinicio', motivo, 'en ' + fmtT(pos), enEdicion ? '(con edición abierta: se conserva)' : '');
       this.parar();
       await Audio.cerrar();
       await new Promise(r => setTimeout(r, 250));
       await abrirCancion(c, lib, { pos, sonar });
+      if (enEdicion && anViejo && this.cancion && this.cancion.id === c.id && this.an !== anViejo) {
+        this.an = anViejo; this.anJson = anJsonViejo;
+        this.armarFilas(); this.armarClick(); this.armarTele(); this.medir(); this.iViene = -2; this.iAc = -2; this.pulsoClave = null;
+        if (Editor.abierto) { Editor.an = anViejo; Editor.dibujar(); }
+        if (Pulso.abierto) Pulso.dibujar();
+      }
       if (motivo !== 'a pedido') aviso('Audio reiniciado (' + motivo + ').', 2500);
     } finally { this.reiniciando = false; }
   },
@@ -3999,7 +4084,7 @@ const Rep = {
     $('#btnLoop').classList.toggle('on', !!ok);
     $('#btnLoop').classList.toggle('apagado', !(a.cicloFin > a.cicloIni + 0.2));
   },
-  ir(seg) { this.avisoC = null; Audio.pos = Math.max(0, Math.min(this.dur, seg)); Audio.enviar({ t: 'ir', pos: Audio.pos * Audio.sr }); this.saltoTele = true; },
+  ir(seg) { this.avisoC = null; Audio.pos = Math.max(0, Math.min(this.dur, seg)); Audio.enviar({ t: 'ir', pos: Audio.pos * Audio.sr }); this.saltoTele = true; Medios.estado(); },
   async tocar() {
     Audio.fondoTocar();   // (0.6.3) dentro del toque (el navegador lo pide)
     await Audio.iniciar();
@@ -4057,8 +4142,8 @@ const Rep = {
     this.reanudar = false;
     pantallaPrendida(true); this.refrescarBotones(); Medios.estado();
   },
-  pausa() { this.avisoC = null; Audio.enviar({ t: 'pausa' }); Audio.sonando = false; Audio.fondoPausa(); pantallaPrendida(false); this.refrescarBotones(); Medios.estado(); },
-  parar() { if (Audio.nodo) Audio.enviar({ t: 'pausa' }); Audio.sonando = false; Audio.fondoPausa(); pantallaPrendida(false); },
+  pausa() { this.avisoC = null; const oido = Audio.sonando ? Audio.ahora() : null; Audio.enviar({ t: 'pausa' }); Audio.sonando = false; if (oido != null) { Audio.pos = oido; Audio.enviar({ t: 'ir', pos: oido * Audio.sr }); } /* (0.8.0) B11: se queda en lo que se OYÓ */ Audio.fondoPausa(); pantallaPrendida(false); this.refrescarBotones(); Medios.estado(); },
+  parar() { if (Audio.nodo) Audio.enviar({ t: 'pausa' }); Audio.sonando = false; Audio.fondoPausa(); pantallaPrendida(false); Medios.estado(); },
   alInicio() { this.reanudar = false; this.ir(this.aj.marcaInicio >= 0 ? this.aj.marcaInicio : 0); if (Audio.sonando) this.tocar(); },
   refrescarBotones() {
     $('#btnPlay').classList.toggle('sonando', Audio.sonando);
@@ -4208,15 +4293,15 @@ const Rep = {
   },
 
   // un cuadro de animación: cabezal, karaoke, acorde que suena, compás y pulso
-  cuadro() {
-    if (!this.cancion) return;
-    requestAnimationFrame(() => this.cuadro());
+  cuadro(gen) {
+    if (!this.cancion || gen !== this.genCuadro) return;
+    requestAnimationFrame(() => this.cuadro(gen));
     if (!$('#pRep').classList.contains('activa')) return;
     // (0.5.14) Android: la pantalla se actualiza 30 veces por segundo (sobra para la letra y los acordes) y deja más aire al audio
     if (ES_ANDROID && (this.saltoCuadro = !this.saltoCuadro) && !this.saltoTele) return;
     const t = Audio.ahora(), an = this.an;
     this.pintarAvisoCuenta();
-    $('#tiempo').textContent = fmtT(t) + ' / ' + fmtT(this.dur);
+    const txtT = fmtT(t) + ' / ' + fmtT(this.dur); if (txtT !== this.txtTiempo) { this.txtTiempo = txtT; $('#tiempo').textContent = txtT; }   // (0.8.0) C41
     this.dibujarBarra(t);
     // fila actual
     const F = this.filasTele;
@@ -4252,17 +4337,22 @@ const Rep = {
     }
     // acordes de la letra y de las filas de compases: verde mientras suenan (cada cuadro, por tiempo; mismo margen que el grande)
     // (0.5.7) el que suena: verde a pleno; el PRÓXIMO acorde distinto: azul; todo lo demás apagado (fabao)
-    let nSuena = null, prox = null;
-    for (const x of this.acordesEl) if (t >= x.t - 0.05 && t < x.fin - 0.05) { nSuena = x.n; break; }
-    // (0.5.13) el azul se prende recién cuando el que viene INMEDIATAMENTE es otro acorde: mientras queden compases
-    // repitiendo el que suena (Dm Dm Dm…), no se prende nada adelante (fabao: "eso es lo que confunde")
     // (0.5.13) azul = el que viene INMEDIATAMENTE (el compás o acorde siguiente), aunque repita el que suena (fabao)
-    for (const x of this.acordesEl) if (x.t > t + 0.05) { if (!Modelo.esSilencio(x.n)) prox = x; break; }
-    for (const x of this.acordesEl) {
-      const on = t >= x.t - 0.05 && t < x.fin - 0.05, px = x === prox;
+    // (0.8.0) C41: los chips están ordenados por tiempo: se recorre solo la zona que puede cambiar (desde el último que ya
+    // sonó hacia adelante), no toda la canción en cada cuadro
+    const E = this.acordesEl; let prox = null;
+    if (this.saltoTele || this.iChip == null || this.iChip >= E.length || (E[this.iChip] && E[this.iChip].t > t + 0.05)) this.iChip = 0;
+    let k = this.iChip; while (k + 1 < E.length && E[k + 1].t <= t + 0.05) k++;
+    this.iChip = k;
+    for (let j = k + 1; j < E.length; j++) if (E[j].t > t + 0.05) { if (!Modelo.esSilencio(E[j].n)) prox = E[j]; break; }
+    const desde = this.saltoTele ? 0 : Math.max(0, k - 12), hasta = this.saltoTele ? E.length : Math.min(E.length, k + 14);
+    for (let j = desde; j < hasta; j++) {
+      const x = E[j], on = t >= x.t - 0.05 && t < x.fin - 0.05, px = x === prox;
       if (on !== x.on || this.saltoTele) { x.on = on; x.el.classList.toggle('suena', on); }
       if (px !== x.px || this.saltoTele) { x.px = px; x.el.classList.toggle('prox', px); }
     }
+    if (this.proxEl && this.proxEl !== prox && this.proxEl.px) { this.proxEl.px = false; this.proxEl.el.classList.remove('prox'); }
+    this.proxEl = prox;
     this.pintarViene(t);   // cada cuadro: el compás puede cambiar sin que cambie el acorde (%)
     // sección y pulso
     const b = an.arreglo.find(x => t >= x.t - 0.001 && t < x.fin);
@@ -4437,11 +4527,12 @@ const Rep = {
       });
       if (f.tipo === 'click') {   // (0.5.2) mantener apretado = mover el 1 / apagar el 1
         let lp = null, x0 = 0, y0 = 0, hecho = false;
-        c.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; hecho = false; clearTimeout(lp); lp = setTimeout(() => { lp = null; hecho = true; this.menuClick(c); }, 550); });
+        // (0.8.0) C1: en el fader o en M/S el toque largo no abre el menú (ajustar fino el volumen no es "mantener apretado")
+        c.addEventListener('pointerdown', e => { if (e.button > 0 || e.target.closest('.fader, button')) { lp = null; return; } x0 = e.clientX; y0 = e.clientY; hecho = false; clearTimeout(lp); lp = setTimeout(() => { lp = null; hecho = true; this.menuClick(c); }, 550); });
         c.addEventListener('pointermove', e => { if (lp && Math.hypot(e.clientX - x0, e.clientY - y0) > 8) { clearTimeout(lp); lp = null; } });
         ['pointerup', 'pointercancel'].forEach(t => c.addEventListener(t, () => { clearTimeout(lp); lp = null; }));
         c.addEventListener('click', e => { if (hecho) { hecho = false; e.stopPropagation(); e.preventDefault(); } }, true);
-        c.addEventListener('contextmenu', e => { e.preventDefault(); this.menuClick(c); });
+        c.addEventListener('contextmenu', e => { e.preventDefault(); if (e.pointerType === 'mouse' || e.button === 2 || !lp && !hecho && !$('#popClick').classList.contains('ver')) { if (lp) { clearTimeout(lp); lp = null; } hecho = true; this.menuClick(c); } });   // (0.8.0) C5: en Android el contextmenu llega ANTES del timer: una sola apertura
       }
       m.appendChild(c);
     }
@@ -4493,7 +4584,8 @@ $('#btnVolver').onclick = () => { Rep.parar(); Rep.refrescarBotones(); pantalla(
 function guardarClick(c, lib, ed) {
   if (lib.local) { Rep.anJson = mezclarEdiciones(Rep.anJson, ed); Local.guardarArchivo(c.id, 'analisis.json', JSON.stringify(Rep.anJson)).catch(e => anotar('click', e)); return; }
   let p = edicionGuardada(lib, c.id) || null;
-  p = { ...(p || {}), ed: { ...(p ? p.ed : {}), ...ed }, fecha: Date.now(), titulo: c.titulo, raiz: c.raiz, subir: !!lib.mia,
+  const base = baseDe(p, Rep.anJson);   // (0.8.0) A1
+  p = { ...(p || {}), ed: { ...(p ? p.ed : {}), ...ed }, base, fecha: Date.now(), titulo: c.titulo, raiz: c.raiz, subir: !!lib.mia,
         publicar: !lib.mia && !c.listaParaVivo && Nube.conectado(), c: { id: c.id, titulo: c.titulo, artista: c.artista, huella: c.huella, editado: c.editado } };
   try { localStorage.setItem(clavePend(lib, c.id), JSON.stringify(p)); } catch {}
   Rep.anJson = mezclarEdiciones(Rep.anJson, ed);
@@ -4525,13 +4617,16 @@ $('#btnLoop').onclick = () => {
   if (!(a.cicloFin > a.cicloIni + 0.2)) { aviso('Mantené apretada una parte de la barra (Intro, Coro…) para repetirla.'); return; }
   a.loop = !a.loop; Rep.aplicarLoop(); Rep.guardarLocal();
 };
-Audio.alTerminar = () => { Rep.reanudar = false; Rep.refrescarBotones(); pantallaPrendida(false); };
+Audio.alTerminar = () => { Rep.reanudar = false; Rep.refrescarBotones(); pantallaPrendida(false); Medios.estado(); };   // (0.8.0) B18
 
 // ══════════ (0.7.2) LUPA de las banderas: 7 compases grandes alrededor (número, sección, acorde, pulsos; la cuenta en violeta) ══════════
 const Lupa = {
   N: 7,
   abrir(cual, x) {
-    const an = Rep.an, comps = an.compasesEfectivos(), a = Rep.aj;
+    const an = Rep.an, a = Rep.aj;
+    // (0.8.0) A5: sin pulso no hay compases: la lupa usa "compases" de 2 s para que la verde igual se pueda mover
+    let comps = an.compasesEfectivos();
+    if (comps.length < 2) { comps = []; for (let t = 0; t < Rep.dur; t += 2) comps.push(t); if (comps.length < 2) comps = [0, Math.max(2, Rep.dur)]; }
     const t = cual === 'verde' ? a.marcaInicio : a.marcaCuenta;
     let i = 0; for (let k = 0; k < comps.length; k++) if (comps[k] <= t + 0.02) i = k;
     const g = { cual, x0: x, i0: i, t0: t, comps };
@@ -4547,8 +4642,9 @@ const Lupa = {
       if (c[i] !== Rep.aj.marcaCuenta) { Rep.aj.marcaCuenta = c[i]; if (navigator.vibrate) navigator.vibrate(8); }
       this.dibujar(g, i, c[i]);
     } else {   // la verde: libre, en la escala de la lupa (un ancho de compás = un compás)
-      const dur = (c[g.i0 + 1] || c[g.i0] + 2) - c[g.i0];
-      const t = Math.max(0, Math.min(Rep.dur - 0.5, g.t0 + dx / paso * dur));
+      const dur = Math.max(0.2, (c[g.i0 + 1] != null ? c[g.i0 + 1] : c[g.i0] + 2) - c[g.i0]);
+      let t = Math.max(0, Math.min(Rep.dur - 0.5, g.t0 + dx / paso * dur));
+      if (!Number.isFinite(t)) t = g.t0;
       Rep.aj.marcaInicio = t;
       let i = 0; for (let k = 0; k < c.length; k++) if (c[k] <= t + 0.02) i = k;
       this.dibujar(g, i, t);
@@ -4622,9 +4718,11 @@ document.addEventListener('pointerdown', e => { const M = $('#popCuenta'); if (M
   // grandes y se arrastra en esa escala (un ancho de compás de la lupa = un compás). Tocar o deslizar = ir ahí (como siempre).
   // La violeta salta de compás en compás; la verde va libre.
   let candidata = null, tBand = null, agarre = null;
+  cv.addEventListener('contextmenu', e => e.preventDefault());   // (0.8.0) B20: Android: el menú contextual del long-press cortaba la lupa / el loop
   cv.addEventListener('pointermove', e => { if (!apretado && e.pointerType === 'mouse') cv.style.cursor = cerca(e) ? 'grab' : ''; });
   cv.addEventListener('pointerdown', e => {
     if (e.button > 0) return;
+    if (bandera || candidata) return;   // (0.8.0) B19: ya hay un dedo en una bandera: el segundo no hace nada
     candidata = cerca(e); bandera = null;
     if (!candidata) return;
     const x = e.clientX, cual = candidata;
@@ -4654,6 +4752,7 @@ document.addEventListener('pointerdown', e => { const M = $('#popCuenta'); if (M
       tLargo = null; largoHecho = true;
       const b = Rep.an.arreglo.find(x => s >= x.t && s < x.fin);
       if (b) { Rep.aj.cicloIni = b.t; Rep.aj.cicloFin = b.fin; Rep.aj.loop = true; Rep.aplicarLoop(); Rep.guardarLocal(); aviso('Repitiendo: ' + (b.nombre || 'esta parte')); if (navigator.vibrate) navigator.vibrate(20); }
+      else aviso(Rep.an.arreglo.length ? 'Ahí no hay ninguna parte marcada.' : 'Esta canción no tiene partes (Intro, Coro…) para repetir: se marcan en el editor.', 3500);   // (0.8.0) C4
     }, 550);
   });
   cv.addEventListener('pointermove', e => { if (!apretado) return; if (Math.abs(e.clientX - x0) > 8) { arrastrando = true; if (tLargo) { clearTimeout(tLargo); tLargo = null; } Rep.ir(seg(e)); } });
@@ -4710,7 +4809,7 @@ $('#menuDescartar').onclick = () => {
   const p = edicionGuardada(lib, c.id);
   if (!confirm(p && p.subir ? '¿Descartar la corrección que todavía no se subió a OneDrive?' : '¿Descartar tus correcciones de «' + (c.titulo || c.id) + '» y volver a lo de ' + lib.nombre + '?')) return;
   try { localStorage.removeItem('ys.ed.' + lib.clave + '|' + c.id); } catch {}
-  cerrarMenu(); abrirCancion(c, lib);
+  cerrarMenu(); abrirCancion(c, lib, { pos: Audio.ahora(), sonar: Audio.sonando });   // (0.8.0) C6: donde estabas
 };
 $('#btnGuardadas').onclick = () => { Pref.set('soloGuardadas', !Pref.get('soloGuardadas', false)); Bib.dibujar(); aviso(Pref.get('soloGuardadas', false) ? 'Solo las guardadas en ' + EQUIPO + ' (se escuchan sin conexión).' : 'Todas.', 1800); };
 $('#bajCortar').onclick = () => Descargas.cortar();
@@ -4750,8 +4849,8 @@ const Pedidos = {
     $('#pedidos').classList.add('ver');
     if (prellenado) $('#pedLink').value = prellenado;
     this.pintar();
+    clearInterval(this.timer); this.timer = setInterval(() => { if (!document.hidden && $('#pedidos').classList.contains('ver')) this.refrescar(); }, 10000);   // (0.8.0) B17: el timer se arma ya (y se corta al cerrar, aunque la primera lectura siga)
     await this.refrescar();
-    clearInterval(this.timer); this.timer = setInterval(() => { if (!document.hidden) this.refrescar(); }, 10000);
   },
   cerrar() { $('#pedidos').classList.remove('ver'); clearInterval(this.timer); this.timer = null; },
   async leerJsons(raiz, carpeta, items) {
@@ -4853,6 +4952,7 @@ const Pedidos = {
     this.cerrar(); abrirCancion(c, lib);
   },
   async pedir() {
+    if (this.pidiendo) return;   // (0.8.0) C2: Enter + botón (o Enter dos veces) no duplican el pedido
     const pegado = $('#pedLink').value.trim();
     const yt = this.idDeLink(pegado);
     const link = (pegado.slice(Math.max(0, pegado.toLowerCase().indexOf('http'))).split(/\s/)[0]) || pegado;   // solo el link (sin el texto de Compartir)
@@ -4863,7 +4963,7 @@ const Pedidos = {
     const enCurso = [...this.pendientes, ...this.estados.filter(e => e.estado !== 'lista' && e.estado !== 'error')].find(p => p.yt === yt || this.idDeLink(p.link) === yt);
     if (enCurso) { aviso('Ese ya está pedido: miralo en la lista.', 3500); return; }
     if (!this.escribe('dejar el pedido')) return;
-    const b = $('#pedEnviar'); b.disabled = true; b.textContent = 'Mirando si hay una Mac despierta…';
+    const b = $('#pedEnviar'); b.disabled = true; b.textContent = 'Mirando si hay una Mac despierta…'; this.pidiendo = true;
     try {
       this.macs = await this.leerMacs();
       const s = this.macs.find(x => x.sirve);
@@ -4875,7 +4975,7 @@ const Pedidos = {
       const r = this.raiz();
       await Nube.carpetaEn(r, 'pedidos');
       await Nube.escribir(r, 'pedidos/' + pid + '.json', JSON.stringify({ formato: 1, pid, link, yt, creado: Date.now(),
-        desde: EQUIPO.replace(/^el /, ''), para: s ? s.clave : '' }, null, 2));
+        desde: EQUIPO === 'este dispositivo' ? (ES_ANDROID ? 'Android' : 'la web') : EQUIPO.replace(/^el /, ''), para: s ? s.clave : '' }, null, 2));   // (0.8.0) C15
       anotar('pedidos: pedido', pid, yt, s ? 'para ' + s.clave : 'sin Mac despierta');
       $('#pedLink').value = '';
       aviso(s ? 'Listo: ' + s.mac + ' lo va a tomar en un minuto.' : 'Pedido: queda esperando una Mac.', 4000);
@@ -4884,10 +4984,10 @@ const Pedidos = {
       anotar('pedidos: pedir', e);
       if (e.sinPermiso) { if (confirm('OneDrive no me dejó escribir. ¿Pedimos el permiso de nuevo?')) Nube.pedirEscritura(); }
       else aviso('No pude dejar el pedido: ' + e.message, 5000);
-    } finally { b.disabled = false; b.textContent = 'Pedir'; }
+    } finally { b.disabled = false; b.textContent = 'Pedir'; this.pidiendo = false; }
   },
   async pegar() {
-    try { const t = await navigator.clipboard.readText(); if (t) $('#pedLink').value = t.trim(); } catch { aviso('Mantené apretado el cuadro y elegí Pegar.', 3000); }
+    try { const t = await navigator.clipboard.readText(); if (t) $('#pedLink').value = t.trim(); } catch { aviso(matchMedia('(pointer: coarse)').matches ? 'Mantené apretado el cuadro y elegí Pegar.' : 'Pegalo en el cuadro con Ctrl+V (⌘V).', 3000); }   // (0.8.0) C42
   }
 };
 $('#menuPedir').onclick = () => { cerrarMenu(); Pedidos.abrir(); };
@@ -4905,13 +5005,15 @@ const Descargas = {
     for (const x of items) if (!this.cola.some(y => y.c.id === x.c.id && y.lib.clave === x.lib.clave)) this.cola.push(x);
     this.total = this.hechas + this.cola.length + (this.activo ? 1 : 0);
     try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
+    this.parar = false;   // (0.8.0) C3: si se había cortado, lo nuevo sigue
     this.pintar(); if (!this.activo) this.seguir();
   },
-  cortar() { this.cola = []; this.parar = true; this.pintar('Deteniendo…'); },
+  cortar() { this.cola = []; this.parar = true; this.deteniendo = true; this.pintar('Deteniendo…'); },
   pintar(txt) {
     const b = $('#bajando');
     if (!this.activo && !this.cola.length) { b.style.display = 'none'; return; }
     b.style.display = '';
+    if (this.deteniendo && !txt) return;
     $('#bajTxt').textContent = txt || ('Guardando para sin conexión ' + Math.min(this.hechas + 1, this.total) + ' de ' + this.total + (this.actual ? ': ' + (this.actual.c.titulo || this.actual.c.id) : '') + (this.pct != null ? ' · ' + this.pct + '%' : ''));
   },
   async seguir() {
@@ -4924,6 +5026,8 @@ const Descargas = {
       this.hechas++; Bib.dibujar();
     }
     const n = this.hechas - errores;
+    this.deteniendo = false;
+    if (this.cola.length) { this.hechas = 0; this.total = this.cola.length; return this.seguir(); }   // (0.8.0) C3: entró algo mientras se detenía
     this.activo = false; this.actual = null; this.pct = null; this.hechas = 0; this.total = 0; this.pintar();
     aviso((this.parar ? 'Detenido. ' : '') + (n ? n + (n === 1 ? ' canción guardada' : ' canciones guardadas') + ' en ' + EQUIPO + '.' : '') + (errores ? ' ' + errores + ' no se pudieron bajar (ver registro).' : ''), 4000);
   }
@@ -4957,8 +5061,8 @@ async function cambiarPrivada(c, lib, aPrivada) {
   if (!desde || !hasta) { aviso('No encontré tus dos carpetas (privada y compartida).'); return; }
   try {
     cargando((aPrivada ? 'Volviendo privada ' : 'Compartiendo ') + t + '…');
-    await Nube.moverCancion(c.id, desde, hasta);
-    anotar('privacidad', c.id, aPrivada ? '→ privada' : '→ banda');
+    const r = await Nube.moverCancion(c.id, desde, hasta);
+    anotar('privacidad', c.id, aPrivada ? '→ privada' : '→ banda', r && r.juntar ? '(ya había una carpeta en el destino: quedan las dos hasta que una Mac las junte)' : '');
     c.privada = aPrivada; c.privadaCarpeta = aPrivada; c.raiz = hasta;
     Bib.dibujar();
     aviso(aPrivada ? t + ' ahora es privada.' : t + ' ya la ve la banda.', 3500);
@@ -4966,7 +5070,7 @@ async function cambiarPrivada(c, lib, aPrivada) {
   } catch (e) {
     anotar('privacidad', c.id, e);
     if (e.sinPermiso) { if (confirm('OneDrive no me dejó mover. ¿Pedimos el permiso de escritura de nuevo?')) Nube.pedirEscritura(); }
-    else aviso('No pude moverla: ' + e.message, 6000);
+    else aviso('No pude terminar de moverla (' + e.message + '). Tocá de nuevo la misma opción para completarlo.', 7000);   // (0.8.0) B14: repetir completa lo que faltó
   } finally { cargando(null); }
 }
 
@@ -4987,7 +5091,7 @@ async function compartirCancion(c, lib) {
     }
     // tus correcciones guardadas acá (de un colega o esperando subir) viajan adentro
     const pend = edicionGuardada(lib, c.id);
-    if (pend) { const i = archivos.findIndex(a => a.nombre === c.id + '/analisis.json'); if (i >= 0) archivos[i].datos = new TextEncoder().encode(JSON.stringify(mezclarEdiciones(JSON.parse(new TextDecoder().decode(archivos[i].datos)), pend.ed), null, 2)); }
+    if (pend) { const i = archivos.findIndex(a => a.nombre === c.id + '/analisis.json'); if (i >= 0) archivos[i].datos = new TextEncoder().encode(JSON.stringify(mezclarPendiente(JSON.parse(new TextDecoder().decode(archivos[i].datos)), pend), null, 2)); }
     if (!archivos.some(a => a.nombre.endsWith('/miniatura.jpg'))) {
       let d = await leer('miniatura.jpg');
       const url = !d && !lib.local && Bib.miniaturas[lib.clave + '|' + c.id];   // la de OneDrive (catalogo/miniaturas), si hay conexión
@@ -5200,6 +5304,7 @@ const Editor = (() => {
   const SOST = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'], BEM = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
   const puede = () => matchMedia('(min-width: 700px) and (min-height: 600px)').matches;
   const clon = x => JSON.parse(JSON.stringify(x));
+  const canon = x => JSON.stringify(x, (k, v) => v && typeof v === 'object' && !Array.isArray(v) ? Object.keys(v).sort().reduce((o, c) => (o[c] = v[c], o), {}) : v);
 
   const E = {
     abierto: false, an: null, foto: null, pila: [], rehacerP: [], sel: null, rango: null, bloques: [], copia: null, partidos: new Set(), hoja: null,
@@ -5214,10 +5319,11 @@ const Editor = (() => {
       const a = this.an; a.acordesEditados = clon(e.ed); a.tiemposEditados = clon(e.ti); a.acordesNuevos = clon(e.nu); a.arreglo = clon(e.arr);
       a._ce = null; a._be = null;
     },
-    apilar() { this.pila.push(this.estado()); if (this.pila.length > 200) this.pila.shift(); this.rehacerP = []; },
+    apilar() { this.pila.push(this.estado()); if (this.pila.length > 200) this.pila.shift(); this.rehacerAntes = this.rehacerP; this.rehacerP = []; },
+    desapilar() { this.pila.pop(); this.rehacerP = this.rehacerAntes || []; },   // (0.8.0) C18: la operación no se concretó
     deshacer() { if (!this.pila.length) return; this.rehacerP.push(this.estado()); this.poner(this.pila.pop()); this.bloques = []; this.dibujar(); },
     rehacer() { if (!this.rehacerP.length) return; this.pila.push(this.estado()); this.poner(this.rehacerP.pop()); this.bloques = []; this.dibujar(); },
-    hayCambios() { return JSON.stringify(this.estado()) !== JSON.stringify(this.foto); },
+    hayCambios() { return canon(this.estado()) !== canon(this.foto); },   // (0.8.0) C21: sin falsos positivos por el orden de las claves
     edicionesJson() {
       const a = this.an;
       return {
@@ -5236,7 +5342,7 @@ const Editor = (() => {
       const n = inicios.length, durUlt = n > 1 ? Math.max(0.2, inicios[n - 1] - inicios[n - 2]) : 2;
       const compases = [];
       for (let i = 0; i < n; i++) {
-        const c = { t0: inicios[i], t1: i + 1 < n ? inicios[i + 1] : Math.min(Rep.dur, inicios[i] + durUlt), items: [], seccion: -1, repite: false, bt: [] };
+        const c = { t0: inicios[i], t1: i + 1 < n ? inicios[i + 1] : Math.min(Rep.dur, inicios[i] + durUlt), items: [], ocultos: [], seccion: -1, repite: false, bt: [] };
         if (c.t1 <= c.t0 + 0.05) continue;
         for (const b of beats) if (b >= c.t0 - 0.03 && b < c.t1 - 0.03) c.bt.push(b);
         c.pulsos = Math.max(1, Math.min(12, c.bt.length || Math.max(2, an.compasN)));
@@ -5254,7 +5360,8 @@ const Editor = (() => {
           p = Math.max(0, Math.min(c.pulsos - 1, p));
           const slot = 2 * p + m, adentro = a.t >= c.t0 - 0.03;
           const ult = c.items[c.items.length - 1];
-          if (ult && ult.slot >= slot) { if (a.t > c.t0) c.items[c.items.length - 1] = { k, nombre: a.nombre, pulso: ult.pulso, medio: ult.medio, slot: ult.slot, t: a.t, adentro }; continue; }
+          // (0.8.0) C16: dos acordes en el mismo slot: el que no se ve queda en `ocultos` (con su slot) para no borrarlo sin querer
+          if (ult && ult.slot >= slot) { if (a.t > c.t0) { c.ocultos.push({ ...ult }); c.items[c.items.length - 1] = { k, nombre: a.nombre, pulso: ult.pulso, medio: ult.medio, slot: ult.slot, t: a.t, adentro }; } else c.ocultos.push({ k, nombre: a.nombre, pulso: ult.pulso, medio: ult.medio, slot: ult.slot, t: a.t, adentro }); continue; }
           c.items.push({ k, nombre: a.nombre, pulso: p, medio: m, slot, t: a.t, adentro });
         }
         compases.push(c);
@@ -5312,7 +5419,7 @@ const Editor = (() => {
       if (e.tOrig < -1.5) { const i = Math.round(-e.tOrig - 2); if (i >= 0 && i < an.acordesNuevos.length) an.acordesNuevos.splice(i, 1); }
       else { this.borrarEdicion(an.acordesEditados, e.tOrig); an.acordesEditados[an.claveDe(e.tOrig)] = Modelo.BORRADO; }
     },
-    listaDe(c) { return c.items.filter(x => x.adentro).map(x => [this.hoja.vista[x.k].t, x.nombre, x.slot]); },
+    listaDe(c) { return [...c.items, ...(c.ocultos || [])].filter(x => x.adentro).map(x => [this.hoja.vista[x.k].t, x.nombre, x.slot]).sort((x, y) => x[0] - y[0]); },
     // (0.6.3) el tiempo de un pulso o de su «y» (la mitad hasta el pulso siguiente)
     tiempoSlot(c, p, m) { return m ? (c.bt[p] + (p + 1 < c.bt.length ? c.bt[p + 1] : c.t1)) / 2 : c.bt[p]; },
     ponerAcorde(nombre) {
@@ -5331,14 +5438,17 @@ const Editor = (() => {
     borrar() {
       const s = this.sel; if (!s) return;
       const c = this.hoja.compases[s.c]; if (!c) return;
-      this.apilar();
       if (s.entero) {
+        if (!c.items.length) return;   // (0.8.0) C18: nada que borrar, nada que apilar
+        this.apilar();
         if (c.items.some(x => x.adentro)) this.reemplazarTramo(c.t0, c.t1, []);
         else if (c.items[0]) this.borrarIdx(c.items[0].k);
       } else {
         const sl = 2 * s.p + (s.m | 0), it = c.items.find(x => x.slot === sl);
-        if (it && it.adentro) this.reemplazarTramo(c.t0, c.t1, this.listaDe(c).filter(x => x[2] !== sl).map(x => [x[0], x[1]]));
-        else if (it) this.borrarIdx(it.k);
+        if (!it) return;
+        this.apilar();
+        if (it.adentro) this.reemplazarTramo(c.t0, c.t1, this.listaDe(c).filter(x => x[2] !== sl).map(x => [x[0], x[1]]));
+        else this.borrarIdx(it.k);
       }
       this.dibujar();
     },
@@ -5365,7 +5475,7 @@ const Editor = (() => {
 
     // ── nombres: se muestran en el tono que suena; se guardan en el de la grabación ──
     mostrar(n, t) { return Modelo.esSilencio(n) ? 'N.C.' : Rep.nombreAcorde(n, t); },
-    aInterno(n) { return Modelo.transponer(n, -Rep.tono, Modelo.tonoTranspuesto(this.an.tonalidad, 0).bemol); },
+    aInterno(n, t) { const c = this.sel && this.hoja.compases[this.sel.c]; const k = this.an.tonoEn(t != null ? t : c ? c.t0 : 0) || this.an.tonalidad; return Modelo.transponer(n, -Rep.tono, Modelo.tonoTranspuesto(k, 0).bemol); },   // (0.8.0) C28: ♯/♭ según el tono vigente en ese compás
     notas() { return Rep.bemol ? BEM : SOST; },
 
     // ── abrir / cerrar ──
@@ -5383,7 +5493,7 @@ const Editor = (() => {
         if (!R.lib.mia && !R.lib.local && !confirm(t + ' está ⭐ lista para ' + R.lib.nombre + ': lo que corrijas queda SOLO en ' + EQUIPO + ' (no le llega).\nSi ves un error, mejor «⚠ Avisar un error».\n\n¿Editar tu versión?')) return;
       }
       this.an = R.an; this.foto = this.estado(); this.pila = []; this.rehacerP = [];
-      this.sel = null; this.rango = null; this.bloques = []; this.partidos = new Set(); this.repetir = false; this.resolviendo = [];
+      this.sel = null; this.rango = null; this.bloques = []; this.partidos = new Set(); this.repetir = false; this.resolviendo = []; $('#edRep').classList.remove('on');   // (0.8.0) C22
       const fc = R.filas.find(f => f.tipo === 'click');
       this.clickAntes = fc ? fc.mute : null;
       if (fc && fc.mute) { fc.mute = false; fc.pintar && fc.pintar(); R.enviarControles(); }
@@ -5412,7 +5522,8 @@ const Editor = (() => {
       if (!this.hayCambios()) { this.cerrar(); for (const p of res) await Corr.resolverAviso(p.lib, p.aviso, 'corregido', true); if (res.length) aviso('Aviso resuelto ✓'); return; }
       const ed = this.edicionesJson();
       this.cerrar();
-      await guardarEdiciones(Rep.cancion, Rep.lib, ed);
+      try { await guardarEdiciones(Rep.cancion, Rep.lib, ed); }   // (0.8.0) C23: un error al guardar se ve (antes se perdía en silencio)
+      catch (e) { anotar('editor: guardar', e); aviso('No se pudo guardar la corrección: ' + (e.message || e), 7000); return; }
       for (const p of res) await Corr.resolverAviso(p.lib, p.aviso, 'corregido', true);
     },
     // (0.4.0) los ⚠ de esta canción, por compás de la hoja
@@ -5551,8 +5662,8 @@ const Editor = (() => {
         const quedan = [];
         for (const x of lista) {
           if (x.fin <= nb.t + 1e-6 || x.t >= nb.fin - 1e-6) { quedan.push(x); continue; }
-          if (x.t < nb.t) { const izq = { ...x, fin: nb.t, cortar: false }; if (izq.fin - izq.t > 0.3) quedan.push(izq); }
-          if (x.fin > nb.fin) { const der = { ...x, t: nb.fin }; if (der.fin - der.t > 0.3) quedan.push(der); }
+          if (x.t < nb.t) { const izq = { ...x, fin: nb.t, cortar: false, ok: false }; if (izq.fin - izq.t > 0.3) quedan.push(izq); }   // (0.8.0) C19: recortada = ya no es la que la Mac dio por OK
+          if (x.fin > nb.fin) { const der = { ...x, t: nb.fin, ok: false }; if (der.fin - der.t > 0.3) quedan.push(der); }
         }
         quedan.push(nb); lista = quedan;
       }
@@ -5565,7 +5676,7 @@ const Editor = (() => {
       const r = this.rango; if (!r) return;
       this.apilar();
       const nb = { t: this.hoja.compases[r.a].t0, fin: this.tiempoFin(r.b), nombre, color: this.colorPara(nombre), compas: 0, ok: false, cortar: false };
-      if (!this.colocarSecciones([nb])) { this.pila.pop(); return; }
+      if (!this.colocarSecciones([nb])) { this.desapilar(); return; }
       anotar('editor: sección', nombre, 'compases ' + (r.a + 1) + '–' + (r.b + 1));
       this.rango = null; this.bloques = [];
       this.dibujar(); aviso('Sección «' + nombre + '» lista.', 1800);
@@ -5578,6 +5689,7 @@ const Editor = (() => {
     borrarBloques() {
       this.apilar();
       this.bloques.slice().sort((x, y) => y - x).forEach(k => this.an.arreglo.splice(k, 1));
+      this.an._ce = null; this.an._be = null;   // (0.8.0) B16: una sección con compás propio cambia la grilla
       this.bloques = []; this.rango = null; this.dibujar();
     },
     // ── copiar / pegar: los acordes compás por compás (en su tiempo) y/o las secciones ──
@@ -5611,13 +5723,14 @@ const Editor = (() => {
       if (modo !== 'seccion') {
         for (let k = 0; d + k <= ultimo; k++) {
           const c = H.compases[d + k];
-          const l = cp.acordes.filter(x => x[0] === k).map(x => [this.tiempoSlot(c, Math.min(x[1], c.pulsos - 1), x[1] < c.pulsos ? x[3] : 0), x[2]]);
+          const l = [], vistos = new Set();   // (0.8.0) C17: un compás de 6 pegado en uno de 4: un solo acorde por tiempo (queda el primero)
+          for (const x of cp.acordes.filter(x => x[0] === k)) { const t = this.tiempoSlot(c, Math.min(x[1], c.pulsos - 1), x[1] < c.pulsos ? x[3] : 0); if (vistos.has(t)) continue; vistos.add(t); l.push([t, x[2]]); }
           this.reemplazarTramo(c.t0, c.t1, l);
         }
       }
       if (modo !== 'acordes' && cp.secciones.length) {
         const nuevas = cp.secciones.filter(x => d + x.desde <= ultimo).map(x => ({ t: H.compases[d + x.desde].t0, fin: this.tiempoFin(Math.min(ultimo, d + x.desde + x.n - 1)), nombre: x.nombre, color: x.color, compas: x.compas, ok: false, cortar: false }));
-        if (!this.colocarSecciones(nuevas) && modo === 'seccion') { this.pila.pop(); return; }
+        if (!this.colocarSecciones(nuevas) && modo === 'seccion') { this.desapilar(); return; }
       }
       anotar('editor: pegado', cp.nombre, modo, 'en compás ' + (d + 1));
       this.rango = { a: d, b: ultimo }; this.sel = null; this.bloques = [];
@@ -5628,7 +5741,7 @@ const Editor = (() => {
       const r = this.rango; if (!r || !this.bloques.length) return;
       this.copiar();
       if (r.b + 1 >= this.hoja.compases.length) { aviso('No hay compases después para duplicar.'); return; }
-      this.pegar('seccion', r.b + 1);
+      this.pegar('las dos', r.b + 1);   // (0.8.0) C20: la sección Y sus acordes
     },
     // ── tramo de compases en la hoja: arrastrar (mantener apretado en la tableta), Shift+clic, o dos toques en el nombre ──
     // suave = mientras se arrastra: solo se pintan las marcas (rehacer la hoja bajo el dedo corta el arrastre en el iPad)
@@ -5804,10 +5917,38 @@ const Editor = (() => {
 // ── guardar: lo tuyo directo en tu OneDrive; lo de colegas y lo importado, en el dispositivo ──
 const clavePend = (lib, id) => 'ys.ed.' + lib.clave + '|' + id;
 function mezclarEdiciones(base, ed) { const o = JSON.parse(JSON.stringify(base || {})); o.ediciones = { ...(o.ediciones || {}), ...ed }; return o; }
+// (0.8.0) A1: un pendiente trae las ediciones COMPLETAS de cuando se abrió la canción. Para no pisar lo que la Mac (u otro
+// aparato) cambió mientras tanto, se mezcla de a tres: lo fresco de la nube + SOLO lo que vos cambiaste respecto de la
+// base (p.base = las ediciones al momento de empezar a corregir). Sin base (pendientes viejos) se mezcla como antes.
+function mezclarPendiente(fresco, p) {
+  if (!p || !p.base) return mezclarEdiciones(fresco, p ? p.ed : {});
+  const J = x => JSON.stringify(x === undefined ? null : x);
+  const o = JSON.parse(JSON.stringify(fresco || {})), F = { ...(o.ediciones || {}) }, B = p.base, E = p.ed, choques = [];
+  for (const k of Object.keys(E)) {
+    if (J(E[k]) === J(B[k])) continue;                       // no lo tocaste: queda lo de la nube
+    const esMapa = E[k] && typeof E[k] === 'object' && !Array.isArray(E[k]);
+    if (esMapa) {                                             // acordes / tiempos: clave por clave
+      const r = { ...(F[k] && typeof F[k] === 'object' && !Array.isArray(F[k]) ? F[k] : {}) }, b = B[k] || {};
+      for (const c of new Set([...Object.keys(E[k]), ...Object.keys(b)])) {
+        if (J(E[k][c]) === J(b[c])) continue;
+        if (c in E[k]) r[c] = E[k][c]; else delete r[c];
+      }
+      F[k] = r;
+    } else {                                                  // nuevos, arreglo, correr1, medio, factor, compas, anclas…
+      if (J(F[k]) !== J(B[k]) && k in F) choques.push(k);     // los dos lo cambiaron: queda lo tuyo (y se anota)
+      F[k] = E[k];
+    }
+  }
+  o.ediciones = F;
+  if (choques.length) anotar('correcciones: la nube también cambió', choques.join(', '), '· quedó lo tuyo');
+  return o;
+}
+const baseDe = (previo, anJson) => previo && previo.base ? previo.base : JSON.parse(JSON.stringify((anJson || {}).ediciones || {}));
 async function guardarEdiciones(c, lib, ed) {
   const destino = lib.local ? 'local' : lib.mia ? 'nube' : 'colega';
   // (0.5.2) se suma a lo que ya estaba guardado sin subir (p. ej. acordes + "correr el 1")
   const previo = edicionGuardada(lib, c.id); if (previo && !lib.local) ed = { ...previo.ed, ...ed };
+  const base = baseDe(previo, Rep.anJson);   // (0.8.0) A1
   const nuevo = mezclarEdiciones(Rep.anJson, ed);
   anotar('editor: guardar', c.id, destino, Object.keys(ed.acordes || {}).length + ' acordes, ' + (ed.nuevos || []).length + ' nuevos, ' + (ed.arreglo || []).length + ' secciones' + ('correr1' in ed ? ', el 1 corrido ' + ed.correr1 : '') + ('medio' in ed ? ', medio tiempo ' + (ed.medio ? 'corrido' : 'no') : ''));
   if (destino === 'local') {
@@ -5816,7 +5957,7 @@ async function guardarEdiciones(c, lib, ed) {
     return;
   }
   const publicar = destino === 'colega' && !c.listaParaVivo && Nube.conectado();
-  const p = { ed, fecha: Date.now(), titulo: c.titulo, raiz: c.raiz, subir: destino === 'nube', publicar,
+  const p = { ed, base, fecha: Date.now(), titulo: c.titulo, raiz: c.raiz, subir: destino === 'nube', publicar,
               c: { id: c.id, titulo: c.titulo, artista: c.artista, huella: c.huella, editado: c.editado } };
   try { localStorage.setItem(clavePend(lib, c.id), JSON.stringify(p)); } catch {}
   Rep.anJson = nuevo;
@@ -5838,20 +5979,39 @@ async function subirEdicion(lib, id, silencioso) {
     if (confirm('Para guardar en tu OneDrive, Microsoft te va a pedir permiso para escribir en tu carpeta (una sola vez).\n\nMientras tanto queda guardado en ' + EQUIPO + '. ¿Seguimos?')) { Nube.pedirEscritura(); return false; }
     aviso('Quedó guardado en ' + EQUIPO + ': se sube cuando des el permiso.', 5000); return false;
   }
-  const ruta = 'canciones/' + id + '/analisis.json';
+  const ruta = 'canciones/' + id + '/analisis.json', k = clavePend(lib, id);
+  // (0.8.0) B4: una sola subida en vuelo por canción; si mientras subía se guardó algo nuevo, se vuelve a subir
+  if (subirEdicion.enVuelo.has(k)) return false;
+  subirEdicion.enVuelo.add(k);
+  const antes = localStorage.getItem(k);
   try {
     if (!silencioso) cargando('Guardando en tu OneDrive…');
-    const fresco = await Nube.leerJson(p.raiz, ruta);
-    const nuevo = mezclarEdiciones(fresco, p.ed), texto = JSON.stringify(nuevo, null, 2);
-    const it = await Nube.escribir(p.raiz, ruta, texto);
-    try {
-      const cat = await Nube.leerJson(p.raiz, 'catalogo/' + id + '.json');
-      cat.editado = Date.now(); cat.archivos = { ...(cat.archivos || {}), 'analisis.json': new TextEncoder().encode(texto).length };
-      await Nube.escribir(p.raiz, 'catalogo/' + id + '.json', JSON.stringify(cat, null, 2));
-    } catch (e) { anotar('catálogo (fecha de edición)', e); }
+    // (0.8.0) C24: si la canción se movió (privada ↔ banda), la raíz guardada en el pendiente ya no sirve: se busca de nuevo
+    let raiz = p.raiz, fresco = null;
+    try { fresco = await Nube.leerJson(raiz, ruta); }
+    catch (e) {
+      if (e.status !== 404) throw e;
+      const mia = (Bib.libs || []).find(l => l.mia);
+      for (const r of (mia ? mia.raices : []).filter(r => r.id !== raiz.id)) { try { fresco = await Nube.leerJson(r, ruta); raiz = r; break; } catch (e2) { if (e2.status !== 404) throw e2; } }
+      if (!fresco) { anotar('editor: subir', id, 'no está en ninguna de tus carpetas (¿se está moviendo?): queda pendiente'); if (!silencioso) aviso('No encuentro esa canción en tu OneDrive ahora: la corrección queda en ' + EQUIPO + ' y lo vuelvo a intentar.', 6000); return false; }
+      p.raiz = raiz; anotar('editor: subir', id, 'la canción se movió: carpeta nueva');
+    }
+    const nuevo = mezclarPendiente(fresco, p), texto = JSON.stringify(nuevo, null, 2);   // (0.8.0) A1
+    const it = await Nube.escribir(raiz, ruta, texto);
+    // (0.8.0) A2: sin la fecha nueva en la ficha, la Mac no baja la corrección: si falla, el pendiente QUEDA (se reintenta)
+    const cat = await Nube.leerJson(raiz, 'catalogo/' + id + '.json');
+    cat.editado = Date.now(); cat.archivos = { ...(cat.archivos || {}), 'analisis.json': new TextEncoder().encode(texto).length };
+    await Nube.escribir(raiz, 'catalogo/' + id + '.json', JSON.stringify(cat, null, 2));
     await Nube.ponerCache(Nube.claveCache(lib.clave, id, 'analisis.json'), texto, it.eTag || '');
-    localStorage.removeItem(clavePend(lib, id));
-    if (Rep.cancion && Rep.cancion.id === id && Rep.lib && Rep.lib.clave === lib.clave) Rep.anJson = nuevo;
+    if (localStorage.getItem(k) === antes) {
+      localStorage.removeItem(k);
+      if (Rep.cancion && Rep.cancion.id === id && Rep.lib && Rep.lib.clave === lib.clave) Rep.anJson = nuevo;
+    } else {   // B4: entró algo nuevo mientras subía: su base pasa a ser lo recién subido y se sube enseguida
+      try { const q = JSON.parse(localStorage.getItem(k)); q.base = nuevo.ediciones || {}; localStorage.setItem(k, JSON.stringify(q)); } catch {}
+      anotar('editor: subido, y hay más para subir', id);
+      subirEdicion.enVuelo.delete(k);
+      return subirEdicion(lib, id, silencioso);
+    }
     anotar('editor: subido a OneDrive', id);
     if (!silencioso) aviso('Guardado en tu OneDrive: la Mac lo baja sola.', 4000);
     return true;
@@ -5861,8 +6021,9 @@ async function subirEdicion(lib, id, silencioso) {
       if (confirm('OneDrive no me dejó escribir. ¿Pedimos el permiso de nuevo a Microsoft?\n(Mientras tanto queda guardado en ' + EQUIPO + '.)')) Nube.pedirEscritura();
     } else if (!silencioso) aviso('No pude guardar en OneDrive (' + e.message + '). Quedó en ' + EQUIPO + ' y lo vuelvo a intentar al abrir.', 6000);
     return false;
-  } finally { if (!silencioso) cargando(null); }
+  } finally { subirEdicion.enVuelo.delete(k); if (!silencioso) cargando(null); }
 }
+subirEdicion.enVuelo = new Set();
 async function subirPendientes(callado) {
   if (!Nube.conectado() || !Nube.quiereEscribir()) return;
   const mia = (Bib.libs || []).find(l => l.mia); if (!mia) return;
@@ -5887,8 +6048,10 @@ async function publicarPendiente(lib, id, silencioso) {
   try {
     if (!silencioso) cargando('Compartiendo tu corrección con ' + lib.nombre + '…');
     const fecha = await Corr.publicar(lib, c, p.ed);
-    p.publicar = false; p.publicado = fecha;
-    try { localStorage.setItem(clavePend(lib, id), JSON.stringify(p)); } catch {}
+    // (0.8.0) B4: si mientras se publicaba entró otro cambio, ese sigue pendiente de publicar
+    const q = edicionGuardada(lib, id) || p;
+    if (q.fecha === p.fecha) { q.publicar = false; q.publicado = fecha; }
+    try { localStorage.setItem(clavePend(lib, id), JSON.stringify(q)); } catch {}
     if (!silencioso) aviso('Guardado. A ' + lib.nombre + ' le aparece tu corrección para ver y elegir.', 4500);
     return true;
   } catch (e) {
@@ -6003,6 +6166,7 @@ document.addEventListener('keydown', e => {
   else if (cmd && e.key.toLowerCase() === 'c' && (Editor.rango || Editor.bloques.length || Editor.sel)) { e.preventDefault(); Editor.copiar(); }
   else if (cmd && e.key.toLowerCase() === 'v' && Editor.copia) { e.preventDefault(); Editor.pegar('las dos'); }
   else if (cmd && e.key.toLowerCase() === 'd' && Editor.bloques.length) { e.preventDefault(); Editor.duplicar(); }
+  else if (e.key === 'Escape' && $('#hojaAviso').classList.contains('ver')) { $('#hojaAviso').classList.remove('ver'); }   // (0.8.0) C27
   else if (e.key === 'Escape') { if (Editor.rango || Editor.bloques.length || Editor.sel) { Editor.rango = null; Editor.bloques = []; Editor.sel = null; Editor.dibujar(); } else Editor.cancelar(); }
   else if ((e.key === 'Backspace' || e.key === 'Delete') && Editor.sel) { e.preventDefault(); Editor.borrar(); }
 }, true);
@@ -6274,6 +6438,7 @@ const Corr = {
     if (!c || !lib || lib.mia || lib.local) return;
     const comps = an.compasesEfectivos(); let k = 0;
     for (let i = 0; i < comps.length; i++) if (comps[i] <= t + 0.05) k = i;
+    const tAviso = comps.length ? comps[k] : Math.max(0, t);   // (0.8.0) C26: sin pulso, el aviso lleva el segundo donde estabas
     const st = { tipo: 'acorde', sugiere: '', nota: '' };
     const H = $('#haCaja');
     const pintar = () => {
@@ -6308,7 +6473,7 @@ const Corr = {
       H.appendChild(nt);
       const env = el('button', 'grande', 'Enviar aviso a ' + lib.nombre); env.onclick = async () => {
         $('#hojaAviso').classList.remove('ver');
-        const a = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), compas: k + 1, t: comps[k], tipo: st.tipo, sugiere: st.sugiere || '', nota: (st.nota || '').trim(), fecha: Date.now() };
+        const a = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), compas: comps.length ? k + 1 : 0, t: tAviso, tipo: st.tipo, sugiere: st.sugiere || '', nota: (st.nota || '').trim(), fecha: Date.now() };
         anotar('aviso ⚠', c.id, JSON.stringify(a));
         const ok = await this.avisar(lib, c, a);
         aviso(ok ? '⚠ Aviso enviado a ' + lib.nombre + '.' : 'Aviso guardado: se manda cuando des el permiso / haya conexión.', 4000);
@@ -6360,7 +6525,7 @@ const Pulso = {
     if (!R.an.valido || R.an.beatsCrudos.length < 2) { aviso('Esta canción no tiene pulso detectado todavía: se analiza en la Mac.', 4000); return; }
     if (Corr.viendo) Corr.volverMia();
     $('#popClick').classList.remove('ver');
-    this.foto = this.campos(R.an); this.sel = -1; this.abierto = true;
+    this.foto = this.campos(R.an); this.sel = -1; this.abierto = true; this.moradaAntes = R.aj.marcaCuenta;   // (0.8.0) C25
     // el click arranca ENCENDIDO (fabao); al salir vuelve como estaba
     const fc = R.filas.find(f => f.tipo === 'click');
     this.clickAntes = fc ? fc.mute : null;
@@ -6372,7 +6537,7 @@ const Pulso = {
   },
   cerrar() {
     const R = Rep;
-    this.abierto = false; this.repetir = false; $('#pPulso').classList.remove('ver');
+    this.abierto = false; this.repetir = false; $('#pPulso').classList.remove('ver'); $('#puRep').classList.remove('on');
     const fc = R.filas.find(f => f.tipo === 'click');
     if (fc && this.clickAntes != null && fc.mute !== this.clickAntes) { fc.mute = this.clickAntes; fc.pintar && fc.pintar(); R.enviarControles(); }
     R.aplicarLoop();
@@ -6387,7 +6552,7 @@ const Pulso = {
   hayCambios() { return JSON.stringify(this.campos(Rep.an)) !== JSON.stringify(this.foto); },
   cancelar() {
     if (this.hayCambios() && !confirm('¿Descartar los cambios del pulso?')) return;
-    this.poner(Rep.an, this.foto); this.cerrar(); this.cambio(); Rep.medir();
+    this.poner(Rep.an, this.foto); if (this.moradaAntes != null) Rep.aj.marcaCuenta = this.moradaAntes; this.cerrar(); this.cambio(); Rep.medir();
   },
   listo() {
     const R = Rep, cambio = this.hayCambios();
@@ -6543,10 +6708,13 @@ $('#puPlay').onclick = () => { if (Audio.sonando) Rep.pausa(); else { Rep.reanud
 $('#puAtras').onclick = () => { const c = Rep.an.compasesEfectivos(), k = Pulso.compasActual(); Rep.reanudar = true; Rep.ir(c[Math.max(0, k - 4)] || 0); if (Audio.sonando) Rep.tocar(); };
 $('#puRep').onclick = () => { Pulso.repetir = !Pulso.repetir; Pulso.aplicarRepetir(); };
 $('#puClick').onclick = () => Pulso.alternarClick();
-$('#puD2').onclick = () => { Rep.factorTempo(0.5, true); Pulso.dibujar(); };
-$('#puX2').onclick = () => { Rep.factorTempo(2, true); Pulso.dibujar(); };
-$('#puMedio').onclick = () => { Rep.correrMedio(true); Pulso.dibujar(); };
-$('#puUno').onclick = () => { Rep.correrUno(true); Pulso.dibujar(); };
+// (0.8.0) B15: con los 1 puestos en la Mac (rombos "honrados") la grilla es la de la Mac y ½ / ×2 / 1→ no la cambian;
+// se explica acá mismo qué hacer en vez de mandar a la Mac
+const honrados = () => { const an = Rep.an; if (an.anclas.length && an.anclasHonradas()) { aviso('Los 1 de esta canción ya vienen de la Mac. Para moverlos acá: tocá en el 1 (o borrá un rombo) y recién después ½ / ×2.', 5000); Pulso.dibujar(); return true; } return false; };
+$('#puD2').onclick = () => { if (honrados()) return; Rep.factorTempo(0.5, true); Pulso.dibujar(); };
+$('#puX2').onclick = () => { if (honrados()) return; Rep.factorTempo(2, true); Pulso.dibujar(); };
+$('#puMedio').onclick = () => { if (honrados()) return; Rep.correrMedio(true); Pulso.dibujar(); };
+$('#puUno').onclick = () => { if (honrados()) return; Rep.correrUno(true); Pulso.dibujar(); };
 $('#puIzq').onclick = () => Pulso.moverSel(-1);
 $('#puDer').onclick = () => Pulso.moverSel(1);
 $('#puBorrar').onclick = () => Pulso.borrarSel();
@@ -6564,7 +6732,8 @@ $('#pcPulso').onclick = () => Pulso.abrir();
 $('#menuPulso').onclick = () => { cerrarMenu(); Pulso.abrir(); };
 $('#edPulso').onclick = async () => {   // (iPad/compu) del editor al modo Pulso: lo del editor se guarda primero
   if (Editor.hayCambios() && !confirm('Guardo lo que cambiaste en el editor y paso a ajustar el pulso. ¿Seguimos?')) return;
-  await Editor.listo(); Pulso.abrir();
+  try { await Editor.listo(); } catch (e) { anotar('editor → pulso', e); }   // (0.8.0) C23: un error al guardar no impide abrir Pulso
+  Pulso.abrir();
 };
 
 // ══════════ (0.7.0) BIBLIOTECA PROPIA DESDE LA WEB (para quien no tiene Mac) ══════════
@@ -6654,13 +6823,18 @@ onmessage = e => {
   async function aMp3(datos, avance) {
     const Off = window.OfflineAudioContext || window.webkitOfflineAudioContext;
     const ctx = new Off(2, 44100, 44100);
-    const ab = await new Promise((ok, mal) => { const p = ctx.decodeAudioData(datos.buffer.slice(datos.byteOffset, datos.byteOffset + datos.byteLength), ok, mal); if (p && p.then) p.then(ok, mal); });
-    const L = ab.getChannelData(0).slice(), R = (ab.numberOfChannels > 1 ? ab.getChannelData(1) : ab.getChannelData(0)).slice();
+    // (0.8.0) B13: sin copias de más (un stem de 5 min son ~100 MB en Float32): los bytes comprimidos se pasan tal cual si
+    // ocupan todo su buffer, y los canales decodificados viajan al hilo de MP3 transferidos (no copiados)
+    const bytes = datos.byteOffset === 0 && datos.byteLength === datos.buffer.byteLength ? datos.buffer : datos.buffer.slice(datos.byteOffset, datos.byteOffset + datos.byteLength);
+    const ab = await new Promise((ok, mal) => { const p = ctx.decodeAudioData(bytes, ok, mal); if (p && p.then) p.then(ok, mal); });
+    let L = ab.getChannelData(0), R = ab.numberOfChannels > 1 ? ab.getChannelData(1) : null;
     const w = lame();
     return new Promise((ok, mal) => {
       w.onmessage = e => { if (e.data.fin) ok(e.data.fin); else avance && avance(e.data.p); };
       w.onerror = e => mal(new Error('no pude pasar a MP3 (' + (e.message || 'error') + ')'));
-      w.postMessage({ L, R, sr: ab.sampleRate, kbps: 256 }, [L.buffer, R.buffer]);
+      let tr = [];
+      try { if (!R) R = L; tr = R.buffer === L.buffer ? [L.buffer] : [L.buffer, R.buffer]; w.postMessage({ L, R, sr: ab.sampleRate, kbps: 256 }, tr); }
+      catch (e) { L = L.slice(); R = R === L ? L : R.slice(); w.postMessage({ L, R, sr: ab.sampleRate, kbps: 256 }, R === L ? [L.buffer] : [L.buffer, R.buffer]); }   // el navegador no dejó transferir: copia
     });
   }
 
@@ -6686,7 +6860,7 @@ onmessage = e => {
   async function subirLocal(c) {
     const t = '«' + (c.titulo || c.id) + '»';
     const lib = await crear('subir ' + t); if (!lib) return;
-    const priv = privDe(lib);
+    const priv = privDe(lib); if (!priv) { aviso('Todavía no veo tu carpeta «YouSTEM Privado» en OneDrive. Esperá unos segundos y probá de nuevo.', 6000); return; }   // (0.8.0) C34
     const leer = async rel => { const b = await Nube.enCache(Nube.claveCache('local', c.id, rel)); return b ? new Uint8Array(b) : null; };
     try {
       cargando('Revisando ' + t + '…');
@@ -6746,7 +6920,7 @@ onmessage = e => {
   async function copiar(c, src) {
     const t = '«' + (c.titulo || c.id) + '»';
     const lib = await crear('copiar ' + t); if (!lib) return;
-    const priv = privDe(lib);
+    const priv = privDe(lib); if (!priv) { aviso('Todavía no veo tu carpeta «YouSTEM Privado» en OneDrive. Esperá unos segundos y probá de nuevo.', 6000); return; }   // (0.8.0) C34
     try {
       cargando('Copiando ' + t + ' a tus canciones…');
       if (await yaEsTuya(lib, c.id)) { cargando(null); aviso(t + ' ya está en tus canciones.', 5000); return; }
@@ -6765,7 +6939,13 @@ onmessage = e => {
         cargando('Copiando ' + t + '… ' + MB(hecho) + ' de ' + MB(total), hecho / total);
         try { await Nube.copiarItem(x, d); }
         catch (e) {
-          if (e.status === 409 || /exist/i.test(e.message)) { hecho += x.size || 0; continue; }   // ya estaba (un intento anterior)
+          if (e.status === 409 || /exist/i.test(e.message)) {   // (0.8.0) C35: ya estaba (un intento anterior): solo vale si está ENTERO
+            const q = await Nube.itemEn(d, x.name);
+            if (q && q.size === x.size) { hecho += x.size || 0; continue; }
+            anotar('copiar: había una copia incompleta de', x.name, '· se reemplaza');
+            if (q) await Nube.borrarEn(d, x.name);
+            try { await Nube.copiarItem(x, d); hecho += x.size || 0; continue; } catch (e2) { if (e2.lleno || e2.sinPermiso || e2.sinSesion) throw e2; }
+          }
           if (e.lleno || e.sinPermiso || e.sinSesion) throw e;
           // OneDrive no copió entre cuentas: pasa por el teléfono (bajar y subir)
           anotar('copiar: de nube a nube no anduvo, paso por el teléfono', x.name, e.message);
