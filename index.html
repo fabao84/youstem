@@ -2949,11 +2949,12 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.8.1';
+const VERSION = '0.8.2';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
 const ES_ANDROID = /Android/i.test(navigator.userAgent);
+const ES_TV = /Tizen|SMART-TV|SmartTV|Web0S|webOS|NetCast|HbbTV|BRAVIA/i.test(navigator.userAgent);   // (0.8.2) navegador de un televisor
 const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const fmtT = s => { s = Math.max(0, s || 0); const m = Math.floor(s / 60), x = Math.floor(s % 60); return m + ':' + String(x).padStart(2, '0'); };
 
@@ -3155,6 +3156,27 @@ const Audio = {
     try { const p = el.play(); if (p && p.catch) p.catch(e => anotar('pantalla bloqueada: el navegador no dejó', e && e.name)); } catch {}
   },
   fondoPausa() { const el = this.fondo; if (el && !el.paused) try { el.pause(); } catch {} },
+  // ── (0.8.2) TELEVISOR: el navegador del Samsung se queda con el ▶❚❚ del control y lo usa para pausar/arrancar el audio o video
+  // de la página. YouSTEM suena por Web Audio (que el navegador no ve), así que acá hay un <audio> en SILENCIO que suena junto
+  // con la canción: cuando el control lo pausa o lo arranca, la canción hace lo mismo.
+  tv: null, tvPropio: 0,
+  tvArmar() {
+    if (this.tv || !ES_TV) return this.tv;
+    const sr = 8000, n = sr, b = new ArrayBuffer(44 + n * 2), v = new DataView(b), w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+    const el = document.createElement('audio'); el.loop = true; el.preload = 'auto'; el.setAttribute('playsinline', '');
+    el.src = URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+    el.addEventListener('pause', () => { if (this.tvPropio > Date.now()) return; anotar('tv: el control pausó'); if (Audio.sonando) Rep.pausa(); });
+    el.addEventListener('play', () => { if (this.tvPropio > Date.now()) return; anotar('tv: el control arrancó'); if (!Audio.sonando && Rep.cancion && $('#pRep').classList.contains('activa')) { Rep.reanudar = true; Rep.tocar(); } });
+    anotar('tv: televisor detectado (' + (navigator.userAgent.match(/Tizen[^;)]*|Web0S|webOS/i) || ['?'])[0] + '): ▶❚❚ del control por el reproductor del navegador');
+    return (this.tv = el);
+  },
+  tvSigue(sonando) {
+    const el = this.tvArmar(); if (!el) return;
+    this.tvPropio = Date.now() + 400;   // lo que hace YouSTEM no se toma como un botón del control
+    try { if (sonando) { const p = el.play(); if (p && p.catch) p.catch(e => anotar('tv: el navegador no dejó arrancar el reproductor', e && e.name)); } else el.pause(); } catch {}
+  },
   // oculto = la pantalla bloqueada / otra app: el sonido va por el <audio>; visible: directo
   fondoCambiar(oculto) {
     if (!this.ctx || !this.gFondo) return;
@@ -4140,12 +4162,13 @@ const Rep = {
     this.avisoC = aviso1;
     Audio.enviar({ t: 'play' }); Audio.sonando = true; Audio.posCt = Audio.ctx.currentTime;
     Audio.tocadoCt = Audio.ctx.currentTime; Audio.desdeToque = desde;
+    Audio.tvSigue(true);   // (0.8.2)
     if (document.hidden) Audio.fondoCambiar(true);   // (0.6.3) ▶ desde la pantalla bloqueada
     this.reanudar = false;
     pantallaPrendida(true); this.refrescarBotones(); Medios.estado();
   },
-  pausa() { this.avisoC = null; const oido = Audio.sonando ? Audio.ahora() : null; Audio.enviar({ t: 'pausa' }); Audio.sonando = false; if (oido != null) { Audio.pos = oido; Audio.enviar({ t: 'ir', pos: oido * Audio.sr }); } /* (0.8.0) B11: se queda en lo que se OYÓ */ Audio.fondoPausa(); pantallaPrendida(false); this.refrescarBotones(); Medios.estado(); },
-  parar() { if (Audio.nodo) Audio.enviar({ t: 'pausa' }); Audio.sonando = false; Audio.fondoPausa(); pantallaPrendida(false); Medios.estado(); },
+  pausa() { this.avisoC = null; const oido = Audio.sonando ? Audio.ahora() : null; Audio.enviar({ t: 'pausa' }); Audio.sonando = false; if (oido != null) { Audio.pos = oido; Audio.enviar({ t: 'ir', pos: oido * Audio.sr }); } /* (0.8.0) B11: se queda en lo que se OYÓ */ Audio.fondoPausa(); Audio.tvSigue(false); pantallaPrendida(false); this.refrescarBotones(); Medios.estado(); },
+  parar() { if (Audio.nodo) Audio.enviar({ t: 'pausa' }); Audio.sonando = false; Audio.fondoPausa(); Audio.tvSigue(false); pantallaPrendida(false); Medios.estado(); },
   alInicio() { this.reanudar = false; this.ir(this.aj.marcaInicio >= 0 ? this.aj.marcaInicio : 0); if (Audio.sonando) this.tocar(); },
   refrescarBotones() {
     $('#btnPlay').classList.toggle('sonando', Audio.sonando);
@@ -4629,7 +4652,7 @@ $('#btnLoop').onclick = () => {
   if (!(a.cicloFin > a.cicloIni + 0.2)) { aviso('Mantené apretada una parte de la barra (Intro, Coro…) para repetirla.'); return; }
   a.loop = !a.loop; Rep.aplicarLoop(); Rep.guardarLocal();
 };
-Audio.alTerminar = () => { Rep.reanudar = false; Rep.refrescarBotones(); pantallaPrendida(false); Medios.estado(); };   // (0.8.0) B18
+Audio.alTerminar = () => { Audio.tvSigue(false); Rep.reanudar = false; Rep.refrescarBotones(); pantallaPrendida(false); Medios.estado(); };   // (0.8.0) B18
 
 // ══════════ (0.7.2) LUPA de las banderas: 7 compases grandes alrededor (número, sección, acorde, pulsos; la cuenta en violeta) ══════════
 const Lupa = {
