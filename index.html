@@ -2949,7 +2949,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.8.2';
+const VERSION = '0.8.3';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -5273,6 +5273,24 @@ document.addEventListener('keydown', e => {
     return;
   }
   if ((e.key === 'GoBack' || e.key === 'BrowserBack' || CODIGOS_VOLVER.has(e.keyCode)) && e.key !== 'Backspace') { e.preventDefault(); $('#btnVolver').click(); return; }
+  // (0.8.3) botones de COLORES del control del Samsung (llegan como XF86Red… / 403–406): el ▶❚❚ del control no llega a la página
+  const color = { XF86Red: 'rojo', ColorF0Red: 'rojo', XF86Green: 'verde', ColorF1Green: 'verde', XF86Yellow: 'amarillo', ColorF2Yellow: 'amarillo', XF86Blue: 'azul', ColorF3Blue: 'azul' }[e.key]
+             || { 403: 'rojo', 404: 'verde', 405: 'amarillo', 406: 'azul' }[e.keyCode];
+  if (color) {
+    e.preventDefault();
+    if (color === 'rojo') { if (Audio.sonando) { Rep.pausa(); aviso('❚❚ Pausa', 900); } else { Rep.reanudar = true; Rep.tocar(); aviso('▶', 700); } }
+    else if (color === 'verde') { Rep.alInicio(); aviso(Rep.aj.marcaInicio >= 0 ? 'A la bandera verde' : 'Al comienzo', 1200); }
+    else if (color === 'amarillo') {
+      const a = Rep.aj, t = Audio.ahora(), b = Rep.an.arreglo.find(x => t >= x.t - 0.05 && t < x.fin);
+      if (a.loop && b && Math.abs(a.cicloIni - b.t) < 0.05 && Math.abs(a.cicloFin - b.fin) < 0.05) { a.loop = false; aviso('Repetir: apagado', 1400); }
+      else if (b) { a.cicloIni = b.t; a.cicloFin = b.fin; a.loop = true; aviso('Repitiendo: ' + (b.nombre || 'esta parte'), 1600); }
+      else if (a.loop) { a.loop = false; aviso('Repetir: apagado', 1400); }
+      else { aviso(Rep.an.arreglo.length ? 'Acá no hay ninguna parte marcada.' : 'Esta canción no tiene partes (Intro, Coro…) para repetir.', 2500); return; }
+      Rep.aplicarLoop(); Rep.guardarLocal(); Rep.refrescarBotones();
+    }
+    else if (color === 'azul') Rep.alternarCuenta();
+    return;
+  }
   if (/^[0-9]$/.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) {
     const filas = Rep.filas.filter(f => f.tipo !== 'master');
     const f = e.key === '0' ? filas.find(x => x.tipo === 'click') : filas.filter(x => x.tipo !== 'click')[+e.key - 1];
