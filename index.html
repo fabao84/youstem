@@ -524,6 +524,28 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
   background:rgba(10,12,15,.88);color:#fff;font-weight:800;font-size:clamp(26px,8vw,54px);padding:.35em .8em;border-radius:22px;
   border:2px solid rgba(255,255,255,.15);white-space:nowrap;transition:opacity .25s,transform .25s}
 #gesto.ver{opacity:1;transform:translate(-50%,-50%) scale(1);transition:opacity .08s,transform .12s}
+
+/* (0.8.5) tono y tempo juntos arriba (boceto A) */
+.tonoTempo{display:flex;align-items:center;gap:9px;background:var(--panel2);border-radius:12px;flex:none;height:38px;padding:0 12px;font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
+.tonoTempo .sepTT{width:1px;height:16px;background:rgba(255,255,255,.18)}
+.tonoTempo.lento{box-shadow:0 0 0 2px var(--naranjaT)}
+.tonoTempo.lento #tempoVal,.valTT.lento{color:var(--naranjaT)}
+:root{--naranjaT:#ff9f43}
+.popTT{position:fixed;display:none;flex-direction:column;gap:12px;padding:14px;border-radius:18px;background:#2a3038;box-shadow:0 14px 40px rgba(0,0,0,.55);z-index:36;width:min(320px,calc(100vw - 20px))}
+.popTT.ver{display:flex}
+.filaTT{display:flex;align-items:center;gap:10px}
+.etTT{width:58px;font-size:12px;color:var(--gris);letter-spacing:.6px;text-transform:uppercase}
+.filaTT button{width:44px;height:44px;border-radius:12px;background:var(--panel2);font-size:22px;font-weight:700;flex:none}
+.filaTT button:active{background:#333a44}
+.valTT{flex:1;text-align:center;font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;cursor:pointer;line-height:1.1}
+.valTT small{display:block;font-size:11px;font-weight:500;color:var(--gris)}
+.chipsTT{display:flex;gap:6px;flex-wrap:wrap}
+.chipsTT button{flex:1;padding:8px 0;border-radius:999px;background:var(--panel2);font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
+.chipsTT button.sel{background:var(--naranjaT);color:#1a1205}
+.notaTT{font-size:11.5px;color:var(--gris);line-height:1.35}
+@media (min-width:700px){ .tonoTempo{height:46px;font-size:18px;padding:0 16px} }
+
+.pieOcultas{color:var(--gris);font-size:12px;text-align:center;padding:18px 16px 28px;opacity:.8}   /* (0.8.6) */
 </style>
 </head>
 <body>
@@ -561,11 +583,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
   <header class="rcab">
     <button id="btnVolver" class="icono" aria-label="Biblioteca">‹</button>
     <div class="rtit"><div id="rTit"></div><div id="rArt"></div></div>
-    <div class="tono">
-      <button id="tonoMenos" aria-label="Bajar tono">−</button>
-      <div class="tonoCaja" id="tonoVal" title="Tocar = tono de la Mac">0</div>
-      <button id="tonoMas" aria-label="Subir tono">+</button>
-    </div>
+    <button id="btnTonoTempo" class="tonoTempo" aria-label="Tono y tempo"><span id="tonoVal">0</span><span class="sepTT"></span><span id="tempoVal">100 %</span></button>
     <button id="btnCompartir" class="icono" aria-label="Compartir la canción" title="Compartir la canción (.youstem)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M8 10H6.5A1.5 1.5 0 0 0 5 11.5v8A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-8a1.5 1.5 0 0 0-1.5-1.5H16"/></svg></button>
     <button id="btnEditar" class="icono soloGrande" aria-label="Editar acordes y arreglos" title="Editar acordes y arreglos">✎</button>
     <button id="btnMenu2" class="icono" aria-label="Menú">⋯</button>
@@ -684,6 +702,12 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 <div id="hojaAviso" class="hoja"><div class="hojaCaja" id="haCaja"></div></div>
 <div id="panelReg" class="hoja reg"><div class="hojaCaja"><pre id="registro"></pre><div class="fila2"><button id="regCopiar">Copiar</button><button id="regCerrar">Cerrar</button></div></div></div>
 <div id="popClick" class="popClick"><button id="pcCorrer" title="Correr el 1 al pulso siguiente">1<span class="flecha">→</span></button><button id="pcMedio" title="Mover el click medio tiempo (otro toque lo vuelve)">½<span class="flecha">→</span></button><button id="pcUno" title="Apagar el acento del 1"><s>1</s></button><button id="pcD2" title="Click a la mitad">÷2</button><button id="pcX2" title="Click al doble">×2</button><button id="pcPulso" class="ancho" title="Ajustar el pulso: tocá en el 1">Pulso…</button></div>
+<div id="popTT" class="popTT">
+  <div class="filaTT"><span class="etTT">Tono</span><button id="tonoMenos" aria-label="Bajar tono">−</button><div class="valTT" id="tonoNum" title="Tocar = tono de la Mac">0<small id="tonoNumKey"></small></div><button id="tonoMas" aria-label="Subir tono">+</button></div>
+  <div class="filaTT"><span class="etTT">Tempo</span><button id="tempoMenos" aria-label="Más lento">−</button><div class="valTT" id="tempoNum" title="Tocar = 100 %">100 %<small id="tempoBpm"></small></div><button id="tempoMas" aria-label="Más rápido">+</button></div>
+  <div class="chipsTT" id="tempoChips"><button data-v="0.7">70</button><button data-v="0.8">80</button><button data-v="0.85">85</button><button data-v="0.9">90</button><button data-v="1">100</button></div>
+  <div class="notaTT">Tocar el número: tono de la Mac · tempo 100 %. Se guarda en este aparato para esta canción.</div>
+</div>
 <div id="popCuenta" class="popClick"><button data-n="1" class="ancho">1 compás</button><button data-n="2" class="ancho">2 compases</button></div>
 <div id="lupaB" class="lupaB"><div class="lbTit"><b id="lbTit"></b><span id="lbSub"></span></div><div id="lbComps" class="lbComps"></div><div class="lbPie">Arrastrá a los costados · soltá para dejarla</div></div>
 <div id="aviso" class="aviso"></div>
@@ -729,6 +753,8 @@ function sintetizarBeep(sr, dur, f, amp, madera) {
   return b;
 }
 
+const j0 = (b, n0, B) => n0 + b * B;
+
 class YouStem extends AudioWorkletProcessor {
   constructor() {
     super();
@@ -738,6 +764,7 @@ class YouStem extends AudioWorkletProcessor {
     this.loopOn = false; this.loopA = 0; this.loopB = 0;
     this.master = 1; this.gMaster = 1;
     this.ratio = 1; this.rw = 1;   // ratio = remuestreo total; rw = cuánto estira el WSOLA (1 = no estira: solo velocidad)
+    this.tempo = 1; this.dual = false;   // (0.8.5) tempo ≠ 1: un solo WSOLA con los MISMOS cortes para lo tonal y la batería/click (no se desfasan)
     this.click = { on: false, g: 1, beats: [], fuerte: [], desde: 0, suaveHasta: 0, i: 0 };
     this.cuenta = { desde: 0, hasta: -1, pos: [], fuerte: [] };
     this.externo = false; // (0.6.0) tono con el motor Signalsmith: acá solo se mezcla (y la corrección a 440); salida 0 = lo tonal, salida 1 = batería/click/cuenta
@@ -761,6 +788,8 @@ class YouStem extends AudioWorkletProcessor {
     this.O = new Fifo(8192); this.oLeido = 0;       // salida lista
     this.aIdeal = 0; this.prev = -1;
     this.SF = new Fifo(16384);                      // batería/click aparte: solo velocidad, alineada con lo estirado
+    this.XF = new Fifo(65536); this.olaFL = new Float32Array(W); this.olaFR = new Float32Array(W); this.OF = new Fifo(8192);   // (0.8.5) la batería en el modo tempo
+    if (this.dual) { this.fFase = 0; return; }
     // el estirado entrega lo tonal corrido ~8 ms más HS·(1−rw) muestras (medido): la batería se atrasa lo mismo
     const d = this.rw === 1 ? 0 : Math.round(0.008 * sampleRate - HS * (this.rw - 1));
     this.fFase = -Math.max(0, d) * (this.ratio / this.rw);
@@ -784,7 +813,7 @@ class YouStem extends AudioWorkletProcessor {
       case 'ir': this.previa = null; this.pos = Math.max(0, Math.min(this.largo, Math.round(m.pos))); this.reiniciarTono(); this.click.i = 0; this.avisar(); break;
       case 'loop': this.loopOn = m.on; this.loopA = Math.round(m.a); this.loopB = Math.round(m.b); break;
       case 'externo': if (!!m.on !== this.externo) { this.pos = Math.round(this.posOida()); this.externo = !!m.on; this.reiniciarTono(); } break;   // (0.8.0) B11
-      case 'tono': { const rw = m.rw == null ? m.r : m.rw; if (Math.abs(m.r - this.ratio) > 1e-6 || Math.abs(rw - this.rw) > 1e-6) { this.pos = Math.round(this.posOida()); this.ratio = m.r; this.rw = rw; this.reiniciarTono(); } break; }   // (0.8.0) B11
+      case 'tono': { const rw = m.rw == null ? m.r : m.rw, tp = m.tempo || 1; if (Math.abs(m.r - this.ratio) > 1e-6 || Math.abs(rw - this.rw) > 1e-6 || Math.abs(tp - this.tempo) > 1e-6) { this.pos = Math.round(this.posOida()); this.ratio = m.r; this.rw = rw; this.tempo = tp; this.dual = Math.abs(tp - 1) > 1e-4; this.reiniciarTono(); } break; }   // (0.8.0) B11 · (0.8.5) tempo
       case 'hola': this.port.postMessage({ t: 'hola', n: m.n }); break;
       case 'click': Object.assign(this.click, m.c); this.click.i = 0; break;
       case 'cuenta': this.cuenta = { desde: Math.round(m.desde), hasta: Math.round(m.hasta), pos: m.pos, fuerte: m.fuerte }; break;
@@ -793,6 +822,10 @@ class YouStem extends AudioWorkletProcessor {
 
   // posición que se está ESCUCHANDO (descuenta lo que el tono tiene en vuelo)
   posOida() {
+    if (this.dual) {   // (0.8.5) modo tempo: lo que hay en vuelo en el remuestreo y en el estirado
+      const enS = this.S.n - this.sFase, oidaX = this.aIdeal - (this.O.n - this.oLeido + HS) / this.rw;
+      return Math.max(0, this.pos - enS - ((this.xOff + this.X.n) - oidaX) * this.ratio);
+    }
     if (this.externo) return Math.max(0, this.pos - (this.S.n - this.sFase));
     if (this.ratio === 1) return this.pos;
     const r = this.ratio;
@@ -892,9 +925,9 @@ class YouStem extends AudioWorkletProcessor {
 
   // ── tono: remuestreo (cúbico) a velocidad r → WSOLA estira r → mismo largo, otra altura ──
   llenarX(hasta) {           // asegura X hasta la posición absoluta `hasta`
-    const r = this.ratio, S = this.S, X = this.X;
+    const r = this.ratio, S = this.S, X = this.X, dual = this.dual, SF = this.SF, XF = this.XF;
     while (this.xOff + X.n < hasta) {
-      if (!this.sonando) { X.reservar(1); X.L[X.n] = 0; X.R[X.n] = 0; X.n++; continue; }
+      if (!this.sonando) { X.reservar(1); X.L[X.n] = 0; X.R[X.n] = 0; if (dual) { XF.reservar(1); XF.L[X.n] = 0; XF.R[X.n] = 0; XF.n = X.n + 1; } X.n++; continue; }
       const i0 = Math.floor(this.sFase);
       if (S.n < i0 + 4) {
         this.cargar();
@@ -904,9 +937,15 @@ class YouStem extends AudioWorkletProcessor {
       X.reservar(1);
       X.L[X.n] = cubica(S.L[a], S.L[i0], S.L[i0 + 1], S.L[i0 + 2], f);
       X.R[X.n] = cubica(S.R[a], S.R[i0], S.R[i0 + 1], S.R[i0 + 2], f);
+      if (dual) {
+        XF.reservar(1);
+        XF.L[X.n] = cubica(SF.L[a], SF.L[i0], SF.L[i0 + 1], SF.L[i0 + 2], f);
+        XF.R[X.n] = cubica(SF.R[a], SF.R[i0], SF.R[i0 + 1], SF.R[i0 + 2], f);
+        XF.n = X.n + 1;
+      }
       X.n++;
       this.sFase += r;
-      if (this.sFase > 8192) { const q = Math.floor(this.sFase) - 2; S.descartar(q); this.sFase -= q; }
+      if (this.sFase > 8192) { const q = Math.floor(this.sFase) - 2; S.descartar(q); if (dual) SF.descartar(q); this.sFase -= q; }
     }
   }
 
@@ -955,7 +994,7 @@ class YouStem extends AudioWorkletProcessor {
   }
 
   unSalto() {
-    const r = this.ratio, X = this.X;
+    const r = this.ratio, X = this.X, XF = this.dual ? this.XF : null;
     const ideal = Math.round(this.aIdeal);
     let mejor = ideal;
     if (this.prev >= 0) {
@@ -966,8 +1005,9 @@ class YouStem extends AudioWorkletProcessor {
       const corr = (c, paso) => {
         let s = 0, e = 1e-9;
         for (let j = 0; j < HS; j += paso) {
-          const a = X.L[c - this.xOff + j] + X.R[c - this.xOff + j];
-          const b = X.L[nat - this.xOff + j] + X.R[nat - this.xOff + j];
+          const ia = c - this.xOff + j, ib = nat - this.xOff + j;
+          let a = X.L[ia] + X.R[ia], b = X.L[ib] + X.R[ib];
+          if (XF) { a += XF.L[ia] + XF.R[ia]; b += XF.L[ib] + XF.R[ib]; }
           s += a * b; e += a * a;
         }
         return s / Math.sqrt(e);
@@ -975,17 +1015,26 @@ class YouStem extends AudioWorkletProcessor {
       for (let c = lo; c <= hi; c += 4) { const v = corr(c, 4); if (v > mejorC) { mejorC = v; mejor = c; } }
       const base = mejor; mejorC = -Infinity;
       for (let c = Math.max(lo, base - 4); c <= Math.min(hi, base + 4); c++) { const v = corr(c, 2); if (v > mejorC) { mejorC = v; mejor = c; } }
+      // (0.8.5) acelerando, un golpe (batería, consonante) en la parte que se superpone saldría doble y más débil:
+      // ahí se toma la continuación natural (sin saltear nada) y lo que falta se recupera en los saltos siguientes
+      if (this.rw < 1 && nat >= Math.max(this.xOff, ideal - 3 * D) && this.hayAtaque(nat - this.xOff, XF)) mejor = nat;
     } else this.llenarX(ideal + W + 4);
     const o = mejor - this.xOff;
     for (let j = 0; j < W; j++) { this.olaL[j] += X.L[o + j] * VENTANA[j]; this.olaR[j] += X.R[o + j] * VENTANA[j]; }
-    const O = this.O;
-    if (this.oLeido > 4096) { O.descartar(this.oLeido); this.oLeido = 0; }
+    const O = this.O, OF = this.OF;
+    if (this.oLeido > 4096) { O.descartar(this.oLeido); if (XF) OF.descartar(this.oLeido); this.oLeido = 0; }
     O.reservar(HS);
     O.L.set(this.olaL.subarray(0, HS), O.n); O.R.set(this.olaR.subarray(0, HS), O.n); O.n += HS;
     this.olaL.copyWithin(0, HS); this.olaR.copyWithin(0, HS); this.olaL.fill(0, W - HS); this.olaR.fill(0, W - HS);
+    if (XF) {   // (0.8.5) la batería/click con el mismo corte
+      const FL = this.olaFL, FR = this.olaFR;
+      for (let j = 0; j < W; j++) { FL[j] += XF.L[o + j] * VENTANA[j]; FR[j] += XF.R[o + j] * VENTANA[j]; }
+      OF.reservar(HS); OF.L.set(FL.subarray(0, HS), OF.n); OF.R.set(FR.subarray(0, HS), OF.n); OF.n += HS;
+      FL.copyWithin(0, HS); FR.copyWithin(0, HS); FL.fill(0, W - HS); FR.fill(0, W - HS);
+    }
     this.prev = mejor; this.aIdeal += HS / this.rw;
     const corte = Math.min(this.prev, Math.round(this.aIdeal)) - D - 8 - this.xOff;
-    if (corte > 16384) { X.descartar(corte); this.xOff += corte; }
+    if (corte > 16384) { X.descartar(corte); if (XF) XF.descartar(corte); this.xOff += corte; }
   }
 
   // (0.6.0) modo externo: mezcla separada (tonal / fija), las dos a la velocidad de la corrección a 440, sin estirar
@@ -1005,6 +1054,30 @@ class YouStem extends AudioWorkletProcessor {
     }
   }
 
+  hayAtaque(i, XF) {   // energía por bloques de 128 en [i−512, i+HS): ¿algún bloque salta 4× sobre los anteriores?
+    const X = this.X, B = 128, n0 = Math.max(0, i - 512), nb = Math.floor((i + HS - n0) / B);
+    let e1 = 0, e2 = 0;
+    for (let b = 0; b < nb; b++) {
+      let e = 0;
+      for (let j = n0 + b * B, z = j + B; j < z; j++) { let v = X.L[j] + X.R[j]; if (XF) v += XF.L[j] + XF.R[j]; e += v * v; }
+      if (b >= 2 && j0(b, n0, B) >= i && e > 4 * (e1 + e2) / 2 + 1e-4) return true;
+      e2 = e1; e1 = e;
+    }
+    return false;
+  }
+
+  // (0.8.5) modo tempo: L/R = lo tonal estirado, FL/FR = batería/click/cuenta estirados con los mismos cortes.
+  // Sin FL (sin motor de tono aparte) va todo junto en L/R.
+  dualProc(L, R, FL, FR, n) {
+    if (!this.sonando && this.O.n - this.oLeido <= 0) { L.fill(0); R.fill(0); if (FL) { FL.fill(0); FR.fill(0); } return; }
+    while (this.O.n - this.oLeido < n) this.unSalto();
+    const a = this.oLeido, O = this.O, OF = this.OF;
+    L.set(O.L.subarray(a, a + n)); R.set(O.R.subarray(a, a + n));
+    if (FL) { FL.set(OF.L.subarray(a, a + n)); FR.set(OF.R.subarray(a, a + n)); }
+    else for (let k = 0; k < n; k++) { L[k] += OF.L[a + k]; R[k] += OF.R[a + k]; }
+    this.oLeido += n;
+  }
+
   process(_in, outputs) {
     const out = outputs[0], L = out[0], R = out[1] || out[0], n = L.length;
     const gm = this.master;
@@ -1015,8 +1088,9 @@ class YouStem extends AudioWorkletProcessor {
         L.fill(0); R.fill(0); L2.fill(0); if (R2 !== L2) R2.fill(0);
         this.sumarBeeps(L2, R2, 0, k, pv.t, pv.pos, pv.fuerte, this.bCuentaF, this.bCuentaD, 1.0, null);
         pv.t += k; if (pv.t >= pv.n) this.previa = null;
-        if (k < n) this.externoProc(L.subarray(k), R.subarray(k), L2.subarray(k), R2.subarray(k), n - k);
-      } else if (!this.sonando) { L.fill(0); R.fill(0); L2.fill(0); if (R2 !== L2) R2.fill(0); }
+        if (k < n) (this.dual ? this.dualProc : this.externoProc).call(this, L.subarray(k), R.subarray(k), L2.subarray(k), R2.subarray(k), n - k);
+      } else if (!this.sonando && !this.dual) { L.fill(0); R.fill(0); L2.fill(0); if (R2 !== L2) R2.fill(0); }
+      else if (this.dual) this.dualProc(L, R, L2, R2, n);
       else this.externoProc(L, R, L2, R2, n);
       for (let i = 0; i < n; i++) { this.gMaster += (gm - this.gMaster) * 0.003; const g = this.gMaster; L[i] *= g; if (R !== L) R[i] *= g; L2[i] *= g; if (R2 !== L2) R2[i] *= g; }
       this.contAviso += n;
@@ -1039,6 +1113,7 @@ class YouStem extends AudioWorkletProcessor {
     return true;
   }
   normal(L, R, n) {
+    if (this.dual) return this.dualProc(L, R, null, null, n);
     if (!this.sonando && (this.ratio === 1 || this.O.n - this.oLeido <= 0)) {
       L.fill(0); R.fill(0);
     } else if (this.ratio === 1) {
@@ -2966,7 +3041,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.8.5';
+const VERSION = '0.8.6';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -3094,8 +3169,8 @@ const Audio = {
   ahora() {   // posición suave para la pantalla = lo que SE OYE (descuenta el motor de tono y la salida del sistema)
     if (!this.ctx) return this.pos;
     if (!this.sonando) return this.pos;
-    const atraso = this.retraso + this.salida();
-    let t = this.pos + Math.max(0, Math.min(0.25, this.ctx.currentTime - this.posCt)) - atraso;
+    const atraso = this.retraso + this.salida(), vel = this.vel || 1;   // (0.8.5) vel: segundos de canción por segundo real
+    let t = this.pos + (Math.max(0, Math.min(0.25, this.ctx.currentTime - this.posCt)) - atraso) * vel;
     // recién tocado ▶: la pantalla espera en el punto de partida hasta que el sonido llega (suena y se ve a la vez)
     if (this.tocadoCt != null && this.ctx.currentTime - this.tocadoCt < atraso + 0.15) t = Math.max(t, this.desdeToque);
     return Math.max(0, t);
@@ -3261,7 +3336,7 @@ $('#btnSinCuenta').onclick = () => { Pref.set('sinCuenta', true); pantalla('pBib
 
 // ══════════════════════ Biblioteca ══════════════════════
 const Bib = {
-  libs: [], vistas: [], sel: new Set(), porLib: {}, miniaturas: {}, guardadas: new Set(), sinMini: new Set(),
+  libs: [], vistas: [], sel: new Set(), porLib: {}, miniaturas: {}, guardadas: new Set(), sinMini: new Set(), imgs: {},
   // (0.8.4) fabao: "no está bien que aparezca en la biblioteca algo que no está completo". Se revisa en segundo plano que cada
   // canción tenga sus pistas en OneDrive (una consulta por canción, solo cuando su ficha es nueva o cambió: se recuerda por eTag).
   // Las que no tienen pistas no se muestran (salvo que estén guardadas completas en el aparato).
@@ -3382,7 +3457,7 @@ const Bib = {
     for (const k of await Nube.idsGuardados()) this.guardadas.add(k);   // (0.8.0) C7: unión (una apertura en curso ya pudo sumar la suya)
     for (const l of this.libs) {
       if (l.local) { this.porLib[l.clave] = Local.lista(); for (const c of this.porLib[l.clave]) if (c.miniatura && !this.miniaturas['local|' + c.id]) Local.miniatura(c.id).then(u => { if (u) { this.miniaturas['local|' + c.id] = u; this.dibujar(); } }); continue; }
-      const cache = await Nube.catalogoGuardado(l); if (cache) { this.porLib[l.clave] = cache; this.minisDeCache(l, cache); }
+      const cache = await Nube.catalogoGuardado(l); if (cache) { this.porLib[l.clave] = cache; await this.minisDeCache(l, cache); }
     }
     this.dibujar();
     if (soloCache) return;
@@ -3403,17 +3478,27 @@ const Bib = {
   // (0.5.8) miniaturas: guardadas en el aparato con su eTag; al actualizar se baja solo la que cambió (antes, todas cada vez)
   miniEtag: {},
   claveMini(l, id) { return Nube.claveCache(l.clave, id, '_catalogo.jpg'); },
-  usarMini(k, buf, eTag) {
+  usarMini(k, buf, eTag, sinDibujar) {
+    if (this.miniaturas[k] && eTag && this.miniEtag[k] === eTag) return;   // (0.8.5) la misma: no se toca (no parpadea)
     const viejo = this.miniaturas[k]; if (viejo && viejo.startsWith('blob:')) URL.revokeObjectURL(viejo);
     this.miniaturas[k] = URL.createObjectURL(new Blob([buf], { type: 'image/jpeg' })); this.miniEtag[k] = eTag;
+    if (sinDibujar) return;
     clearTimeout(this.tMini); this.tMini = setTimeout(() => this.dibujar(), 150);
   },
-  async minisDeCache(l, canciones) {
-    for (const c of canciones) {
-      const k = l.clave + '|' + c.id; if (this.miniaturas[k]) continue;
-      const e = await Nube.etagCache(this.claveMini(l, c.id)); if (e === null) continue;
-      const b = await Nube.enCache(this.claveMini(l, c.id)); if (b) this.usarMini(k, b, e);
-    }
+  // (0.8.5) la MISMA imagen (ya decodificada) se reusa en cada redibujo: antes cada dibujar() creaba imágenes nuevas y las
+  // portadas se apagaban y prendían al abrir la app o al actualizar la biblioteca
+  imgDe(k, url) {
+    const x = this.imgs[k]; if (x && x.url === url) return x.im;
+    const im = new Image(); im.decoding = 'async'; im.src = url; this.imgs[k] = { url, im }; return im;
+  },
+  async minisDeCache(l, canciones) {   // (0.8.5) todas a la vez y antes del primer dibujo: las portadas aparecen de entrada
+    await Promise.all(canciones.map(async c => {
+      const k = l.clave + '|' + c.id; if (this.miniaturas[k]) return;
+      try {
+        const e = await Nube.etagCache(this.claveMini(l, c.id)); if (e === null) return;
+        const b = await Nube.enCache(this.claveMini(l, c.id)); if (b) this.usarMini(k, b, e, true);
+      } catch {}
+    }));
   },
   async ponerMinis(l, minis) {
     const ids = Object.keys(minis).filter(id => this.miniEtag[l.clave + '|' + id] !== minis[id].eTag || !this.miniaturas[l.clave + '|' + id]);
@@ -3464,8 +3549,8 @@ const Bib = {
       const url = this.miniaturas[(lib.local ? 'local' : lib.clave) + '|' + c.id];
       // (0.8.0) C13: se busca en la caché una sola vez por canción (no en cada redibujo) y se revoca la URL anterior
       const kk = lib.clave + '|' + c.id;
-      const deCache = () => { if (lib.local || !this.guardadas.has(kk) || this.sinMini.has(kk)) return; this.sinMini.add(kk); Nube.enCache(Nube.claveCache(lib.clave, c.id, 'miniatura.jpg')).then(b => { if (b) { const v = this.miniaturas[kk]; if (v && v.startsWith('blob:')) URL.revokeObjectURL(v); const u = URL.createObjectURL(new Blob([b], { type: 'image/jpeg' })); this.miniaturas[kk] = u; mini.innerHTML = ''; const im = new Image(); im.src = u; mini.appendChild(im); } }); };
-      if (url) { const im = new Image(); im.loading = 'lazy'; im.src = url; im.onerror = () => { im.remove(); deCache(); }; mini.appendChild(im); } else deCache();
+      const deCache = () => { if (lib.local || !this.guardadas.has(kk) || this.sinMini.has(kk)) return; this.sinMini.add(kk); Nube.enCache(Nube.claveCache(lib.clave, c.id, 'miniatura.jpg')).then(b => { if (b) { const v = this.miniaturas[kk]; if (v && v.startsWith('blob:')) URL.revokeObjectURL(v); const u = URL.createObjectURL(new Blob([b], { type: 'image/jpeg' })); this.miniaturas[kk] = u; mini.innerHTML = ''; mini.appendChild(this.imgDe(kk, u)); } }); };
+      if (url) { const im = this.imgDe(kk, url); im.onerror = () => { im.remove(); deCache(); }; mini.appendChild(im); } else deCache();
       f.appendChild(mini);
       const tx = el('div', 'tx');
       tx.appendChild(el('div', 'tit', c.titulo || c.id));
@@ -3499,7 +3584,9 @@ const Bib = {
     else if (!todos.length && soloLocal) this.estado('Todavía no hay canciones en ' + EQUIPO + '. Tocá «Importar .youstem» y elegí los archivos que te pasaron (podés elegir varios).');
     else if (!todos.length) this.estado(this.error || (elegidas.some(v => v.id === 'priv') && elegidas.length === 1 ? 'No tenés canciones privadas en calidad Máxima.' : 'Acá todavía no hay canciones en calidad Máxima.'));
     else if (soloGuardadas && lista.length < todos.length) this.estado('⬇ Mostrando solo las guardadas en ' + EQUIPO + ' (' + lista.length + ' de ' + todos.length + '). Tocá «⬇ Guardadas» para ver todas.');   // (0.5.6)
-    else this.estado(qq && otras ? 'También hay ' + otras + ' en otras pestañas (tocá «Todas»).' : ocultas.length ? (ocultas.length === 1 ? '1 canción oculta' : ocultas.length + ' canciones ocultas') + ': les faltan las pistas en OneDrive (los nombres están en Ver registro).' : '');
+    else this.estado(qq && otras ? 'También hay ' + otras + ' en otras pestañas (tocá «Todas»).' : '');
+    // (0.8.6) las ocultas se avisan al FINAL de la lista, chico (arriba tapaba lugar útil)
+    if (ocultas.length && lista.length) cont.appendChild(el('div', 'pieOcultas', (ocultas.length === 1 ? '1 canción oculta' : ocultas.length + ' canciones ocultas') + ': les faltan las pistas en OneDrive (los nombres están en Ver registro).'));
     $('#cuenta').textContent = todos.length ? lista.length + ' de ' + todos.length : '';
   },
   // mantener apretada una canción: compartirla o borrarla
@@ -3808,7 +3895,7 @@ const VolDb = {
 
 const Rep = {
   cancion: null, lib: null, an: null, letra: null, aj: null, filas: [], pistas: [], dur: 0,
-  tono: 0, centsRef: 0, filasTele: [], rio: null,
+  tono: 0, tempo: 1, centsRef: 0, filasTele: [], rio: null,
 
   mostrar(c, lib, pistas, an, letra, aj) {
     this.cancion = c; this.lib = lib; this.an = an; this.letra = letra; this.pistas = pistas;
@@ -3825,6 +3912,7 @@ const Rep = {
     this.armarRegiones();
     this.armarClick();
     this.tono = Math.round(this.aj.tono || 0);
+    this.tempo = +this.aj.tempoWeb > 0.45 && +this.aj.tempoWeb < 1.25 ? +this.aj.tempoWeb : 1;   // (0.8.5) solo de este aparato
     this.aplicarTono();
     this.aplicarLoop();
     Audio.enviar({ t: 'master', v: this.aj.masterMute ? 0 : this.aj.master });
@@ -3895,7 +3983,7 @@ const Rep = {
     if (l.solos) a.solos = new Set(l.solos);
     a.muteAntes = new Set(l.muteAntes || []);
     // lo que cambiaste en ESTE aparato (las banderas quedan solo acá: no van a la nube ni a la Mac)
-    for (const k of ['tono', 'loop', 'cicloIni', 'cicloFin', 'cuenta', 'clickEncendido', 'master', 'masterMute', 'vozMidi', 'marcaInicio', 'marcaCuenta', 'cuentaMuda']) if (k in l) a[k] = l[k];
+    for (const k of ['tono', 'loop', 'cicloIni', 'cicloFin', 'cuenta', 'clickEncendido', 'master', 'masterMute', 'vozMidi', 'marcaInicio', 'marcaCuenta', 'cuentaMuda', 'tempoWeb']) if (k in l) a[k] = l[k];
     if (!(a.marcaCuenta >= 0)) { a.cuenta = false; a.marcaCuenta = -1; }   // la cuenta va con la bandera violeta
     if (!(a.marcaInicio >= 0)) a.marcaInicio = -1;
     a.local = true;
@@ -3906,7 +3994,7 @@ const Rep = {
     const ma = [];
     for (const f of this.filas) { if (f.tipo === 'master') continue; g[f.id] = f.gan; if (f.mute) m.push(f.id); if (f.solo) s.push(f.id); if (f.muteAntes) ma.push(f.id); }
     const click = this.filas.find(f => f.tipo === 'click');
-    const l = { ganancias: g, mutes: m, solos: s, tono: this.tono, loop: a.loop, cicloIni: a.cicloIni, cicloFin: a.cicloFin, cuenta: a.cuenta,
+    const l = { ganancias: g, mutes: m, solos: s, tono: this.tono, tempoWeb: this.tempo && this.tempo !== 1 ? this.tempo : undefined, loop: a.loop, cicloIni: a.cicloIni, cicloFin: a.cicloFin, cuenta: a.cuenta,
                 clickEncendido: click ? !click.mute : a.clickEncendido, master: a.master, masterMute: !!a.masterMute, vozMidi: a.vozMidi, muteAntes: ma,
                 marcaInicio: a.marcaInicio, marcaCuenta: a.marcaCuenta, cuentaMuda: !!a.cuentaMuda };
     try { localStorage.setItem(this.claveLocal(), JSON.stringify(l)); } catch {}
@@ -4107,18 +4195,22 @@ const Rep = {
     // (0.3.8) semitonos = estirado (WSOLA, mantiene el tempo); la corrección a 440 = solo velocidad (sin estirar: suena limpio)
     // (0.6.0) los semitonos los hace el motor Signalsmith si cargó; el worklet solo corrige a 440
     const rs = Math.pow(2, this.tono / 12), rc = Math.pow(2, this.centsRef / 1200);
-    const semis = this.tono, gen = (this.genTono = (this.genTono || 0) + 1);
+    // (0.8.5) TEMPO: el worklet estira lo tonal y la batería/click con los mismos cortes (rw = estirado / tempo)
+    const semis = this.tono, gen = (this.genTono = (this.genTono || 0) + 1), T = this.tempo || 1;
+    Audio.vel = rc * T;
     Audio.usarMotorTono(semis).then(externo => {
       if (gen !== this.genTono) return;
       let r = externo ? rc : rs * rc; if (Math.abs(r - 1) < 1e-4) r = 1;
-      const rw = externo || semis === 0 ? 1 : rs;
-      Audio.enviar({ t: 'tono', r, rw });
-      const modo = externo ? 'motor Signalsmith' : r === 1 ? 'original' : rw === 1 ? 'solo velocidad (440)' : 'estirado';
+      const rw = (externo || semis === 0 ? 1 : rs) / T;
+      Audio.enviar({ t: 'tono', r, rw, tempo: T });
+      const modo = (externo ? 'motor Signalsmith' : r === 1 && T === 1 ? 'original' : rw === 1 ? 'solo velocidad (440)' : 'estirado') + (T !== 1 ? ' · tempo ' + Math.round(T * 100) + ' %' + (!externo && semis ? ' (sin motor de tono: la batería también cambia de tono)' : '') : '');
       if (modo !== this.modoTono) { this.modoTono = modo; anotar('tono:', semis, 'semitonos ·', this.centsRef.toFixed(1), 'cents a 440 →', modo); }
     });
+    this.pintarTempo();
     const modo = this.modoTono;
     const txt = (this.tono > 0 ? '+' : this.tono < 0 ? '−' : '') + Math.abs(this.tono);
     $('#tonoVal').textContent = this.tono === 0 ? '0' : txt;
+    $('#tonoNum').firstChild.textContent = this.tono === 0 ? '0' : txt;
     this.aplicarTonoTexto();
     if (this.rio) this.pintarAcordes();
   },
@@ -4126,6 +4218,21 @@ const Rep = {
     const tt = Modelo.tonoTranspuesto(this.an.tonoEn(Audio.ahora()), this.tono);
     this.bemol = Modelo.tonoTranspuesto(this.an.tonalidad, this.tono).bemol;   // la ortografía, por el tono de la canción
     $('#tonoKey').textContent = Modelo.lindo(tt.nombre);
+    $('#tonoNumKey').textContent = 'Tono ' + Modelo.lindo(tt.nombre);
+  },
+  // (0.8.5) tempo de práctica: 50 % a 120 %, de a 5 %
+  ponerTempo(v) {
+    v = Math.round(Math.max(0.5, Math.min(1.2, v)) * 20) / 20;
+    if (v === this.tempo) return;
+    this.tempo = v; this.aplicarTono(); this.guardarLocal(); Medios.estado();
+  },
+  pintarTempo() {
+    const T = this.tempo || 1, p = Math.round(T * 100) + ' %', lento = T !== 1;
+    $('#tempoVal').textContent = p; $('#tempoNum').firstChild.textContent = p;
+    $('#btnTonoTempo').classList.toggle('lento', lento); $('#tempoNum').classList.toggle('lento', lento);
+    const bpm = (this.an && this.an.bpm) || (this.cancion && this.cancion.bpm) || 0;
+    $('#tempoBpm').textContent = bpm ? (lento ? '≈ ' + Math.round(bpm * T) + ' BPM (original ' + Math.round(bpm) + ')' : Math.round(bpm) + ' BPM') : '';
+    for (const b of $('#tempoChips').children) b.classList.toggle('sel', Math.abs(+b.dataset.v - T) < 1e-6);
   },
   cambiarTono(d) {
     this.tono = Math.max(-12, Math.min(12, this.tono + d)); this.aplicarTono(); this.guardarLocal();
@@ -4180,7 +4287,7 @@ const Rep = {
       if (paso <= 0 && comps.length >= 2) paso = Math.max(0.8, Math.min(8, comps[1] - comps[0])) / nB;
       if (paso < 0.15 || paso > 2.5) paso = 0.5;
       const total = nComp * nB, ini = destino - paso * total;
-      const muda = !!a.cuentaMuda, compas = paso * nB, v = Math.pow(2, this.centsRef / 1200);   // v = la velocidad de la corrección a 440
+      const muda = !!a.cuentaMuda, compas = paso * nB, v = Math.pow(2, this.centsRef / 1200) * (this.tempo || 1);   // v = la velocidad (corrección a 440 × tempo)
       if (desde < destino - 0.05) {   // después de la morada no hay cuenta
         const pos = [], fuerte = [], antes = [], golpes = [];
         for (let k = total; k >= 1; k--) {
@@ -4642,7 +4749,7 @@ const Medios = {
     try {
       navigator.mediaSession.playbackState = Audio.sonando ? 'playing' : 'paused';
       if (navigator.mediaSession.setPositionState && Rep.dur > 0)
-        navigator.mediaSession.setPositionState({ duration: Rep.dur, position: Math.max(0, Math.min(Rep.dur, Audio.ahora())), playbackRate: Audio.sonando ? Math.pow(2, Rep.centsRef / 1200) : 1 });
+        navigator.mediaSession.setPositionState({ duration: Rep.dur, position: Math.max(0, Math.min(Rep.dur, Audio.ahora())), playbackRate: Audio.sonando ? Math.pow(2, Rep.centsRef / 1200) * (Rep.tempo || 1) : 1 });
     } catch {}
   }
 };
@@ -4684,7 +4791,21 @@ $('#btnInicio').onclick = () => Rep.alInicio();
 $('#tonoMenos').onclick = () => Rep.cambiarTono(-1);
 $('#tonoMas').onclick = () => Rep.cambiarTono(+1);
 $('#tonoKey').parentElement.onclick = () => Rep.cambiarNotacion();
-$('#tonoVal').onclick = () => { Rep.tono = Math.round(Rep.ajMac.tono || 0); Rep.aplicarTono(); Rep.guardarLocal(); aviso('Tono como en la Mac.'); };
+$('#tonoNum').onclick = () => { Rep.tono = Math.round(Rep.ajMac.tono || 0); Rep.aplicarTono(); Rep.guardarLocal(); aviso('Tono como en la Mac.'); };
+// (0.8.5) tono y tempo: el cuadrito de arriba abre el panel
+$('#tempoMenos').onclick = () => Rep.ponerTempo((Rep.tempo || 1) - 0.05);
+$('#tempoMas').onclick = () => Rep.ponerTempo((Rep.tempo || 1) + 0.05);
+$('#tempoNum').onclick = () => Rep.ponerTempo(1);
+$('#tempoChips').onclick = e => { const b = e.target.closest('button'); if (b) Rep.ponerTempo(+b.dataset.v); };
+$('#btnTonoTempo').onclick = () => {
+  const M = $('#popTT');
+  if (M.classList.contains('ver')) { M.classList.remove('ver'); return; }
+  Rep.pintarTempo(); M.classList.add('ver');
+  const r = $('#btnTonoTempo').getBoundingClientRect(), w = M.offsetWidth;
+  M.style.left = Math.max(10, Math.min(innerWidth - w - 10, r.right - w)) + 'px';
+  M.style.top = (r.bottom + 8) + 'px';
+};
+document.addEventListener('pointerdown', e => { const M = $('#popTT'); if (M.classList.contains('ver') && !e.target.closest('#popTT') && !e.target.closest('#btnTonoTempo')) M.classList.remove('ver'); }, true);
 $('#pcCorrer').onclick = () => Rep.correrUno();
 $('#pcMedio').onclick = () => Rep.correrMedio();
 $('#pcX2').onclick = () => Rep.factorTempo(2);
