@@ -117,7 +117,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .key span:not(:empty)::before{content:"Tono ";font-weight:500}
 .key span:empty::before{content:"Cifrado"}
 
-.tele{flex:1;min-height:0;overflow:hidden;position:relative;padding:0 16px;font-size:clamp(19px,5.6vw,38px);
+.tele{flex:1;min-height:0;overflow:hidden;position:relative;padding:0 16px;font-size:calc(clamp(19px,5.6vw,38px) * var(--kLetra,1));
   -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 84%,transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 9%,#000 84%,transparent 100%)}
 .rio{transition:transform .45s cubic-bezier(.25,.8,.3,1);will-change:transform;padding-bottom:60vh}
 .fila{margin:0 0 .5em;color:var(--tenue);transition:color .25s,opacity .25s;line-height:1.12}
@@ -134,7 +134,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .fila:not(.actual) .tx.oida{color:inherit}
 .fila.sec{display:inline-block;font-size:.5em;font-weight:800;letter-spacing:1.2px;padding:.25em .8em;border-radius:999px;background:var(--panel2);color:var(--gris);margin-bottom:.7em}
 .fila.sec.actual{background:#2c3440;color:var(--texto)}
-.fila.compases{display:flex;gap:0;margin-bottom:.45em}
+.fila.compases{display:flex;gap:0;margin-bottom:.45em;font-size:calc(1em * min(var(--kLetra,1), 1.15) / var(--kLetra,1))}   /* (0.8.5) la grilla de compases casi no crece con el pellizco: no entra */
 .cmp{flex:1 1 0;min-width:0;border-left:2px solid rgba(255,255,255,.14);padding:.08em .35em;display:flex;gap:.4em;align-items:baseline}
 .cmp:last-child{border-right:2px solid rgba(255,255,255,.14)}
 .cmp .ac{font-size:.82em}
@@ -206,7 +206,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
   .izq{flex:1.35;min-width:0}
   .der{flex:1;min-width:0;padding-bottom:4px}
   .mezcla{flex:1;height:auto;min-height:0}
-  .tele{font-size:clamp(19px,5.6vmin,38px)}   /* (0.4.1) la misma letra que en vertical (el lado corto manda) */
+  .tele{font-size:calc(clamp(19px,5.6vmin,38px) * var(--kLetra,1))}   /* (0.4.1) la misma letra que en vertical (el lado corto manda) */
   .acAhora{font-size:34px}
 }
 
@@ -356,7 +356,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
   .acAhora{font-size:52px}
   .acProx{font-size:24px}
   .key{font-size:15px}
-  .tele{padding:0 30px;font-size:clamp(26px,3.7vw,58px)}
+  .tele{padding:0 30px;font-size:calc(clamp(26px,3.7vw,58px) * var(--kLetra,1))}
   .barra{height:38px;width:calc(100% - 48px);margin:4px 24px 0}
   .transporte{gap:20px;padding:10px 16px}
   .tbot{width:56px;height:56px;font-size:26px}
@@ -380,7 +380,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 @media (min-width:700px) and (min-height:600px) and (orientation:landscape){
   .izq{flex:1.9}
   .der{flex:1;max-width:560px;min-width:380px;padding:6px 0 10px}
-  .tele{font-size:clamp(26px,2.9vw,56px)}
+  .tele{font-size:calc(clamp(26px,2.9vw,56px) * var(--kLetra,1))}
   .mezcla{height:auto}
 }
 .viene,.pie{display:none}
@@ -517,6 +517,13 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 .lupaB.verde .lbF{background:#4cd97b}.lupaB.verde .lbF::after{border-left-color:#4cd97b}
 .lbPie{font-size:12px;color:var(--gris);text-align:center}
 @media (min-width:700px) and (min-height:600px){.lbComps{height:120px}.lbA{font-size:20px}.lbTit b{font-size:18px}}
+
+/* (0.8.5) gestos sobre la letra */
+.tele{touch-action:none;-webkit-user-select:none;user-select:none}
+#gesto{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) scale(.9);pointer-events:none;opacity:0;z-index:5;
+  background:rgba(10,12,15,.88);color:#fff;font-weight:800;font-size:clamp(26px,8vw,54px);padding:.35em .8em;border-radius:22px;
+  border:2px solid rgba(255,255,255,.15);white-space:nowrap;transition:opacity .25s,transform .25s}
+#gesto.ver{opacity:1;transform:translate(-50%,-50%) scale(1);transition:opacity .08s,transform .12s}
 </style>
 </head>
 <body>
@@ -571,7 +578,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
         <div class="acs2"><span id="acAhora" class="acAhora"></span><span id="acProx" class="acProx"></span></div>
         <div class="key"><span id="tonoKey"></span></div>
       </div>
-      <div id="tele" class="tele"><div id="rio" class="rio"></div></div>
+      <div id="tele" class="tele"><div id="rio" class="rio"></div><div id="gesto"></div></div>
     </div>
     <div class="der">
       <canvas id="barra" class="barra"></canvas>
@@ -632,6 +639,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="menuDescartar">Descartar mis correcciones de esta canción</button>
     <button id="menuAudio">Reiniciar el audio</button>
     <button id="menuMac">Mezcla de cero (0 dB, sin banderas)</button>
+    <button id="menuGestos">Gestos en la letra: sí</button>
     <button id="menuBloqueada">Sonar con la pantalla bloqueada: sí</button>
     <button id="menuRecargar">Recargar la biblioteca</button>
     <button id="menuCrearLib">☁ Crear mi biblioteca en OneDrive…</button>
@@ -2470,7 +2478,7 @@ const Nube = (() => {
         if (ep > ed) continue;
         if (ep === ed) { const quiere = typeof datos.privadaPedida === 'boolean' ? datos.privadaPedida : null; const bien = quiere === null ? privada : quiere === privada; const bienPrev = previa.privadaCarpeta === previa.privada; if (bienPrev || !bien) continue; }
       }
-      vistas[datos.id] = { ...datos, raiz, privada: typeof datos.privadaPedida === 'boolean' ? datos.privadaPedida : privada, privadaCarpeta: privada };   // (0.3.13) lo pedido manda (protocolo 1.4.5)
+      vistas[datos.id] = { ...datos, raiz, privada: typeof datos.privadaPedida === 'boolean' ? datos.privadaPedida : privada, privadaCarpeta: privada, _etag: c.entradas[k].eTag || '' };   // (0.3.13) lo pedido manda (protocolo 1.4.5) · (0.8.4) _etag: para saber si la ficha cambió
     }
     return Object.values(vistas);
   }
@@ -2645,6 +2653,15 @@ const Nube = (() => {
     }
     throw new Error('la copia de ' + it.name + ' tarda demasiado');
   }
+  // (0.8.4) ¿la canción tiene sus pistas en OneDrive? (la carpeta pistas-<nivel>, o pistas-maximo para «editado», con audio)
+  async function tienePistas(c) {
+    const base = 'canciones/' + c.id + '/';
+    for (const d of c.nivel === 'editado' ? ['pistas-editado', 'pistas-maximo'] : ['pistas-' + c.nivel]) {
+      try { const it = await hijos(rutaItem(c.raiz, base + d) + '/children?$select=name'); if (it.some(x => /\.(mp3|m4a|flac|wav)$/i.test(x.name))) return true; }
+      catch (e) { if (e.status !== 404) throw e; }
+    }
+    return false;
+  }
   async function hijosDe(raiz, ruta) { try { return await hijos(rutaItem(raiz, ruta) + '/children'); } catch (e) { if (e.status === 404) return []; throw e; } }
 
   async function borrarTodo() {
@@ -2654,7 +2671,7 @@ const Nube = (() => {
 
   return { entrar, atenderVuelta, conectado, salir, token, yo, bibliotecas, catalogo, catalogoGuardado, archivosDe, bajar, enCache,
            guardarManifiesto, idsGuardados, hay, etagCache, borrarTodo, espacio, claveCache, CLIENTE, leerJson, escribir, ponerCache, moverCancion, pedirEscritura, quiereEscribir, rutaItem,
-           listarEn, borrarEn, carpetaEn, itemEn, subirArchivo, carpetaRaiz, copiarItem, hijosDe };
+           listarEn, borrarEn, carpetaEn, itemEn, subirArchivo, carpetaRaiz, copiarItem, hijosDe, tienePistas };
 })();
 
 // ── Local: usar sin nube. Importar .youstem / .youstemcorr, guardar en el dispositivo, carpeta en la computadora ──
@@ -2949,7 +2966,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.8.3';
+const VERSION = '0.8.5';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -3245,6 +3262,28 @@ $('#btnSinCuenta').onclick = () => { Pref.set('sinCuenta', true); pantalla('pBib
 // ══════════════════════ Biblioteca ══════════════════════
 const Bib = {
   libs: [], vistas: [], sel: new Set(), porLib: {}, miniaturas: {}, guardadas: new Set(), sinMini: new Set(),
+  // (0.8.4) fabao: "no está bien que aparezca en la biblioteca algo que no está completo". Se revisa en segundo plano que cada
+  // canción tenga sus pistas en OneDrive (una consulta por canción, solo cuando su ficha es nueva o cambió: se recuerda por eTag).
+  // Las que no tienen pistas no se muestran (salvo que estén guardadas completas en el aparato).
+  pistasOk: null, revisando: false,
+  async cargarPistasOk() { if (!this.pistasOk) { try { this.pistasOk = (await IDB.get('pistasOk')) || {}; } catch { this.pistasOk = {}; } } return this.pistasOk; },
+  incompleta(c, lib) { if (lib.local || !this.pistasOk) return false; const r = this.pistasOk[lib.clave + '|' + c.id]; return !!(r && r.e === c._etag && !r.ok); },
+  marcarIncompleta(c, lib) { if (!this.pistasOk || lib.local) return; this.pistasOk[lib.clave + '|' + c.id] = { e: c._etag || '', ok: false }; try { IDB.set('pistasOk', this.pistasOk); } catch {} anotar('biblioteca: oculta (le faltan las pistas en OneDrive):', c.titulo || c.id); this.dibujar(); },
+  async revisarPistas(l, canciones) {
+    const ok = await this.cargarPistasOk(), faltan = canciones.filter(c => { const r = ok[l.clave + '|' + c.id]; return !r || r.e !== (c._etag || ''); });
+    if (!faltan.length) return;
+    let i = 0, malas = [];
+    await Promise.all([0, 1, 2, 3].map(async () => {
+      while (i < faltan.length) {
+        const c = faltan[i++];
+        try { const t = await Nube.tienePistas(c); ok[l.clave + '|' + c.id] = { e: c._etag || '', ok: t }; if (!t) malas.push(c.titulo || c.id); }
+        catch (e) { if (e.sinSesion) return; }   // sin red: se revisa la próxima vez
+      }
+    }));
+    try { await IDB.set('pistasOk', ok); } catch {}
+    anotar('biblioteca:', l.carpeta, 'revisadas', faltan.length, malas.length ? '· SIN PISTAS en OneDrive (ocultas): ' + malas.join(', ') : '· todas con pistas');
+    if (malas.length) this.dibujar();
+  },
   // las de OneDrive (si hay cuenta) + "En este dispositivo" (si no hay cuenta o si ya importaste algo)
   conLocal(libs) { return (!Nube.conectado() || Local.lista().length) ? [...libs, Local.LIB] : libs; },
   async iniciar() {
@@ -3339,6 +3378,7 @@ const Bib = {
   },
   // lee el catálogo de TODAS las bibliotecas (lo guardado primero, después lo de la nube): cambiar de pestaña y buscar es instantáneo
   async cargarTodo(soloCache) {
+    await this.cargarPistasOk();   // (0.8.4) las que ya se sabe que están incompletas no aparecen ni un instante
     for (const k of await Nube.idsGuardados()) this.guardadas.add(k);   // (0.8.0) C7: unión (una apertura en curso ya pudo sumar la suya)
     for (const l of this.libs) {
       if (l.local) { this.porLib[l.clave] = Local.lista(); for (const c of this.porLib[l.clave]) if (c.miniatura && !this.miniaturas['local|' + c.id]) Local.miniatura(c.id).then(u => { if (u) { this.miniaturas['local|' + c.id] = u; this.dibujar(); } }); continue; }
@@ -3350,6 +3390,7 @@ const Bib = {
       try {
         const { canciones, miniaturas, cambiadas } = await Nube.catalogo(l, (a, b) => { if (!this.porLib[l.clave] && this.seVe(l)) this.estado(`Leyendo ${l.nombre === 'Mías' ? 'tu biblioteca' : l.nombre}… ${a} de ${b}`); });
         this.porLib[l.clave] = canciones;
+        this.revisarPistas(l, canciones).catch(e => anotar('biblioteca: revisar pistas', e));   // (0.8.4)
         this.ponerMinis(l, miniaturas);
         anotar('catálogo', l.carpeta, canciones.length + ' con Máxima' + (cambiadas.length ? ' · ' + cambiadas.length + ' con cambios' : ''));
         // (0.5.8) las guardadas en el aparato que cambiaron en la nube se ponen al día ya (solo lo que cambió: kilobytes)
@@ -3405,6 +3446,9 @@ const Bib = {
     }
     const soloGuardadas = Pref.get('soloGuardadas', false);
     const guardada = x => x.lib.local || this.guardadas.has(x.lib.clave + '|' + x.c.id);
+    // (0.8.4) sin pistas en OneDrive = no se muestra (si está guardada en el aparato, sí: esa se puede tocar)
+    const ocultas = todos.filter(x => !guardada(x) && this.incompleta(x.c, x.lib));
+    if (ocultas.length) for (let i = todos.length - 1; i >= 0; i--) if (ocultas.includes(todos[i])) todos.splice(i, 1);
     const lista = todos.filter(x => coincide(x.c) && (!soloGuardadas || guardada(x)));
     this.listaVisible = lista;
     $('#btnGuardadas').classList.toggle('on', soloGuardadas);
@@ -3455,7 +3499,7 @@ const Bib = {
     else if (!todos.length && soloLocal) this.estado('Todavía no hay canciones en ' + EQUIPO + '. Tocá «Importar .youstem» y elegí los archivos que te pasaron (podés elegir varios).');
     else if (!todos.length) this.estado(this.error || (elegidas.some(v => v.id === 'priv') && elegidas.length === 1 ? 'No tenés canciones privadas en calidad Máxima.' : 'Acá todavía no hay canciones en calidad Máxima.'));
     else if (soloGuardadas && lista.length < todos.length) this.estado('⬇ Mostrando solo las guardadas en ' + EQUIPO + ' (' + lista.length + ' de ' + todos.length + '). Tocá «⬇ Guardadas» para ver todas.');   // (0.5.6)
-    else this.estado(qq && otras ? 'También hay ' + otras + ' en otras pestañas (tocá «Todas»).' : '');
+    else this.estado(qq && otras ? 'También hay ' + otras + ' en otras pestañas (tocá «Todas»).' : ocultas.length ? (ocultas.length === 1 ? '1 canción oculta' : ocultas.length + ' canciones ocultas') + ': les faltan las pistas en OneDrive (los nombres están en Ver registro).' : '');
     $('#cuenta').textContent = todos.length ? lista.length + ' de ' + todos.length : '';
   },
   // mantener apretada una canción: compartirla o borrarla
@@ -3612,7 +3656,8 @@ async function abrirCancion(c, lib, op = {}) {
     const edPend = edicionGuardada(lib, c.id);   // tus correcciones guardadas en el dispositivo (de un colega, o esperando subir)
     if (edPend && anJ) anJ = mezclarPendiente(anJ, edPend);   // (0.8.0) A1
     if (!pistas.length) anotar('abrir', c.id, 'SIN PISTAS · nivel', c.nivel, '· carpeta', (c.raiz && c.raiz.privada) ? 'privada' : 'banda', '· archivos:', man.raiz.map(x => x.name).join(','), '·', man.dir + ':', man.pistas.map(x => x.name).join(',') || '(vacía)', man.offline ? '· (de lo guardado)' : '');
-    if (!pistas.length) throw new Error(lib.local ? 'Faltan las pistas de esta canción: importala de nuevo.' : 'No encontré las pistas Máxima de esta canción en OneDrive.');
+    if (!pistas.length && !lib.local && !man.offline) Bib.marcarIncompleta(c, lib);   // (0.8.4) sale de la biblioteca
+    if (!pistas.length) throw new Error(lib.local ? 'Faltan las pistas de esta canción: importala de nuevo.' : 'A esta canción le faltan las pistas en OneDrive: hay que volver a subirla desde la Mac. La saco de la lista.');
 
     // bajar (o leer del iPhone) y decodificar de a una: así entra en memoria
     const total = pistas.reduce((s, p) => s + (p.f.size || 0), 0) || 1;
@@ -4814,6 +4859,7 @@ async function abrirMenu() {
   if (Local.hayCarpetas()) Local.carpeta().then(h => $('#menuCarpetaNombre').textContent = h ? ' · ' + h.name : ' · ninguna');
   $('#menuBloqueada').style.display = matchMedia('(pointer: coarse)').matches ? '' : 'none';
   $('#menuBloqueada').textContent = 'Sonar con la pantalla bloqueada: ' + (Pref.get('bloqueada', true) ? 'sí' : 'no');
+  $('#menuGestos').textContent = 'Gestos en la letra: ' + (Pref.get('gestos', true) ? 'sí' : 'no');   // (0.8.5)
   const enRep = !!Rep.cancion && $('#pRep').classList.contains('activa');
   $('#menuMac').style.display = enRep ? '' : 'none';
   $('#menuAudio').style.display = enRep ? '' : 'none';
@@ -4829,6 +4875,7 @@ $('#menu').addEventListener('click', e => { if (e.target.id === 'menu') cerrarMe
 $('#menuCerrar').onclick = cerrarMenu;
 $('#menuRecargar').onclick = () => { cerrarMenu(); pantalla('pBib'); Bib.iniciar(); };
 $('#menuBloqueada').onclick = () => { const on = !Pref.get('bloqueada', true); Pref.set('bloqueada', on); if (on) { if (Audio.sonando) Audio.fondoTocar(); } else Audio.fondoPausa(); abrirMenu(); };
+$('#menuGestos').onclick = () => { Pref.set('gestos', !Pref.get('gestos', true)); abrirMenu(); };
 $('#menuMac').onclick = () => { cerrarMenu(); Rep.volverALaMac(); };
 $('#menuAudio').onclick = () => { cerrarMenu(); Rep.reiniciarAudio('a pedido'); };
 $('#menuBorrar').onclick = async () => {
@@ -5254,6 +5301,113 @@ $('#menuSalir').onclick = () => {
   if (Local.lista().length) { pantalla('pBib'); Bib.iniciar(); } else { Pref.set('sinCuenta', false); pantalla('pLogin'); }
 };
 
+// (0.8.5) repetir la parte (sección) que está sonando — botón amarillo del control y mantener apretada la letra
+function repetirParte() {
+  const a = Rep.aj, t = Audio.ahora(), b = Rep.an.arreglo.find(x => t >= x.t - 0.05 && t < x.fin);
+  if (a.loop && b && Math.abs(a.cicloIni - b.t) < 0.05 && Math.abs(a.cicloFin - b.fin) < 0.05) { a.loop = false; aviso('Repetir: apagado', 1400); }
+  else if (b) { a.cicloIni = b.t; a.cicloFin = b.fin; a.loop = true; aviso('Repitiendo: ' + (b.nombre || 'esta parte'), 1600); }
+  else if (a.loop) { a.loop = false; aviso('Repetir: apagado', 1400); }
+  else { aviso(Rep.an.arreglo.length ? 'Acá no hay ninguna parte marcada.' : 'Esta canción no tiene partes (Intro, Coro…) para repetir.', 2500); return; }
+  Rep.aplicarLoop(); Rep.guardarLocal(); Rep.refrescarBotones();
+}
+
+// (0.8.5) GESTOS SOBRE LA LETRA Y LOS ACORDES (#tele). Doble toque: mitad izquierda = −1 compás, derecha = +1 compás ·
+// deslizar → / ← = parte anterior / siguiente · toque con dos dedos = play/pausa · pellizcar = tamaño de la letra (queda
+// guardado en el aparato) · mantener apretado = repetir la parte. Menú "Gestos en la letra: sí/no" para apagarlos en un show.
+const Gestos = {
+  ultimo: null,                // destino del último salto (para encadenar toques rápidos sin esperar al audio)
+  tam() { return Math.min(2.2, Math.max(0.6, +Pref.get('tamLetra', 1) || 1)); },
+  aplicarTam(k) { document.documentElement.style.setProperty('--kLetra', k); if (Rep.cancion) Rep.medir(); },
+  flash(txt) {
+    const el = $('#gesto'); el.textContent = txt; el.classList.remove('ver'); void el.offsetWidth; el.classList.add('ver');
+    clearTimeout(this.tf); this.tf = setTimeout(() => el.classList.remove('ver'), 750);
+    if (navigator.vibrate) try { navigator.vibrate(10); } catch (e) {}
+  },
+  base() { const u = this.ultimo; return u && Date.now() - u.cuando < 1500 ? u.t : Audio.ahora(); },
+  saltar(t, txt) {
+    t = Math.max(0, Math.min(Rep.dur - 0.05, t));
+    this.ultimo = { t, cuando: Date.now() };
+    const sonaba = Audio.sonando; Rep.reanudar = true; Rep.ir(t); if (!sonaba) Rep.reanudar = true;
+    this.flash(txt); anotar('gestos:', txt, '→', t.toFixed(2) + ' s');
+  },
+  compas(d) {
+    const c = Rep.an.compasesEfectivos(), t = this.base();
+    if (c.length < 2) { const b = 60 / (Rep.an.bpm || 120) * 4; return this.saltar(t + d * b, d < 0 ? '−1 compás' : '+1 compás'); }
+    let i = -1; for (let k = 0; k < c.length; k++) if (c[k] <= t + 0.03) i = k; else break;
+    const destino = d < 0 ? (i <= 0 ? 0 : c[i - 1]) : (i + 1 < c.length ? c[i + 1] : null);
+    if (destino == null) return this.flash('Último compás');
+    this.saltar(destino, d < 0 ? '−1 compás' : '+1 compás');
+  },
+  parte(d) {
+    const arr = (Rep.an.arreglo || []).slice().sort((a, b) => a.t - b.t), t = this.base();
+    if (!arr.length) return aviso('Esta canción no tiene partes (Intro, Coro…).', 2200);
+    let i = -1; for (let k = 0; k < arr.length; k++) if (arr[k].t <= t + 0.05) i = k;
+    const j = d < 0 ? Math.max(0, i - 1) : i + 1;
+    if (j >= arr.length) return this.flash('Última parte');
+    if (d < 0 && i < 0) return this.saltar(0, '« Al comienzo');
+    const b = arr[j]; this.saltar(b.t, (d < 0 ? '« ' : '') + (b.nombre || 'Parte') + (d > 0 ? ' »' : ''));
+  },
+  playPausa() {
+    if (Audio.sonando) { Rep.pausa(); this.flash('❚❚'); } else { Rep.reanudar = true; Rep.tocar(); this.flash('▶'); }
+  },
+  activo() { return Pref.get('gestos', true) && !!Rep.cancion && !Editor.abierto && !Pulso.abierto && $('#pRep').classList.contains('activa'); },
+
+  iniciar() {
+    const tele = $('#tele'), P = new Map();
+    let toque = null, prevTap = null, lp = null, dos = null, pinchK = 0;
+    this.aplicarTam(this.tam());
+    const fuera = e => !!(e.target.closest && e.target.closest('button, input, select, .fader, a'));
+    const dist = () => { const [a, b] = [...P.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+    tele.addEventListener('pointerdown', e => {
+      if (!this.activo() || fuera(e) || (e.pointerType === 'mouse' && e.button > 0)) return;
+      try { tele.setPointerCapture(e.pointerId); } catch (x) {}
+      P.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (P.size === 1) {
+        toque = { x: e.clientX, y: e.clientY, t: Date.now(), movio: false };
+        clearTimeout(lp); lp = setTimeout(() => { lp = null; if (toque && !toque.movio && P.size === 1) { toque.largo = true; prevTap = null; repetirParte(); if (navigator.vibrate) try { navigator.vibrate(15); } catch (x) {} } }, 600);
+      } else if (P.size === 2) {
+        clearTimeout(lp); lp = null; toque = null; prevTap = null;
+        dos = { t: Date.now(), d0: dist(), k0: this.tam(), pinch: false };
+      }
+    });
+    tele.addEventListener('pointermove', e => {
+      const q = P.get(e.pointerId); if (!q) return;
+      q.x = e.clientX; q.y = e.clientY;
+      if (P.size === 1 && toque && Math.hypot(e.clientX - toque.x, e.clientY - toque.y) > 14) { toque.movio = true; clearTimeout(lp); lp = null; }
+      if (P.size === 2 && dos) {
+        const r = dist() / (dos.d0 || 1);
+        if (Math.abs(r - 1) > 0.08) dos.pinch = true;
+        if (dos.pinch) {
+          const k = Math.round(Math.min(2.2, Math.max(0.6, dos.k0 * r)) * 20) / 20;
+          if (k !== pinchK) { pinchK = k; Pref.set('tamLetra', k); this.aplicarTam(k); this.flash('Letra ' + Math.round(k * 100) + ' %'); }
+        }
+      }
+    });
+    const fin = e => {
+      if (!P.has(e.pointerId)) return;
+      const q = P.get(e.pointerId); P.delete(e.pointerId);
+      if (dos) {
+        if (P.size === 0) { if (!dos.pinch && Date.now() - dos.t < 350 && e.type === 'pointerup') this.playPausa(); dos = null; pinchK = 0; }
+        return;
+      }
+      clearTimeout(lp); lp = null;
+      const t0 = toque; toque = null;
+      if (!t0 || t0.largo || e.type !== 'pointerup' || !this.activo()) return;
+      const dx = q.x - t0.x, dy = q.y - t0.y, dt = Date.now() - t0.t;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > 1.6 * Math.abs(dy) && dt < 700) { prevTap = null; this.parte(dx > 0 ? -1 : 1); return; }
+      if (t0.movio || dt > 350) { prevTap = null; return; }
+      const ahora = Date.now();
+      if (prevTap && ahora - prevTap.t < 320 && Math.hypot(q.x - prevTap.x, q.y - prevTap.y) < 60) {
+        prevTap = null; const r = tele.getBoundingClientRect();
+        this.compas(q.x < r.left + r.width / 2 ? -1 : 1);
+      } else prevTap = { t: ahora, x: q.x, y: q.y };
+    };
+    tele.addEventListener('pointerup', fin); tele.addEventListener('pointercancel', fin);
+  },
+};
+
+Gestos.iniciar();
+
 // (0.8.1) teclas: Espacio y ▶❚❚ (teclado, control del televisor Samsung, pedales) = play/pausa · 1–9 = mute de la fila N de la
 // mezcla · 0 = click · Volver/Escape del control = salir de la canción. Cada tecla de un control se anota en Ver registro.
 const TECLAS_PLAY = new Set(['MediaPlayPause', 'MediaPlay', 'MediaPause', 'Play', 'Pause', 'PlayPause']);
@@ -5280,14 +5434,7 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     if (color === 'rojo') { if (Audio.sonando) { Rep.pausa(); aviso('❚❚ Pausa', 900); } else { Rep.reanudar = true; Rep.tocar(); aviso('▶', 700); } }
     else if (color === 'verde') { Rep.alInicio(); aviso(Rep.aj.marcaInicio >= 0 ? 'A la bandera verde' : 'Al comienzo', 1200); }
-    else if (color === 'amarillo') {
-      const a = Rep.aj, t = Audio.ahora(), b = Rep.an.arreglo.find(x => t >= x.t - 0.05 && t < x.fin);
-      if (a.loop && b && Math.abs(a.cicloIni - b.t) < 0.05 && Math.abs(a.cicloFin - b.fin) < 0.05) { a.loop = false; aviso('Repetir: apagado', 1400); }
-      else if (b) { a.cicloIni = b.t; a.cicloFin = b.fin; a.loop = true; aviso('Repitiendo: ' + (b.nombre || 'esta parte'), 1600); }
-      else if (a.loop) { a.loop = false; aviso('Repetir: apagado', 1400); }
-      else { aviso(Rep.an.arreglo.length ? 'Acá no hay ninguna parte marcada.' : 'Esta canción no tiene partes (Intro, Coro…) para repetir.', 2500); return; }
-      Rep.aplicarLoop(); Rep.guardarLocal(); Rep.refrescarBotones();
-    }
+    else if (color === 'amarillo') repetirParte();
     else if (color === 'azul') Rep.alternarCuenta();
     return;
   }
