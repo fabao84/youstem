@@ -2384,7 +2384,10 @@ const Nube = (() => {
       body: new URLSearchParams({ client_id: CLIENTE, scope: alcances(), ...campos }) });
     const j = await r.json().catch(() => ({}));
     if (!r.ok || !j.access_token) throw new Error(j.error_description || j.error || ('token ' + r.status));
-    const s = { at: j.access_token, rt: j.refresh_token || (sesion() || {}).rt, vence: Date.now() + (j.expires_in - 120) * 1000 };
+    // (0.8.7) desde = cuándo se entró de verdad: Microsoft le da a las páginas 24 h de sesión desde ahí (renovar no las alarga)
+    const previa = sesion() || {};
+    const s = { at: j.access_token, rt: j.refresh_token || previa.rt, vence: Date.now() + (j.expires_in - 120) * 1000,
+      desde: campos.grant_type === 'authorization_code' ? Date.now() : previa.desde || 0 };
     guardar(s); return s;
   }
 
@@ -2409,10 +2412,17 @@ const Nube = (() => {
     if (Date.now() < s.vence) return s.at;
     if (!s.rt) throw Object.assign(new Error('sesión vencida'), { sinSesion: true });
     renovando = renovando || pedirToken({ grant_type: 'refresh_token', refresh_token: s.rt })
-      .catch(e => { throw Object.assign(e, { sinSesion: true }); }).finally(() => { renovando = null; });
+      .catch(e => { if (!/failed to fetch|load failed|network/i.test(e.message || '')) e.sinSesion = true; throw e; })   // (0.8.7) sin red NO es sesión vencida
+      .finally(() => { renovando = null; });
     return (await renovando).at;
   }
   const conectado = () => !!sesion();
+  // (0.8.7) horas desde que se entró (null = sesión de antes de la 0.8.7, no se sabe)
+  const horasSesion = () => { const s = sesion(); return s && s.desde ? (Date.now() - s.desde) / 3600000 : null; };
+  // ¿la sesión sirve? true · false (venció: hay que volver a entrar) · null (sin red: no se sabe)
+  async function vigente() {
+    try { await token(); return true; } catch (e) { return e.sinSesion ? false : null; }
+  }
   function salir() { localStorage.removeItem(LS); }
 
   // (0.8.0) C29: con 429 se respeta Retry-After (hasta 30 s); un POST/PUT/PATCH/DELETE con 5xx no se repite a ciegas (pudo
@@ -2744,7 +2754,7 @@ const Nube = (() => {
   }
   async function espacio() { try { const e = await navigator.storage.estimate(); return e.usage || 0; } catch { return 0; } }
 
-  return { entrar, atenderVuelta, conectado, salir, token, yo, bibliotecas, catalogo, catalogoGuardado, archivosDe, bajar, enCache,
+  return { entrar, atenderVuelta, conectado, salir, token, vigente, horasSesion, yo, bibliotecas, catalogo, catalogoGuardado, archivosDe, bajar, enCache,
            guardarManifiesto, idsGuardados, hay, etagCache, borrarTodo, espacio, claveCache, CLIENTE, leerJson, escribir, ponerCache, moverCancion, pedirEscritura, quiereEscribir, rutaItem,
            listarEn, borrarEn, carpetaEn, itemEn, subirArchivo, carpetaRaiz, copiarItem, hijosDe, tienePistas };
 })();
@@ -3041,7 +3051,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.8.6';
+const VERSION = '0.8.7';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -3294,9 +3304,34 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && Re
 
 // sesión vencida (Microsoft da 24 h a las páginas): se renueva sola con un viaje relámpago, una vez
 function sesionVencida() {
-  if (!sessionStorage.getItem('ys.intentoSilencioso')) { sessionStorage.setItem('ys.intentoSilencioso', '1'); Nube.entrar(true); return; }
+  if (!sessionStorage.getItem('ys.intentoSilencioso')) { sessionStorage.setItem('ys.intentoSilencioso', '1'); anotar('sesión: renovando con Microsoft'); Nube.entrar(true); return; }
   Nube.salir(); pantalla('pLogin'); aviso('Tu sesión venció: volvé a entrar.');
 }
+
+// (0.8.7) fabao: "si se debe conectar a OneDrive que lo haga al abrir la pantalla y no en medio de una descarga".
+// La sesión se revisa al abrir y al VOLVER a la app (el iPhone deja la app dormida días: no se vuelve a abrir, se despierta)
+// y no cuando tocás una canción. Si venció o le queda poco (Microsoft da 24 h a las páginas), el viaje a Microsoft se hace
+// ahí mismo. Dentro de una canción no se interrumpe nada: se hace al salir de ella.
+const Sesion = {
+  pendiente: false, dormida: 0,
+  async revisar(motivo) {
+    if (!Nube.conectado() || this.revisando) return;
+    if ($('#pRep').classList.contains('activa') || abrirCancion.enCurso || (typeof Descargas !== 'undefined' && Descargas.activo)) { this.pendiente = true; return; }
+    this.pendiente = false; this.revisando = true;
+    try {
+      const h = Nube.horasSesion();
+      if (h != null && h > 20) { anotar('sesión:', motivo, '· tiene', h.toFixed(1), 'h (vence a las 24): la renuevo ahora'); sesionVencida(); return; }
+      const v = await Nube.vigente();
+      anotar('sesión:', motivo, '·', v === true ? 'bien' + (h != null ? ' (' + h.toFixed(1) + ' h)' : '') : v === false ? 'VENCIDA: la renuevo ahora' : 'sin red, no se pudo revisar');
+      if (v === false) sesionVencida();
+    } finally { this.revisando = false; }
+  },
+};
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { Sesion.dormida = Date.now(); return; }
+  if (Sesion.dormida && Date.now() - Sesion.dormida > 5 * 60000) Sesion.revisar('volviste a la app tras ' + Math.round((Date.now() - Sesion.dormida) / 60000) + ' min');
+});
+addEventListener('pageshow', e => { if (e.persisted) Sesion.revisar('la app se despertó'); });
 
 // ══════════════════════ Arranque ══════════════════════
 // (0.4.0) una sola vez: lo guardado por canción antes de abrir limpio traía la preparación de la Mac (mutes, solos…);
@@ -3325,9 +3360,18 @@ async function arrancar() {
   if (Nube.conectado()) Pref.set('sinCuenta', false);
   if (!Nube.conectado() && !Pref.get('sinCuenta', false) && !Local.lista().length) { pantalla('pLogin'); return; }
   pantalla('pBib');
-  Bib.iniciar().then(() => {
+  if (Nube.conectado() && (Nube.horasSesion() || 0) > 20 && !sessionStorage.getItem('ys.intentoSilencioso')) { Sesion.revisar('al abrir'); return; }   // (0.8.7)
+  Bib.iniciar().then(async () => {
     let l = null; try { l = sessionStorage.getItem('ys.pedirLink'); sessionStorage.removeItem('ys.pedirLink'); } catch {}
     if (l !== null && Nube.conectado()) Pedidos.abrir(l);
+    // (0.8.7) si la sesión venció justo al tocar una canción, al volver de Microsoft se abre sola
+    let r = null; try { r = JSON.parse(sessionStorage.getItem('ys.retomar') || 'null'); sessionStorage.removeItem('ys.retomar'); } catch {}
+    if (r && Date.now() - r.cuando < 120000) {
+      try { await Bib.cargaP; } catch {}
+      const lib = Bib.libs.find(x => x.clave === r.lib), c = lib && (Bib.porLib[lib.clave] || []).find(x => x.id === r.id);
+      anotar('sesión: retomo', r.id, c ? '' : '(no la encontré)');
+      if (c) abrirCancion(c, lib);
+    }
   });
 }
 
@@ -3815,7 +3859,7 @@ async function abrirCancion(c, lib, op = {}) {
     cargando(null);
     // (0.8.0) B6: si falló después de soltar la canción anterior, no se puede quedar en Reproducción con la UI vieja
     if (liberada && $('#pRep').classList.contains('activa')) { Rep.parar(); pantalla('pBib'); Bib.dibujar(); }
-    if (e.sinSesion) { sesionVencida(); return; }
+    if (e.sinSesion) { try { sessionStorage.setItem('ys.retomar', JSON.stringify({ lib: lib.clave, id: c.id, cuando: Date.now() })); } catch {} sesionVencida(); return; }
     aviso(/failed to fetch|load failed|network/i.test(e.message || '') ? 'Se cortó la conexión mientras bajaba la canción. Probá de nuevo.' : (e.message || String(e)), 6000);
   } finally { if (abrirCancion.enCurso === turno) abrirCancion.enCurso = 0; }
 }
@@ -4755,7 +4799,7 @@ const Medios = {
 };
 
 // ── controles de Reproducción ──
-function salirDeCancion() { Rep.parar(); Rep.refrescarBotones(); pantalla('pBib'); Bib.dibujar(); subirAlSalir(); }
+function salirDeCancion() { Rep.parar(); Rep.refrescarBotones(); pantalla('pBib'); Bib.dibujar(); subirAlSalir(); if (Sesion.pendiente) setTimeout(() => Sesion.revisar('saliste de la canción'), 1500); }
 // (0.8.1) ‹ en pantalla: si hay un paso de la canción en el historial, se consume (así Volver del control no queda "debiendo" uno)
 $('#btnVolver').onclick = () => { if (history.state && history.state.ysCancion) history.back(); else salirDeCancion(); };
 addEventListener('popstate', () => {
