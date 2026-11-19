@@ -568,6 +568,80 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 /* (0.8.9) el botón principal de las hojas (Enviar, Exportar) se distingue: verde */
 .hojaCaja button.grande{background:var(--verde);color:#0b1d10;font-weight:800;text-align:center;align-items:center;font-size:17px}
 .hojaCaja button.grande:disabled{opacity:.4}
+
+/* (0.9.0) lupa de los bordes del loop */
+.lbC.enLoop{background:rgba(90,143,181,.35)}
+#lupaB.loop .lbF{background:#7cc4ff}
+
+/* ═════ (0.9.0) listas, favoritas, ocultas, escenario ═════ */
+.chip.especial{border:1px solid rgba(255,255,255,.14)}
+.ic.curada{font-size:14px}
+.hgCuerpo{display:flex;flex-direction:column;gap:6px}
+.hgCuerpo>button{text-align:left;padding:13px 14px;border-radius:12px;background:var(--panel2);font-size:15px}
+.hgCuerpo>button:disabled{opacity:.45}
+.hgCuerpo>button.grande{background:var(--verde);color:#0b1d10;font-weight:800;text-align:center}
+.hgCuerpo>button.rojoF,.hgCuerpo>button.grande.rojoF{background:#e5484d;color:#fff}
+.hgCuerpo .rojo{color:#ff7a7a}
+.hgTexto{font-size:13.5px;line-height:1.45;color:#c9d0d9;padding:2px 2px 4px}
+.hgCampo input{width:100%;font-size:17px;padding:12px;border-radius:12px;background:var(--panel2);color:var(--texto);border:1px solid rgba(255,255,255,.15)}
+.escPrev{display:flex;flex-direction:column;gap:10px;margin-bottom:4px}
+.filaNueva{width:100%;text-align:left;padding:12px 10px;color:#7cc4ff;font-weight:700;font-size:15px}
+.filaLista .miniLista{width:46px;height:46px;border-radius:9px;background:var(--panel2);display:grid;place-items:center;font-size:20px;flex:none}
+.listaCab{display:flex;justify-content:space-between;align-items:center;padding:2px 0}
+.listaVolver{color:#7cc4ff;font-weight:700;font-size:15px;padding:8px 6px}
+.listaMas{font-size:22px;padding:4px 12px;color:var(--gris)}
+.setTit{padding:2px 8px;font-size:24px;font-weight:800}
+.setSub{padding:0 8px 10px;color:var(--gris);font-size:13px}
+.aviso2{margin:0 6px 8px;padding:8px 10px;border-radius:10px;background:rgba(255,159,67,.12);color:#ffb470;font-size:13px;font-weight:600}
+.filaSet{cursor:pointer}
+.filaSet .num{width:22px;text-align:right;color:var(--gris);font-variant-numeric:tabular-nums;font-size:13px;flex:none}
+.filaSet.falta{opacity:.5}
+.filaSet.arrastrando{background:var(--panel2);box-shadow:0 6px 20px rgba(0,0,0,.5);position:relative;z-index:2}
+.filaSet .asa{color:#6b7480;font-size:22px;padding:6px 6px;touch-action:none;cursor:grab;flex:none}
+.filaSet .masFila{padding:6px 8px}
+.badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+.badges i{font-style:normal;font-size:11px;font-weight:700;padding:1px 6px;border-radius:6px;background:var(--panel2);color:#c9d0d9}
+.badges i.n{color:#ff9f43}.badges i.v{color:var(--verde)}.badges i.gris{background:none;color:var(--gris);font-weight:500;padding:0}
+.badges i.vivo{color:#ff9f43;background:rgba(255,159,67,.12)}
+#lista .mas{width:100%;text-align:left;padding:12px 10px;color:#7cc4ff;font-weight:700;font-size:15px}
+#lista .btnGrande{width:calc(100% - 12px);margin:6px 6px 20px;background:var(--verde);color:#0b1d10;font-weight:800;padding:15px;border-radius:14px;font-size:16px}
+.elegirCaja{display:flex;flex-direction:column;gap:8px}
+.elegirCaja input{width:100%;font-size:16px;padding:11px 12px;border-radius:12px;background:var(--panel2);color:var(--texto);border:1px solid rgba(255,255,255,.12)}
+.elegirLista{display:flex;flex-direction:column;gap:2px;max-height:52dvh;overflow-y:auto}
+.elegirFila{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:10px;text-align:left}
+.elegirFila .ck{width:26px;height:26px;border-radius:50%;background:var(--panel2);display:grid;place-items:center;font-weight:800;color:#7cc4ff;flex:none}
+.elegirFila.on .ck{background:var(--verde);color:#0b1d10}
+.elegirFila .tx{display:flex;flex-direction:column;min-width:0}.elegirFila small{color:var(--gris);font-size:12px}
+/* escenario */
+#pRep:not(.escenario) #escTop,#pRep:not(.escenario) #escBot,#pRep:not(.escenario) #escFicha{display:none}
+#pRep.escenario{background:#07090c}
+#pRep.escenario .rcab,#pRep.escenario #corrBarra,#pRep.escenario .transporte,#pRep.escenario #pie{display:none}
+#pRep.escenario:not(.escMezcla) #mezcla{display:none}
+#pRep.escenario .tele{font-size:calc(clamp(24px,7vw,46px) * var(--kLetra,1))}
+.escTop{display:flex;align-items:center;gap:8px;padding:8px 10px 4px;flex:none;color:var(--gris);font-size:13px}
+.escTop b{flex:1;min-width:0;color:var(--texto);font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.escB{min-width:40px;height:38px;border-radius:10px;background:var(--panel2);font-size:16px;display:grid;place-items:center;flex:none;padding:0 8px}
+#escCandado.abierto{background:rgba(255,159,67,.2)}
+.escBot{display:flex;align-items:center;gap:10px;padding:10px 10px 6px;flex:none;touch-action:none}
+.escPlay{width:64px;height:64px;border-radius:50%;background:var(--texto);position:relative;flex:none}
+.escPlay .tri{position:absolute;left:25px;top:19px;border-left:20px solid #111;border-top:13px solid transparent;border-bottom:13px solid transparent}
+.escPlay .bars{display:none;position:absolute;left:22px;top:21px;width:20px;height:22px;border-left:7px solid #111;border-right:7px solid #111}
+.escPlay.sonando .tri{display:none}.escPlay.sonando .bars{display:block}
+.escViene{flex:1;min-width:0;background:var(--panel);border-radius:14px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;text-align:left}
+.escViene small{font-size:10.5px;letter-spacing:1px;color:var(--gris);font-weight:700}
+.escViene div{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.escViene div.gris{color:var(--gris);font-weight:500}
+.escSig{width:48px;height:56px;border-radius:12px;background:var(--panel2);font-size:30px;font-weight:800;flex:none}
+.escSig:disabled{opacity:.35}
+.escFicha{position:fixed;left:10px;right:10px;top:calc(var(--sa-t) + 54px);max-width:520px;margin:0 auto;background:var(--panel);border-radius:18px;padding:14px;display:none;flex-direction:column;gap:9px;box-shadow:0 14px 40px rgba(0,0,0,.6);z-index:25}
+.escFicha.ver{display:flex}
+.escFicha .fTit{font-size:18px;font-weight:800}.escFicha .fTit small{font-size:12px;color:var(--gris);font-weight:500}
+.escFicha .fLin{display:flex;justify-content:space-between;gap:10px;font-size:14px}.escFicha .fLin span{color:var(--gris)}.escFicha .fLin b{text-align:right}
+.escFicha .fLin.col{flex-direction:column;gap:6px}
+.escFicha .fChips{display:flex;flex-wrap:wrap;gap:5px}.escFicha .fChips i{font-style:normal;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:700;color:#14161a}
+.escFicha .fChips i.off{background:transparent;color:var(--gris);text-decoration:line-through;border:1px solid rgba(255,255,255,.15)}
+.escFicha .verde{color:var(--verde)}.escFicha .nar{color:#ff9f43}.escFicha .apag{color:var(--gris);font-weight:600}
+.escFicha .fSep{height:1px;background:rgba(255,255,255,.12)}
 </style>
 </head>
 <body>
@@ -602,6 +676,8 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 </section>
 
 <section id="pRep" class="pantalla">
+  <div id="escTop" class="escTop"><span id="escPos"></span><b id="escTit"></b><button id="escInfo" class="escB" aria-label="Cómo está fijada">ⓘ</button><button id="escCandado" class="escB" aria-label="Bloqueo de toques">🔒</button><button id="escSalir" class="escB" aria-label="Salir del escenario">✕</button></div>
+  <div id="escFicha" class="escFicha"></div>
   <header class="rcab">
     <button id="btnVolver" class="icono" aria-label="Biblioteca">‹</button>
     <div class="rtit"><div id="rTit"></div><div id="rArt"></div></div>
@@ -635,6 +711,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
   </div>
   <div id="viene" class="viene"></div>
   <div id="pie" class="pie"></div>
+  <div id="escBot" class="escBot"><button id="escPlay" class="escPlay" aria-label="Reproducir"><span class="tri"></span><span class="bars"></span></button><button id="escViene" class="escViene"></button><button id="escMezclaBtn" class="escB" aria-label="Mezcla"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 4v16M12 4v16M18 4v16"/><rect x="3.5" y="13" width="5" height="3" rx="1" fill="currentColor"/><rect x="9.5" y="7" width="5" height="3" rx="1" fill="currentColor"/><rect x="15.5" y="11" width="5" height="3" rx="1" fill="currentColor"/></svg></button><button id="escSig" class="escSig" aria-label="Siguiente">›</button></div>
 </section>
 
 <section id="pEd" class="editor">
@@ -668,23 +745,23 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 <div id="menu" class="hoja">
   <div class="hojaCaja">
     <div class="hojaTit"><span id="menuVersion"></span><span id="menuUsuario" class="gris"></span></div>
-    <button id="menuPedir">Pedir una canción a mi Mac</button>
-    <button id="menuImportar">Importar canción o correcciones</button>
+    <button id="menuPedir">Pedir a mi Mac</button>
+    <button id="menuImportar">Importar</button>
     <button id="menuCarpeta" style="display:none">Carpeta de canciones…<span id="menuCarpetaNombre" class="gris"></span></button>
-    <button id="menuConectar">Conectar con Microsoft (OneDrive)</button>
-    <button id="menuEditar">✎ Editar acordes y secciones</button>
+    <button id="menuConectar">Entrar con OneDrive</button>
+    <button id="menuEditar">✎ Editar acordes</button>
     <button id="menuPulso">Ajustar el pulso…</button>
-    <button id="menuAvisar">⚠ Avisar un error en esta parte</button>
+    <button id="menuAvisar">⚠ Avisar un error</button>
     <button id="menuEnviar">Enviar mis correcciones</button>
-    <button id="menuDescartar">Descartar mis correcciones de esta canción</button>
+    <button id="menuDescartar">Descartar mis correcciones</button>
     <button id="menuExportar">Exportar mezcla (MP3)</button>
-    <button id="menuCompartir">Compartir la canción (.youstem)</button>
+    <button id="menuCompartir">Compartir (.youstem)</button>
     <button id="menuAudio">Reiniciar el audio</button>
-    <button id="menuMac">Mezcla de cero (0 dB, sin banderas)</button>
-    <button id="menuGestos">Gestos en la letra: sí</button>
-    <button id="menuBloqueada">Sonar con la pantalla bloqueada: sí</button>
+    <button id="menuMac">Mezcla de cero</button>
+    <button id="menuGestos">Gestos: sí</button>
+    <button id="menuBloqueada">Con pantalla bloqueada: sí</button>
     <button id="menuRecargar">Recargar la biblioteca</button>
-    <button id="menuCrearLib">☁ Crear mi biblioteca en OneDrive…</button>
+    <button id="menuCrearLib">☁ Crear mi biblioteca</button>
     <button id="menuBorrar">Liberar espacio<span id="menuEspacio" class="gris enLinea"></span></button>
     <button id="menuSalir" class="rojo">Cerrar sesión</button>
     <button id="menuRegistro" class="chico">Ver registro</button>
@@ -694,12 +771,15 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 <div id="acciones" class="hoja">
   <div class="hojaCaja">
     <div class="hojaTit"><span id="accTit"></span><span id="accSub" class="gris"></span></div>
-    <button id="accCompartir">Compartir la canción (.youstem)</button>
-    <button id="accGuardar">⬇ Guardar para sin conexión</button>
-    <button id="accSubir">⇪ Subir a mi OneDrive (queda 🔒 privada)</button>
-    <button id="accCopiar">＋ Copiar a mis canciones (en tu OneDrive)</button>
+    <button id="accFav"></button>
+    <button id="accLista">＋ Agregar a una lista</button>
+    <button id="accGuardar">⬇ Guardar en el teléfono</button>
+    <button id="accCompartir">Compartir (.youstem)</button>
+    <button id="accSubir">⇪ Subir a mi OneDrive</button>
+    <button id="accCopiar">＋ Copiar a las mías</button>
     <button id="accPrivada"></button>
     <button id="accEstrella"></button>
+    <button id="accOcultar"></button>
     <button id="accBorrar" class="rojo"></button>
     <button id="accCerrar" class="cerrar">Cancelar</button>
   </div>
@@ -721,6 +801,13 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <div class="hojaTit"><span id="lcTit"></span><span id="lcSub" class="gris"></span></div>
     <button id="lcEnviar" class="grande">Enviar</button>
     <button id="lcCerrar" class="cerrar">Cancelar</button>
+  </div>
+</div>
+<div id="hojaGen" class="hoja">
+  <div class="hojaCaja gen">
+    <div class="hojaTit"><span id="hgTit"></span><span id="hgSub" class="gris"></span></div>
+    <div id="hgCuerpo" class="hgCuerpo"></div>
+    <button id="hgCerrar" class="cerrar">Cancelar</button>
   </div>
 </div>
 <div id="hojaExp" class="hoja">
@@ -2714,6 +2801,23 @@ const Nube = (() => {
     if (!r.ok) { const e = new Error('no pude guardar ' + ruta + ' (' + r.status + ')'); e.status = r.status; e.sinPermiso = r.status === 401 || r.status === 403; throw e; }
     return r.json().catch(() => ({}));
   }
+  // (0.9.0) listas/favoritas/ocultas: leer con su eTag y escribir SOLO si nadie lo cambió entretanto (If-Match);
+  // 412 = otro aparato lo cambió: se vuelve a leer, se aplican los cambios encima y se reintenta
+  async function leerConEtag(raiz, ruta) {
+    const it = await itemEn(raiz, ruta); if (!it) return { datos: null, etag: null };
+    const r = await g(rutaItem(raiz, ruta) + '/content');
+    if (r.status === 404) return { datos: null, etag: null };
+    if (!r.ok) { const e = new Error(ruta + ' → ' + r.status); e.status = r.status; throw e; }
+    return { datos: await r.json().catch(() => null), etag: it.eTag || it.cTag || '' };
+  }
+  async function escribirSi(raiz, ruta, texto, etag) {
+    const h = { 'Content-Type': 'application/json' };
+    if (etag) h['If-Match'] = etag; else h['If-None-Match'] = '*';
+    const r = await g(rutaItem(raiz, ruta) + '/content', { method: 'PUT', headers: h, body: texto });
+    if (r.status === 412 || r.status === 409) { const e = new Error('cambió en otro aparato'); e.conflicto = true; throw e; }
+    if (!r.ok) { const e = new Error('no pude guardar ' + ruta + ' (' + r.status + ')'); e.status = r.status; e.sinPermiso = r.status === 401 || r.status === 403; throw e; }
+    const j = await r.json().catch(() => ({})); return j.eTag || j.cTag || '';
+  }
   // (0.3.12) mover una canción entre tu carpeta privada y la de la banda: la carpeta de la canción, la miniatura y,
   // al final, la ficha del catálogo (con privadaCambio = ahora: así las Macs adoptan el cambio al sincronizar)
   async function itemEn(raiz, ruta) { const r = await g(rutaItem(raiz, ruta)); if (r.status === 404) return null; if (!r.ok) { const e = new Error(ruta + ' → ' + r.status); e.status = r.status; e.sinPermiso = r.status === 401 || r.status === 403; throw e; } return r.json(); }
@@ -2844,7 +2948,7 @@ const Nube = (() => {
 
   return { entrar, atenderVuelta, conectado, salir, token, vigente, horasSesion, yo, bibliotecas, catalogo, catalogoGuardado, archivosDe, bajar, enCache,
            guardarManifiesto, idsGuardados, hay, etagCache, borrarTodo, espacio, claveCache, CLIENTE, leerJson, escribir, ponerCache, moverCancion, pedirEscritura, quiereEscribir, rutaItem,
-           listarEn, borrarEn, carpetaEn, itemEn, subirArchivo, carpetaRaiz, copiarItem, hijosDe, tienePistas };
+           listarEn, borrarEn, carpetaEn, itemEn, subirArchivo, carpetaRaiz, copiarItem, hijosDe, tienePistas, leerConEtag, escribirSi };
 })();
 
 // ── Local: usar sin nube. Importar .youstem / .youstemcorr, guardar en el dispositivo, carpeta en la computadora ──
@@ -3139,7 +3243,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.8.11';
+const VERSION = '0.9.0';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -3386,10 +3490,10 @@ let wake = null;
 async function pantallaPrendida(si) {
   try {
     if (si && !wake && navigator.wakeLock) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => wake = null); }
-    if (!si && wake) { await wake.release(); wake = null; }
+    if (!si && wake && !Escenario.activo) { await wake.release(); wake = null; }   // (0.9.0) en el escenario la pantalla no se apaga
   } catch {}
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden && Rep.cancion && Audio.sonando) pantallaPrendida(true); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Rep.cancion && (Audio.sonando || Escenario.activo)) pantallaPrendida(true); });
 
 // sesión vencida (Microsoft da 24 h a las páginas): se renueva sola con un viaje relámpago, una vez
 function sesionVencida() {
@@ -3469,7 +3573,7 @@ $('#btnSinCuenta').onclick = () => { Pref.set('sinCuenta', true); pantalla('pBib
 
 // ══════════════════════ Biblioteca ══════════════════════
 const Bib = {
-  libs: [], vistas: [], sel: new Set(), porLib: {}, miniaturas: {}, guardadas: new Set(), sinMini: new Set(), imgs: {},
+  libs: [], vistas: [], sel: new Set(), porLib: {}, miniaturas: {}, guardadas: new Set(), sinMini: new Set(), imgs: {}, modo: null,   // (0.9.0) modo: null | 'fav' | 'listas' | 'ocultas'
   // (0.8.4) fabao: "no está bien que aparezca en la biblioteca algo que no está completo". Se revisa en segundo plano que cada
   // canción tenga sus pistas en OneDrive (una consulta por canción, solo cuando su ficha es nueva o cambió: se recuerda por eTag).
   // Las que no tienen pistas no se muestran (salvo que estén guardadas completas en el aparato).
@@ -3550,6 +3654,7 @@ const Bib = {
       else v.push({ id: l.clave, nombre: l.nombre, lib: l, filtro: () => true });
     }
     this.vistas = v;
+    if (!Listas.listo) Listas.iniciar(); else Listas.traer();   // (0.9.0)
     let sel = Pref.get('vistas', null);
     if (!Array.isArray(sel)) sel = v.map(x => x.id);   // la primera vez: Todas
     this.sel = new Set(sel.filter(id => v.some(x => x.id === id)));
@@ -3559,10 +3664,10 @@ const Bib = {
   get actual() { const v = this.vistas.find(x => this.sel.has(x.id)); return v ? v.lib : null; },
   dibujarChips() {
     const n = $('#libs'); n.innerHTML = '';
-    const todas = this.vistas.length > 1 && this.vistas.every(v => this.sel.has(v.id));
+    const todas = !this.modo && this.vistas.length > 1 && this.vistas.every(v => this.sel.has(v.id));
     if (this.vistas.length > 2) { const t = el('button', 'chip' + (todas ? ' on' : ''), 'Todas'); t.onclick = () => this.elegir(this.vistas.map(v => v.id)); n.appendChild(t); }
     for (const v of this.vistas) {
-      const b = el('button', 'chip' + (!todas && this.sel.has(v.id) ? ' on' : '') + (todas ? ' suave' : ''), v.nombre);
+      const b = el('button', 'chip' + (!this.modo && !todas && this.sel.has(v.id) ? ' on' : '') + (todas ? ' suave' : ''), v.nombre);
       let largo = null, hecho = false;
       b.addEventListener('pointerdown', () => { hecho = false; largo = setTimeout(() => { hecho = true; if (navigator.vibrate) navigator.vibrate(12); this.sumar(v.id); }, 500); });
       ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => b.addEventListener(t, () => clearTimeout(largo)));
@@ -3570,7 +3675,14 @@ const Bib = {
       b.onclick = e => { if (hecho) { hecho = false; return; } if (e.metaKey || e.ctrlKey) this.sumar(v.id); else this.elegir([v.id]); };
       n.appendChild(b);
     }
-    n.style.display = this.vistas.length > 1 ? '' : 'none';
+    // (0.9.0) ⭐ Favoritas · Listas · Ocultas (de todas las bibliotecas)
+    for (const [m, txt] of [['fav', '⭐ Favoritas'], ['listas', 'Listas'], ['ocultas', 'Ocultas']]) {
+      if (m === 'ocultas' && !(Listas.d && Listas.d.ocultas.length) && this.modo !== 'ocultas') continue;
+      const b = el('button', 'chip especial' + (this.modo === m ? ' on' : ''), txt);
+      b.onclick = () => { this.modo = this.modo === m ? null : m; if (m === 'listas') ListasUI.abierta = null; this.dibujarChips(); this.dibujar(); $('#lista').scrollTop = 0; };
+      n.appendChild(b);
+    }
+    n.style.display = '';
     const on = n.querySelector('.chip.on'); if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   },
   sumar(id) {
@@ -3580,6 +3692,7 @@ const Bib = {
     this.elegir([...s]);
   },
   elegir(ids) {
+    this.modo = null;
     this.sel = new Set(ids); Pref.set('vistas', [...this.sel]);
     if (ids.length === 1 && !Pref.get('vioSumar', false) && this.vistas.length > 1 && !this.avisoSumar) { this.avisoSumar = true; aviso('Tip: mantené apretada otra pestaña para sumarla (ver varias juntas).', 4000); }
     this.dibujarChips(); this.dibujar();
@@ -3650,17 +3763,29 @@ const Bib = {
   recargarLocal() { this.porLib.local = Local.lista(); this.dibujar(); },
   estado(t) { $('#estadoBib').textContent = t || ''; $('#estadoBib').style.display = t ? '' : 'none'; },
   dibujar() {
+    $('.buscar').style.display = this.modo === 'listas' ? 'none' : '';
+    if (this.modo === 'listas') {   // (0.9.0)
+      $('#barraLocal').style.display = 'none';
+      const cont = $('#lista'), y = cont.scrollTop; cont.innerHTML = ''; ListasUI.dibujar(cont); cont.scrollTop = y; return;
+    }
     const q = ($('#q').value || '').trim();
     const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const qq = norm(q);
     const coincide = c => !qq || norm(c.titulo + ' ' + c.artista + ' ' + (c.album || '')).includes(qq);
-    const elegidas = this.vistas.filter(v => this.sel.has(v.id));
+    const elegidas = this.modo ? this.vistas : this.vistas.filter(v => this.sel.has(v.id));   // (0.9.0) favoritas/ocultas: de todas
     const varias = new Set(elegidas.map(v => v.lib)).size > 1;
     const todos = [], vistos = new Set();
     let cargando = false;
     for (const v of elegidas) {
       const cs = this.porLib[v.lib.clave]; if (!cs) { cargando = true; continue; }
-      for (const c of cs) if (v.filtro(c) && !vistos.has(v.lib.clave + '|' + c.id)) { vistos.add(v.lib.clave + '|' + c.id); todos.push({ c, lib: v.lib }); }
+      for (const c of cs) if (v.filtro(c) && !vistos.has(v.lib.clave + '|' + c.id)) {
+        // (0.9.0) las ocultas solo aparecen en «Ocultas»; en «Favoritas», solo las ⭐
+        const oc = Listas.esOculta(c.id);
+        if (this.modo === 'ocultas' ? !oc : oc) continue;
+        if (this.modo === 'fav' && !Listas.esFav(c.id)) continue;
+        if (this.modo && vistos.has('id|' + c.id)) continue;   // en Favoritas/Ocultas, una sola vez aunque esté en dos bibliotecas
+        vistos.add(v.lib.clave + '|' + c.id); vistos.add('id|' + c.id); todos.push({ c, lib: v.lib });
+      }
     }
     const soloGuardadas = Pref.get('soloGuardadas', false);
     const guardada = x => x.lib.local || this.guardadas.has(x.lib.clave + '|' + x.c.id);
@@ -3697,7 +3822,8 @@ const Bib = {
       if (!lib.local && this.guardadas.has(lib.clave + '|' + c.id)) ic.appendChild(el('span', 'ic guard', '●'));
       // (0.4.0) ⭐ lista (curada) · en las tuyas: ⚠ avisos y ✎ correcciones de colegas sin mirar
       if (lib.mia) { const P = Corr.pendientes(c.id); if (P.some(p => p.tipo === 'aviso')) ic.appendChild(el('span', 'ic aviso', '⚠')); if (P.some(p => p.tipo === 'corr')) ic.appendChild(el('span', 'ic corr', '✎')).title = 'Correcciones de ' + [...new Set(P.filter(p => p.tipo === 'corr').map(p => p.lib.nombre))].join(', '); }
-      if (c.listaParaVivo) ic.appendChild(el('span', 'ic estrella', '⭐')).title = 'Lista: correcciones bloqueadas';
+      if (c.listaParaVivo) ic.appendChild(el('span', 'ic curada', '🎼')).title = 'Curada: correcciones bloqueadas';   // (0.9.0) antes ⭐
+      if (Listas.esFav(c.id)) ic.appendChild(el('span', 'ic estrella', '⭐')).title = 'Favorita';
       // (0.3.12) las opciones (compartir, privada/banda, borrar) van en el ⋯ de cada fila: mantener apretado saltaba al hacer scroll
       const mas = el('span', 'masFila', '⋯'); mas.setAttribute('role', 'button'); mas.setAttribute('aria-label', 'Opciones de la canción');
       ic.appendChild(mas);
@@ -3715,6 +3841,8 @@ const Bib = {
     else if (qq && !lista.length) this.estado('Nada coincide con “' + q + '” acá.' + (otras ? ' En otras pestañas hay ' + otras + ': tocá «Todas».' : ''));
     else if (!todos.length && cargando) this.estado('Leyendo tu biblioteca…');
     else if (!todos.length && soloLocal) this.estado('Todavía no hay canciones en ' + EQUIPO + '. Tocá «Importar .youstem» y elegí los archivos que te pasaron (podés elegir varios).');
+    else if (!todos.length && this.modo === 'fav') this.estado('Todavía no tenés favoritas. En el ⋯ de una canción: «⭐ Favorita».');
+    else if (!todos.length && this.modo === 'ocultas') this.estado('No hay canciones ocultas.');
     else if (!todos.length) this.estado(this.error || (elegidas.some(v => v.id === 'priv') && elegidas.length === 1 ? 'No tenés canciones privadas en calidad Máxima.' : 'Acá todavía no hay canciones en calidad Máxima.'));
     else if (soloGuardadas && lista.length < todos.length) this.estado('⬇ Mostrando solo las guardadas en ' + EQUIPO + ' (' + lista.length + ' de ' + todos.length + '). Tocá «⬇ Guardadas» para ver todas.');   // (0.5.6)
     else this.estado(qq && otras ? 'También hay ' + otras + ' en otras pestañas (tocá «Todas»).' : '');
@@ -3726,7 +3854,14 @@ const Bib = {
   acciones(c, lib) {
     const guardada = lib.local || this.guardadas.has(lib.clave + '|' + c.id);
     $('#accTit').textContent = c.titulo || c.id; $('#accSub').textContent = c.artista || '';
-    $('#accBorrar').textContent = lib.local ? 'Borrar de ' + EQUIPO : 'Borrar la copia guardada en ' + EQUIPO;
+    // (0.9.0) favorita, agregar a una lista, ocultar · textos cortos
+    const fav = Listas.esFav(c.id), oc = Listas.esOculta(c.id);
+    $('#accFav').textContent = fav ? '☆ Sacar de favoritas' : '⭐ Favorita';
+    $('#accFav').onclick = () => { $('#acciones').classList.remove('ver'); Listas.cambiar({ t: 'fav', id: c.id, on: !fav }); };
+    $('#accLista').onclick = () => { $('#acciones').classList.remove('ver'); ListasUI.agregarA(c); };
+    $('#accOcultar').textContent = oc ? 'Volver a mostrar' : 'Ocultar';
+    $('#accOcultar').onclick = () => { $('#acciones').classList.remove('ver'); Listas.cambiar({ t: 'oculta', id: c.id, on: !oc }); aviso(oc ? 'Vuelve a aparecer en la biblioteca.' : 'Oculta: la ves en la pestaña «Ocultas».', 2500); Bib.dibujarChips(); };
+    $('#accBorrar').textContent = 'Borrar ' + DE_EQUIPO();
     $('#accBorrar').style.display = guardada ? '' : 'none';
     $('#accCompartir').onclick = () => { $('#acciones').classList.remove('ver'); compartirCancion(c, lib); };
     $('#accGuardar').style.display = !lib.local && !guardada ? '' : 'none';
@@ -3734,11 +3869,11 @@ const Bib = {
     // (0.3.12) privada ↔ banda: solo lo tuyo, y solo si tenés las dos carpetas
     const puedeMover = lib.mia && lib.raices.some(r => r.privada) && lib.raices.some(r => !r.privada);
     $('#accPrivada').style.display = puedeMover ? '' : 'none';
-    $('#accPrivada').textContent = c.privada ? '👥 Compartir con la banda (pasa a Compartidas)' : '🔒 Volver privada (la banda deja de verla)';
+    $('#accPrivada').textContent = c.privada ? '👥 Pasar a la banda' : '🔒 Hacer privada';
     $('#accPrivada').onclick = () => { $('#acciones').classList.remove('ver'); cambiarPrivada(c, lib, !c.privada); };
     // (0.4.0) ⭐ lista: solo las tuyas (es el candado "Bloquear correcciones" de la Mac)
     $('#accEstrella').style.display = lib.mia ? '' : 'none';
-    $('#accEstrella').textContent = c.listaParaVivo ? '☆ Sacar la ⭐ (se puede volver a corregir)' : '⭐ Lista: bloquear correcciones';
+    $('#accEstrella').textContent = c.listaParaVivo ? '🎼 Ya no está curada' : '🎼 Curada (bloquear correcciones)';
     $('#accEstrella').onclick = () => { $('#acciones').classList.remove('ver'); marcarLista(c, lib, !c.listaParaVivo); };
     $('#accBorrar').onclick = () => { $('#acciones').classList.remove('ver'); this.preguntarBorrar(c, lib); };
     // (0.7.0) biblioteca propia: subir lo importado / copiar la de un colega a la tuya
@@ -3747,7 +3882,7 @@ const Bib = {
     const tengo = !lib.mia && !lib.local && Propia.laTengo(c.id);
     $('#accCopiar').style.display = !lib.mia && !lib.local ? '' : 'none';
     $('#accCopiar').disabled = tengo;
-    $('#accCopiar').textContent = tengo ? '✓ Ya está en tus canciones' : '＋ Copiar a mis canciones (en tu OneDrive)';
+    $('#accCopiar').textContent = tengo ? '✓ Ya está en las tuyas' : '＋ Copiar a las mías';
     $('#accCopiar').onclick = () => { $('#acciones').classList.remove('ver'); Propia.copiar(c, lib); };
     $('#acciones').classList.add('ver');
   },
@@ -3806,6 +3941,7 @@ let abriendo = 0;
 
 async function abrirCancion(c, lib, op = {}) {
   const turno = ++abriendo;
+  if (!Escenario.activo) Rep.mixForzada = null;   // (0.9.0)
   if (Exportar.activo) Exportar.cancelar('abriste otra canción');   // (0.8.8)
   // (0.8.0) A3: `vivo` = esta apertura sigue siendo la última (si tocaste otra canción, esta se abandona en silencio)
   const vivo = () => turno === abriendo;
@@ -4112,6 +4248,7 @@ const Rep = {
   conLocal(aj) {
     const a = this.limpio(aj);
     let l = null; try { l = JSON.parse(localStorage.getItem(this.claveLocal()) || 'null'); } catch {}
+    if (this.mixForzada) l = JSON.parse(JSON.stringify(this.mixForzada));   // (0.9.0) escenario con el show bloqueado: la mezcla del show
     if (!l) return a;
     Object.assign(a.ganancias, l.ganancias || {});
     if (l.mutes) a.mutes = new Set(l.mutes);
@@ -4132,8 +4269,10 @@ const Rep = {
     const l = { ganancias: g, mutes: m, solos: s, tono: this.tono, tempoWeb: this.tempo && this.tempo !== 1 ? this.tempo : undefined, loop: a.loop, cicloIni: a.cicloIni, cicloFin: a.cicloFin, cuenta: a.cuenta,
                 clickEncendido: click ? !click.mute : a.clickEncendido, master: a.master, masterMute: !!a.masterMute, vozMidi: a.vozMidi, muteAntes: ma,
                 marcaInicio: a.marcaInicio, marcaCuenta: a.marcaCuenta, cuentaMuda: !!a.cuentaMuda };
+    if (Escenario.activo && this.mixForzada && Escenario.guardarMix(l)) return;   // (0.9.0) en vivo: va al show (último show), no a la biblioteca
     try { localStorage.setItem(this.claveLocal(), JSON.stringify(l)); } catch {}
   },
+  nCuentaCompases() { return (Escenario.activo && this.mixForzada && this.mixForzada.cuentaCompases) || Pref.get('cuentaCompases', 1); },   // (0.9.0)
   volverALaMac() {
     try { localStorage.removeItem(this.claveLocal()); } catch {}
     const c = this.cancion, lib = this.lib;
@@ -4176,6 +4315,10 @@ const Rep = {
     const a = this.aj, d = this.dur || 1; let mejor = null, dist = tol + 1;
     if (a.marcaInicio >= 0) { const x = Math.abs(a.marcaInicio / d * W - px); if (x < dist) { dist = x; mejor = 'verde'; } }
     if (a.marcaCuenta >= 0) { const x = Math.abs(a.marcaCuenta / d * W - px); if (x < dist) { dist = x; mejor = 'violeta'; } }
+    if (a.cicloFin > a.cicloIni + 0.2) {   // (0.9.0) los bordes del loop también se mueven con la lupa
+      const xi = Math.abs(a.cicloIni / d * W - px), xf = Math.abs(a.cicloFin / d * W - px);
+      if (xi < dist) { dist = xi; mejor = 'loopIni'; } if (xf < dist) { dist = xf; mejor = 'loopFin'; }
+    }
     return dist <= tol ? mejor : null;
   },
   moverBandera(cual, s) {
@@ -4423,7 +4566,7 @@ const Rep = {
       // compás que viene después de la morada. Si la morada está tan al comienzo que no entran todos los golpes, los
       // que faltan suenan antes del audio (en silencio) y después arranca la canción.
       const destino = a.marcaCuenta;
-      const comps = an.compasesEfectivos(), nB = Math.max(2, an.compasN), nComp = Pref.get('cuentaCompases', 1);
+      const comps = an.compasesEfectivos(), nB = Math.max(2, an.compasN), nComp = this.nCuentaCompases();
       let paso = 0;
       for (let i = 0; i + 1 < comps.length; i++) if (comps[i] >= destino - 0.12) { const d = comps[i + 1] - comps[i]; if (d > 0.4 && d < 8) { paso = d / nB; break; } }
       if (paso <= 0 && comps.length >= 2) paso = Math.max(0.8, Math.min(8, comps[1] - comps[0])) / nB;
@@ -4465,7 +4608,7 @@ const Rep = {
   parar() { if (Audio.nodo) Audio.enviar({ t: 'pausa' }); Audio.sonando = false; Audio.fondoPausa(); Audio.tvSigue(false); pantallaPrendida(false); Medios.estado(); },
   alInicio() { this.reanudar = false; this.ir(this.aj.marcaInicio >= 0 ? this.aj.marcaInicio : 0); if (Audio.sonando) this.tocar(); },
   refrescarBotones() {
-    $('#btnPlay').classList.toggle('sonando', Audio.sonando);
+    $('#btnPlay').classList.toggle('sonando', Audio.sonando); if (typeof Escenario !== 'undefined') Escenario.refrescar();
     $('#btnCuenta').classList.toggle('on', !!this.aj.cuenta);
     $('#btnCuenta').classList.toggle('muda', !!(this.aj.cuenta && this.aj.cuentaMuda));
     $('#btnVerde').classList.toggle('on', this.aj.marcaInicio >= 0);
@@ -4901,7 +5044,7 @@ const Medios = {
 };
 
 // ── controles de Reproducción ──
-function salirDeCancion() { if (Exportar.activo) Exportar.cancelar('saliste de la canción'); Rep.parar(); Rep.refrescarBotones(); pantalla('pBib'); Bib.dibujar(); subirAlSalir(); if (Sesion.pendiente) setTimeout(() => Sesion.revisar('saliste de la canción'), 1500); }
+function salirDeCancion() { if (Escenario.activo) { Escenario.salir(); return; } if (Exportar.activo) Exportar.cancelar('saliste de la canción'); Rep.parar(); Rep.refrescarBotones(); pantalla('pBib'); Bib.dibujar(); subirAlSalir(); if (Sesion.pendiente) setTimeout(() => Sesion.revisar('saliste de la canción'), 1500); }
 // (0.8.1) ‹ en pantalla: si hay un paso de la canción en el historial, se consume (así Volver del control no queda "debiendo" uno)
 $('#btnVolver').onclick = () => { if (history.state && history.state.ysCancion) history.back(); else salirDeCancion(); };
 addEventListener('popstate', () => {
@@ -4965,7 +5108,7 @@ $('#btnLoop').onclick = () => {
   a.loop = !a.loop; Rep.aplicarLoop(); Rep.guardarLocal();
   if (a.loop) Rep.alLoop();   // (0.8.9) fabao: "al seleccionar el loop no loopea ahí": si estás afuera, va al comienzo del loop
 };
-Audio.alTerminar = () => { Audio.tvSigue(false); Rep.reanudar = false; Rep.refrescarBotones(); pantallaPrendida(false); Medios.estado(); };   // (0.8.0) B18
+Audio.alTerminar = () => { Audio.tvSigue(false); Rep.reanudar = false; Rep.refrescarBotones(); pantallaPrendida(false); Medios.estado(); Escenario.alTerminar(); };   // (0.9.0) escenario: la siguiente queda lista   // (0.8.0) B18
 
 // ══════════ (0.7.2) LUPA de las banderas: 7 compases grandes alrededor (número, sección, acorde, pulsos; la cuenta en violeta) ══════════
 const Lupa = {
@@ -4975,17 +5118,25 @@ const Lupa = {
     // (0.8.0) A5: sin pulso no hay compases: la lupa usa "compases" de 2 s para que la verde igual se pueda mover
     let comps = an.compasesEfectivos();
     if (comps.length < 2) { comps = []; for (let t = 0; t < Rep.dur; t += 2) comps.push(t); if (comps.length < 2) comps = [0, Math.max(2, Rep.dur)]; }
-    const t = cual === 'verde' ? a.marcaInicio : a.marcaCuenta;
+    const t = cual === 'verde' ? a.marcaInicio : cual === 'loopIni' ? a.cicloIni : cual === 'loopFin' ? a.cicloFin : a.marcaCuenta;
     let i = 0; for (let k = 0; k < comps.length; k++) if (comps[k] <= t + 0.02) i = k;
+    if (cual === 'loopFin') { let m = 0; for (let k = 0; k < comps.length; k++) if (Math.abs(comps[k] - t) < Math.abs(comps[m] - t)) m = k; i = m; }
     const g = { cual, x0: x, i0: i, t0: t, comps };
-    $('#lupaB').classList.add('ver'); $('#lupaB').classList.toggle('verde', cual === 'verde');
+    $('#lupaB').classList.add('ver'); $('#lupaB').classList.toggle('verde', cual === 'verde'); $('#lupaB').classList.toggle('loop', cual === 'loopIni' || cual === 'loopFin');
+    this.cual = cual;
     const rb = $('#barra').getBoundingClientRect(); $('#lupaB').style.bottom = Math.max(8, innerHeight - rb.top + 10) + 'px';   // justo encima de la barra
     this.dibujar(g, i, t);
     return g;
   },
   mover(g, x) {
     const W = $('#lbComps').getBoundingClientRect().width || 300, paso = W / this.N, dx = x - g.x0, c = g.comps;
-    if (g.cual === 'violeta') {
+    if (g.cual === 'loopIni' || g.cual === 'loopFin') {   // (0.9.0) de compás en compás; el loop nunca queda de menos de un compás
+      const a = Rep.aj; let i = Math.max(0, Math.min(c.length - 1, g.i0 + Math.round(dx / paso)));
+      if (g.cual === 'loopIni') { while (i > 0 && c[i] > a.cicloFin - 0.2) i--; if (c[i] !== a.cicloIni) { a.cicloIni = c[i]; if (navigator.vibrate) navigator.vibrate(8); } }
+      else { while (i < c.length - 1 && c[i] < a.cicloIni + 0.2) i++; const t = Math.min(Rep.dur, c[i]); if (t !== a.cicloFin) { a.cicloFin = t; if (navigator.vibrate) navigator.vibrate(8); } }
+      Rep.aplicarLoop();
+      this.dibujar(g, i, g.cual === 'loopIni' ? a.cicloIni : a.cicloFin);
+    } else if (g.cual === 'violeta') {
       const i = Math.max(0, Math.min(c.length - 1, g.i0 + Math.round(dx / paso)));
       if (c[i] !== Rep.aj.marcaCuenta) { Rep.aj.marcaCuenta = c[i]; if (navigator.vibrate) navigator.vibrate(8); }
       this.dibujar(g, i, c[i]);
@@ -4999,13 +5150,14 @@ const Lupa = {
     }
   },
   dibujar(g, i, t) {
-    const an = Rep.an, c = g.comps, N = this.N, nB = Math.max(2, an.compasN), nCuenta = Pref.get('cuentaCompases', 1);
+    const an = Rep.an, c = g.comps, N = this.N, nB = Math.max(2, an.compasN), nCuenta = Rep.nCuentaCompases();
     let ini = Math.max(0, Math.min(c.length - N, i - 3));
     const C = $('#lbComps'); C.innerHTML = '';
     C.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
     for (let k = ini; k < Math.min(c.length, ini + N); k++) {
       const t0 = c[k], t1 = k + 1 < c.length ? c[k + 1] : t0 + 2;
-      const d = el('div', 'lbC' + (g.cual === 'violeta' && k >= i - nCuenta && k < i ? ' cuenta' : ''));
+      const enLoop = (g.cual === 'loopIni' || g.cual === 'loopFin') && t0 >= Rep.aj.cicloIni - 0.02 && t0 < Rep.aj.cicloFin - 0.02;
+      const d = el('div', 'lbC' + (g.cual === 'violeta' && k >= i - nCuenta && k < i ? ' cuenta' : '') + (enLoop ? ' enLoop' : ''));
       d.appendChild(el('span', 'lbN', String(k + 1)));
       const b = an.arreglo.find(x => t0 >= x.t - 0.05 && t0 < x.fin);
       const sec = el('span', 'lbS', b && (Math.abs(b.t - t0) < (t1 - t0) * 0.5 || k === ini) ? (b.nombre || '') : '');
@@ -5021,13 +5173,15 @@ const Lupa = {
     const fin = Math.min(c.length, ini + N), tFin = fin < c.length ? c[fin] : c[c.length - 1] + 2;
     let x = 0; for (let k = ini; k < fin; k++) { const t0 = c[k], t1 = k + 1 < c.length ? c[k + 1] : t0 + 2; if (t >= t0 - 0.02 && t < t1) { x = (k - ini + Math.max(0, Math.min(1, (t - t0) / (t1 - t0)))) / N; break; } if (t >= tFin) x = 1; }
     const f = el('span', 'lbF'); f.style.left = (x * 100) + '%'; C.appendChild(f);
-    $('#lbTit').textContent = g.cual === 'violeta' ? 'Entrada: compás ' + (i + 1) + ' · ' + fmtT(t) : 'Arranca en ' + fmtT(t) + ' (compás ' + (i + 1) + ')';
-    $('#lbSub').textContent = g.cual === 'violeta' ? (nCuenta === 1 ? 'la cuenta, en el compás de antes' : 'la cuenta, en los ' + nCuenta + ' compases de antes') : '';
+    $('#lbTit').textContent = g.cual === 'loopIni' ? 'Comienzo del loop: compás ' + (i + 1) + ' · ' + fmtT(t) : g.cual === 'loopFin' ? 'Fin del loop: compás ' + (i + 1) + ' · ' + fmtT(t)
+      : g.cual === 'violeta' ? 'Entrada: compás ' + (i + 1) + ' · ' + fmtT(t) : 'Arranca en ' + fmtT(t) + ' (compás ' + (i + 1) + ')';
+    $('#lbSub').textContent = g.cual === 'loopIni' || g.cual === 'loopFin' ? 'el loop: ' + fmtT(Rep.aj.cicloIni) + ' a ' + fmtT(Rep.aj.cicloFin) : g.cual === 'violeta' ? (nCuenta === 1 ? 'la cuenta, en el compás de antes' : 'la cuenta, en los ' + nCuenta + ' compases de antes') : '';
     Rep.claveBarra = null;
   },
   cerrar() {
     $('#lupaB').classList.remove('ver'); Rep.claveBarra = null;
     const a = Rep.aj;
+    if (this.cual === 'loopIni' || this.cual === 'loopFin') { Rep.aplicarLoop(); if (a.loop) Rep.alLoop(); aviso('Loop: ' + fmtT(a.cicloIni) + ' a ' + fmtT(a.cicloFin), 1600); return; }
     aviso($('#lupaB').classList.contains('verde') ? 'Bandera verde: ' + fmtT(a.marcaInicio) : 'Entrada: ' + Rep.textoEntrada(a.marcaCuenta), 1600);
   }
 };
@@ -5041,7 +5195,7 @@ const Lupa = {
   B.onclick = e => { if (hecho) { hecho = false; e.preventDefault(); return; } Rep.alternarCuenta(); };
 })();
 function menuCuentaCompases() {
-  const M = $('#popCuenta'), n = Pref.get('cuentaCompases', 1);
+  const M = $('#popCuenta'), n = Rep.nCuentaCompases();
   M.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.n === n));
   M.classList.add('ver');
   const r = $('#btnCuenta').getBoundingClientRect(), w = M.offsetWidth, h = M.offsetHeight;
@@ -5052,6 +5206,7 @@ function menuCuentaCompases() {
 $('#popCuenta').addEventListener('click', e => {
   const b = e.target.closest('button[data-n]'); if (!b) return;
   Pref.set('cuentaCompases', +b.dataset.n); $('#popCuenta').classList.remove('ver');
+  if (Escenario.activo && Rep.mixForzada) { Rep.mixForzada.cuentaCompases = +b.dataset.n; Rep.guardarLocal(); }   // (0.9.0)
   aviso('Cuenta: ' + b.dataset.n + (b.dataset.n === '1' ? ' compás (' : ' compases (') + (+b.dataset.n * Math.max(2, Rep.an ? Rep.an.compasN : 4)) + ' golpes)', 1800);
 });
 document.addEventListener('pointerdown', e => { const M = $('#popCuenta'); if (M.classList.contains('ver') && !e.target.closest('#popCuenta') && !e.target.closest('#btnCuenta')) M.classList.remove('ver'); }, true);
@@ -5069,7 +5224,7 @@ document.addEventListener('pointerdown', e => { const M = $('#popCuenta'); if (M
   cv.addEventListener('contextmenu', e => e.preventDefault());   // (0.8.0) B20: Android: el menú contextual del long-press cortaba la lupa / el loop
   cv.addEventListener('pointermove', e => { if (!apretado && e.pointerType === 'mouse') cv.style.cursor = cerca(e) ? 'grab' : ''; });
   cv.addEventListener('pointerdown', e => {
-    if (e.button > 0) return;
+    if (e.button > 0 || (Escenario.activo && Escenario.bloqueado)) return;
     if (bandera || candidata) return;   // (0.8.0) B19: ya hay un dedo en una bandera: el segundo no hace nada
     candidata = cerca(e); bandera = null;
     if (!candidata) return;
@@ -5093,6 +5248,7 @@ document.addEventListener('pointerdown', e => { const M = $('#popCuenta'); if (M
   cv.addEventListener('pointerup', soltarBandera); cv.addEventListener('pointercancel', soltarBandera);
   cv.addEventListener('pointerdown', e => {
     if (e.button > 0 || bandera) return;
+    if (Escenario.activo && Escenario.bloqueado) { aviso('🔒 Toques bloqueados (modo escenario). Mantené apretado 🔒 para desbloquear.', 2200); return; }
     try { cv.setPointerCapture(e.pointerId); } catch {} x0 = e.clientX; arrastrando = false; apretado = true; largoHecho = false;
     const s = seg(e);
     if (candidata) return;   // (0.7.2) sobre una bandera, mantener apretado = moverla (no repetir la parte)
@@ -5154,7 +5310,7 @@ addEventListener('orientationchange', () => setTimeout(() => Rep.cancion && Rep.
 async function abrirMenu() {
   $('#menu').classList.add('ver');
   const n = await Nube.espacio();
-  $('#menuEspacio').textContent = n ? ' (' + (n / 1048576).toFixed(0) + ' MB ' + (EQUIPO === 'este dispositivo' ? 'en este dispositivo' : 'en ' + EQUIPO) + ')' : '';
+  $('#menuEspacio').textContent = n ? ' · ' + (n / 1048576).toFixed(0) + ' MB' : '';
   const con = Nube.conectado();
   $('#menuConectar').style.display = con ? 'none' : '';
   $('#menuSalir').style.display = con ? '' : 'none';
@@ -5165,8 +5321,8 @@ async function abrirMenu() {
   $('#menuCarpeta').style.display = Local.hayCarpetas() ? '' : 'none';
   if (Local.hayCarpetas()) Local.carpeta().then(h => $('#menuCarpetaNombre').textContent = h ? ' · ' + h.name : ' · ninguna');
   $('#menuBloqueada').style.display = matchMedia('(pointer: coarse)').matches ? '' : 'none';
-  $('#menuBloqueada').textContent = 'Sonar con la pantalla bloqueada: ' + (Pref.get('bloqueada', true) ? 'sí' : 'no');
-  $('#menuGestos').textContent = 'Gestos en la letra: ' + (Pref.get('gestos', true) ? 'sí' : 'no');   // (0.8.5)
+  $('#menuBloqueada').textContent = 'Con pantalla bloqueada: ' + (Pref.get('bloqueada', true) ? 'sí' : 'no');
+  $('#menuGestos').textContent = 'Gestos: ' + (Pref.get('gestos', true) ? 'sí' : 'no');   // (0.8.5)
   const enRep = !!Rep.cancion && $('#pRep').classList.contains('activa');
   $('#menuMac').style.display = enRep ? '' : 'none';
   $('#menuAudio').style.display = enRep ? '' : 'none';
@@ -5668,7 +5824,7 @@ const Gestos = {
   playPausa() {
     if (Audio.sonando) { Rep.pausa(); this.flash('❚❚'); } else { Rep.reanudar = true; Rep.tocar(); this.flash('▶'); }
   },
-  activo() { return Pref.get('gestos', true) && !!Rep.cancion && !Editor.abierto && !Pulso.abierto && $('#pRep').classList.contains('activa'); },
+  activo() { return Pref.get('gestos', true) && !(Escenario.activo && Escenario.bloqueado) && !!Rep.cancion && !Editor.abierto && !Pulso.abierto && $('#pRep').classList.contains('activa'); },
 
   iniciar() {
     const tele = $('#tele'), P = new Map();
@@ -5830,7 +5986,7 @@ function centrarPlay() {
 acomodar(); addEventListener('resize', acomodar); addEventListener('orientationchange', () => setTimeout(acomodar, 250));
 ajustarAlto(); addEventListener('resize', ajustarAlto); addEventListener('orientationchange', () => setTimeout(ajustarAlto, 250));
 try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
-arrancar();
+setTimeout(arrancar, 0);   // (0.9.0) después de que carguen todos los módulos (listas.js va al final)
 
 // ── Editor de acordes y arreglos (solo tableta / computadora) ──
 // El pulso NO se toca acá (lo arregla en la Mac quien carga la canción): todo cae en la grilla que ya está,
@@ -7787,6 +7943,492 @@ function hiloExportar() {
     });
   };
 }
+
+// ══════════════════════ (0.9.0) LISTAS, FAVORITAS, OCULTAS Y MODO ESCENARIO ══════════════════════
+// fabao (19/11): listas (setlists) que se arman y desarman desde la Mac y el teléfono; favoritas ⭐ y ocultas guardadas
+// en su OneDrive; "bloquear el show" = se guarda la mezcla de cada canción DENTRO de la lista (la letra, los acordes,
+// las secciones y el pulso no se bloquean); lo que se cambie en vivo queda como "último show" sin perder la original.
+// Archivo: «YouSTEM Privado/listas.json» (la Mac dejó de sincronizar playlists.json en la 1.3.6). Formato:
+//   { formato: 1, editado, listas: [{ id, nombre, ids: [...], sinBajo, editado, show? }], favoritas: [ids], ocultas: [ids] }
+//   show = { bloqueado: true, fecha, original: { <id>: mezcla }, ultimo: { <id>: mezcla }, ultimoFecha }
+//   mezcla = lo mismo que la web guarda por canción en el aparato: ganancias, mutes, solos, tono, tempoWeb, cuenta,
+//            cuentaMuda, cuentaCompases, clickEncendido, marcaInicio, marcaCuenta (sin loop)
+// Cada cambio es una "operación" que se aplica encima de lo último que hay en OneDrive (If-Match): dos aparatos a la vez
+// no se pisan; sin red queda pendiente en el aparato y se sube después.
+
+const NOMBRES_PISTA = { voz: 'Voz', bajo: 'Bajo', bateria: 'Batería', guitarra: 'Guitarra', piano: 'Piano', otros: 'Otros', click: 'Click' };
+const nombrePista = id => NOMBRES_PISTA[id] || (/^g/.test(id) ? 'grupo' : id.charAt(0).toUpperCase() + id.slice(1));
+
+const Listas = {
+  ARCH: 'listas.json',
+  d: null, etag: null, pend: [], listo: false, local: false,
+  vacio() { return { formato: 1, editado: 0, listas: [], favoritas: [], ocultas: [] }; },
+  normalizar(x) {
+    const d = this.vacio();
+    if (x && typeof x === 'object') {
+      if (Array.isArray(x.listas)) d.listas = x.listas.filter(l => l && l.id).map(l => ({ ...l, nombre: String(l.nombre || 'Lista'), ids: Array.isArray(l.ids) ? l.ids.map(String) : [] }));
+      if (Array.isArray(x.favoritas)) d.favoritas = x.favoritas.map(String);
+      if (Array.isArray(x.ocultas)) d.ocultas = x.ocultas.map(String);
+      for (const k of Object.keys(x)) if (!(k in d)) d[k] = x[k];   // lo que no conocemos (de la Mac) se conserva
+      d.editado = +x.editado || 0;
+    }
+    return d;
+  },
+  raiz() {
+    const m = Bib.libs.find(l => l.mia && !l.local); if (!m) return null;
+    return m.raices.find(r => r.privada) || m.raices[0] || null;
+  },
+  esFav(id) { return !!this.d && this.d.favoritas.includes(id); },
+  esOculta(id) { return !!this.d && this.d.ocultas.includes(id); },
+  lista(id) { return this.d && this.d.listas.find(l => l.id === id); },
+
+  async iniciar() {
+    if (this.iniciando) return; this.iniciando = true;
+    try { const c = await IDB.get('listas'); if (c && c.d) { this.d = this.normalizar(c.d); this.etag = c.etag || null; this.pend = c.pend || []; } } catch {}
+    if (!this.d) this.d = this.vacio();
+    this.listo = true; Bib.dibujar();
+    await this.traer();
+    this.iniciando = false;
+  },
+  async guardarIDB() { try { await IDB.set('listas', { d: this.d, etag: this.etag, pend: this.pend }); } catch {} },
+  async traer() {
+    const raiz = this.raiz(); this.local = !raiz;
+    if (!raiz || !Nube.conectado()) return;
+    try {
+      const { datos, etag } = await Nube.leerConEtag(raiz, this.ARCH);
+      if (etag !== this.etag || !etag) {
+        const d = this.normalizar(datos);
+        for (const op of this.pend) this.aplicar(d, op);
+        this.d = d; this.etag = etag; await this.guardarIDB();
+        anotar('listas:', d.listas.length, 'listas ·', d.favoritas.length, 'favoritas ·', d.ocultas.length, 'ocultas' + (this.pend.length ? ' · ' + this.pend.length + ' cambios sin subir' : ''));
+        Bib.dibujar(); if (Escenario.activo) Escenario.pintar();
+      }
+      if (this.pend.length) this.subir();
+    } catch (e) { anotar('listas: no pude leer', e && e.message); }
+  },
+  // ── operaciones (se aplican igual acá y encima de lo que haya en OneDrive) ──
+  aplicar(d, op) {
+    const L = id => d.listas.find(l => l.id === id), set = (arr, id, on) => { const i = arr.indexOf(id); if (on && i < 0) arr.push(id); if (!on && i >= 0) arr.splice(i, 1); };
+    const ahora = op.cuando || Date.now();
+    switch (op.t) {
+      case 'fav': set(d.favoritas, op.id, op.on); break;
+      case 'oculta': set(d.ocultas, op.id, op.on); break;
+      case 'nueva': if (!L(op.lista.id)) d.listas.push({ ...op.lista }); break;
+      case 'renombrar': { const l = L(op.id); if (l) { l.nombre = op.nombre; l.editado = ahora; } break; }
+      case 'borrar': d.listas = d.listas.filter(l => l.id !== op.id); break;
+      case 'agregar': { const l = L(op.id); if (l && !l.ids.includes(op.cid)) { l.ids.push(op.cid); l.editado = ahora; if (l.show && l.show.bloqueado && op.mezcla) l.show.original[op.cid] = op.mezcla; } break; }
+      case 'sacar': { const l = L(op.id); if (l) { l.ids = l.ids.filter(x => x !== op.cid); l.editado = ahora; if (l.show) { delete l.show.original[op.cid]; delete l.show.ultimo[op.cid]; } } break; }
+      case 'orden': { const l = L(op.id); if (l) { const quedan = op.ids.filter(x => l.ids.includes(x)), resto = l.ids.filter(x => !quedan.includes(x)); l.ids = [...quedan, ...resto]; l.editado = ahora; } break; }
+      case 'show': { const l = L(op.id); if (l) { if (op.show) l.show = op.show; else delete l.show; l.editado = ahora; } break; }
+      case 'mezcla': {   // una canción del show: cual = original | ultimo; mezcla null = sacarla
+        const l = L(op.id); if (!l || !l.show) break;
+        const m = l.show[op.cual] || (l.show[op.cual] = {});
+        if (op.mezcla) m[op.cid] = op.mezcla; else delete m[op.cid];
+        if (op.cual === 'ultimo' && op.mezcla) l.show.ultimoFecha = ahora;
+        l.editado = ahora; break;
+      }
+    }
+    d.editado = Math.max(d.editado || 0, ahora);
+  },
+  cambiar(op) {
+    op.cuando = Date.now();
+    this.aplicar(this.d, op); this.pend.push(op); this.guardarIDB();
+    Bib.dibujar(); if (Escenario.activo) Escenario.pintar();
+    clearTimeout(this.tSubir); this.tSubir = setTimeout(() => this.subir(), 700);
+  },
+  async subir() {
+    if (this.subiendo) { this.otraVez = true; return; }
+    const raiz = this.raiz(); if (!raiz || !Nube.conectado() || !this.pend.length) return;
+    this.subiendo = true;
+    try {
+      for (let intento = 0; intento < 5; intento++) {
+        const ops = this.pend.slice();
+        const { datos, etag } = await Nube.leerConEtag(raiz, this.ARCH);
+        const d = this.normalizar(datos);
+        for (const op of ops) this.aplicar(d, op);
+        try {
+          const nuevo = await Nube.escribirSi(raiz, this.ARCH, JSON.stringify(d, null, 1), etag);
+          this.pend = this.pend.slice(ops.length);
+          for (const op of this.pend) this.aplicar(d, op);   // lo que se cambió mientras se subía
+          this.d = d; this.etag = nuevo; await this.guardarIDB();
+          anotar('listas: guardadas en OneDrive (' + ops.length + (ops.length === 1 ? ' cambio' : ' cambios') + ')' + (intento ? ' tras ' + intento + ' choque(s) con otro aparato' : ''));
+          Bib.dibujar(); if (Escenario.activo) Escenario.pintar();
+          break;
+        } catch (e) { if (!e.conflicto) throw e; anotar('listas: otro aparato las cambió recién; las junto y reintento'); }
+      }
+    } catch (e) {
+      anotar('listas: no pude guardar en OneDrive (quedan en el aparato y se suben después)', e && e.message);
+      if (e && e.sinPermiso && !this.pidioPermiso) { this.pidioPermiso = true; avisoAccion('Para guardar las listas en tu OneDrive, YouSTEM necesita permiso para escribir.', 'Dar permiso', () => Nube.pedirEscritura()); }
+    } finally {
+      this.subiendo = false;
+      if (this.otraVez) { this.otraVez = false; setTimeout(() => this.subir(), 300); }
+    }
+  },
+
+  // ── canciones ──
+  resolver(cid) {
+    const orden = [...Bib.libs.filter(l => l.mia), ...Bib.libs.filter(l => !l.mia && !l.local), ...Bib.libs.filter(l => l.local)];
+    for (const lib of orden) { const c = (Bib.porLib[lib.clave] || []).find(x => x.id === cid); if (c) return { c, lib }; }
+    return null;
+  },
+  // la mezcla que la canción tiene HOY en la biblioteca de este aparato (la capa que guarda la web por canción)
+  mezclaBiblioteca(cid) {
+    const r = this.resolver(cid); if (!r) return {};
+    let l = null; try { l = JSON.parse(localStorage.getItem('ys.local.' + r.lib.clave + '|' + cid) || 'null'); } catch {}
+    const m = {};
+    if (l) for (const k of ['ganancias', 'mutes', 'solos', 'tono', 'tempoWeb', 'cuenta', 'cuentaMuda', 'clickEncendido', 'marcaInicio', 'marcaCuenta', 'muteAntes', 'vozMidi', 'master', 'masterMute']) if (k in l) m[k] = l[k];
+    m.cuentaCompases = Pref.get('cuentaCompases', 1);
+    m.loop = false;
+    return m;
+  },
+  // qué mezcla usa el escenario para esta canción (null = la de la biblioteca)
+  mezclaShow(l, cid, version) {
+    if (!l || !l.show || !l.show.bloqueado) return null;
+    return (version === 'ultimo' && l.show.ultimo && l.show.ultimo[cid]) || (l.show.original && l.show.original[cid]) || { loop: false };
+  },
+  // marcas cortas: «1·2·3·4 muda · sin bajo · +2 · 85 %»
+  marcas(m) {
+    if (!m) return [];
+    const r = [];
+    if (m.cuenta && m.marcaCuenta >= 0) r.push({ t: '1·2·3·4' + (m.cuentaMuda ? ' muda' : '') + ((m.cuentaCompases || 1) > 1 ? ' ×' + m.cuentaCompases : ''), k: 'v' });
+    if (m.clickEncendido) r.push({ t: 'click', k: 'v' });
+    const solos = m.solos || [], mutes = (m.mutes || []).filter(x => x !== 'click');
+    if (solos.length) r.push({ t: 'solo ' + solos.map(x => nombrePista(x).toLowerCase()).join(' y '), k: '' });
+    else if (mutes.length) r.push({ t: 'sin ' + mutes.map(x => nombrePista(x).toLowerCase()).join(', '), k: '' });
+    if (m.tono) r.push({ t: (m.tono > 0 ? '+' : '−') + Math.abs(m.tono), k: 'n' });
+    if (m.tempoWeb && m.tempoWeb !== 1) r.push({ t: Math.round(m.tempoWeb * 100) + ' %', k: 'n' });
+    return r;
+  },
+  diferencias(a, b) {   // qué cambió en vivo (b) respecto de la original (a)
+    a = a || {}; b = b || {}; const r = [], ga = a.ganancias || {}, gb = b.ganancias || {};
+    for (const id of new Set([...Object.keys(ga), ...Object.keys(gb)])) {
+      const x = ga[id] ?? 1, y = gb[id] ?? 1;
+      if (Math.abs(x - y) > 0.01) { const db = 20 * Math.log10(Math.max(1e-4, y)); r.push(nombrePista(id).toLowerCase() + ' ' + (db > 0 ? '+' : '−') + Math.abs(Math.round(db)) + ' dB'); }
+    }
+    const ma = new Set(a.mutes || []), mb = new Set(b.mutes || []);
+    for (const id of mb) if (!ma.has(id) && id !== 'click') r.push('sin ' + nombrePista(id).toLowerCase());
+    for (const id of ma) if (!mb.has(id) && id !== 'click') r.push('con ' + nombrePista(id).toLowerCase());
+    if ((a.tono || 0) !== (b.tono || 0)) r.push('tono ' + ((b.tono || 0) > 0 ? '+' : '') + (b.tono || 0));
+    if ((a.tempoWeb || 1) !== (b.tempoWeb || 1)) r.push('tempo ' + Math.round((b.tempoWeb || 1) * 100) + ' %');
+    if (!!a.cuenta !== !!b.cuenta || !!a.cuentaMuda !== !!b.cuentaMuda) r.push(b.cuenta ? 'cuenta ' + (b.cuentaMuda ? 'muda' : 'con sonido') : 'sin cuenta');
+    if (!!a.clickEncendido !== !!b.clickEncendido) r.push(b.clickEncendido ? 'con click' : 'sin click');
+    return r;
+  },
+  nuevaId() { return Math.random().toString(16).slice(2, 10); },
+};
+
+// ── una hoja genérica (menú de abajo) ──
+const Hoja = {
+  abrir({ tit, sub, items = [], cuerpo = null, cancelar = 'Cancelar' }) {
+    $('#hgTit').textContent = tit || ''; $('#hgSub').textContent = sub || '';
+    const C = $('#hgCuerpo'); C.innerHTML = '';
+    if (cuerpo) C.appendChild(cuerpo);
+    for (const it of items) {
+      if (!it) continue;
+      if (it.texto) { C.appendChild(el('div', 'hgTexto', it.texto)); continue; }
+      const b = el('button', it.clase || '', it.txt);
+      if (it.desactivado) b.disabled = true;
+      b.onclick = () => { if (it.cerrar !== false) this.cerrar(); it.fn && it.fn(); };
+      C.appendChild(b);
+    }
+    $('#hgCerrar').textContent = cancelar; $('#hgCerrar').style.display = cancelar ? '' : 'none';
+    $('#hojaGen').classList.add('ver');
+  },
+  cerrar() { $('#hojaGen').classList.remove('ver'); },
+  texto({ tit, valor = '', ok = 'Guardar', fn }) {
+    const caja = el('div', 'hgCampo'), inp = el('input'); inp.type = 'text'; inp.value = valor; inp.id = 'hgInput'; inp.autocomplete = 'off';
+    caja.appendChild(inp);
+    this.abrir({ tit, cuerpo: caja, items: [{ txt: ok, clase: 'grande', fn: () => { const v = inp.value.trim(); if (v) fn(v); } }] });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { const v = inp.value.trim(); if (v) { this.cerrar(); fn(v); } } });
+    setTimeout(() => { inp.focus(); inp.select(); }, 60);
+  },
+};
+$('#hgCerrar').onclick = () => Hoja.cerrar();
+$('#hojaGen').addEventListener('click', e => { if (e.target.id === 'hojaGen') Hoja.cerrar(); });
+function avisoAccion(txt, boton, fn) { Hoja.abrir({ tit: txt, items: [{ txt: boton, clase: 'grande', fn }], cancelar: 'Ahora no' }); }
+
+// ── la pestaña Listas (dentro de la biblioteca) ──
+const ListasUI = {
+  abierta: null,
+  dibujar(cont) {
+    if (!Listas.listo) { Bib.estado('Cargando tus listas…'); return; }
+    if (this.abierta && !Listas.lista(this.abierta)) this.abierta = null;
+    if (this.abierta) return this.detalle(cont, Listas.lista(this.abierta));
+    const ls = Listas.d.listas;
+    const nueva = el('button', 'filaNueva', '＋ Nueva lista');
+    nueva.onclick = () => Hoja.texto({ tit: 'Nueva lista', valor: '', ok: 'Crear', fn: nombre => { const id = Listas.nuevaId(); Listas.cambiar({ t: 'nueva', lista: { id, nombre, ids: [], sinBajo: false } }); this.abierta = id; Bib.dibujar(); } });
+    cont.appendChild(nueva);
+    for (const l of ls) {
+      const f = el('button', 'tema filaLista');
+      f.appendChild(el('div', 'miniLista', l.show && l.show.bloqueado ? '🔒' : '♪'));
+      const tx = el('div', 'tx'); tx.appendChild(el('div', 'tit', l.nombre));
+      const dur = l.ids.reduce((s, id) => { const r = Listas.resolver(id); return s + (r && r.c.duracion || 0); }, 0);
+      tx.appendChild(el('div', 'sub', l.ids.length + (l.ids.length === 1 ? ' canción' : ' canciones') + (dur ? ' · ' + Math.round(dur / 60) + ' min' : '') + (l.show && l.show.bloqueado ? ' · show bloqueado' : '')));
+      f.appendChild(tx);
+      const mas = el('span', 'masFila', '⋯'); f.appendChild(el('div', 'iconos')).appendChild(mas);
+      f.onclick = e => { if (e.target.closest('.masFila')) { e.stopPropagation(); this.menuLista(l); return; } this.abierta = l.id; Bib.dibujar(); $('#lista').scrollTop = 0; };
+      cont.appendChild(f);
+    }
+    Bib.estado(ls.length ? (Listas.local ? 'Las listas quedan solo en ' + EQUIPO + ' (no tenés biblioteca propia en OneDrive).' : '') : 'Todavía no tenés listas. Tocá «＋ Nueva lista» y agregale canciones; también desde el ⋯ de cada canción.');
+  },
+  menuLista(l) {
+    const bloq = l.show && l.show.bloqueado;
+    Hoja.abrir({ tit: l.nombre, sub: l.ids.length + ' canciones', items: [
+      { txt: '▶ Tocar en modo escenario', fn: () => Escenario.empezar(l.id), desactivado: !l.ids.length },
+      { txt: bloq ? '🔓 Desbloquear el show' : '🔒 Bloquear el show (guarda la mezcla de cada canción)', fn: () => bloq ? this.desbloquear(l) : this.bloquear(l) },
+      { txt: 'Renombrar', fn: () => Hoja.texto({ tit: 'Renombrar la lista', valor: l.nombre, fn: n => Listas.cambiar({ t: 'renombrar', id: l.id, nombre: n }) }) },
+      { txt: 'Borrar la lista', clase: 'rojo', fn: () => Hoja.abrir({ tit: '¿Borrar «' + l.nombre + '»?', sub: 'Las canciones no se borran: solo la lista' + (bloq ? ' y las mezclas guardadas del show' : '') + '.', items: [{ txt: 'Borrar la lista', clase: 'grande rojoF', fn: () => { Listas.cambiar({ t: 'borrar', id: l.id }); if (this.abierta === l.id) this.abierta = null; Bib.dibujar(); } }] }) },
+    ] });
+  },
+  bloquear(l) {
+    const original = {}; for (const cid of l.ids) original[cid] = Listas.mezclaBiblioteca(cid);
+    Listas.cambiar({ t: 'show', id: l.id, show: { bloqueado: true, fecha: Date.now(), original, ultimo: {}, ultimoFecha: 0 } });
+    aviso('Show bloqueado: cada canción queda con la mezcla de hoy. La letra y los acordes siguen corrigiéndose.', 4000);
+  },
+  desbloquear(l) {
+    Hoja.abrir({ tit: '¿Desbloquear «' + l.nombre + '»?', sub: 'El escenario vuelve a usar la mezcla de la biblioteca. Las mezclas guardadas del show (la original y la del último show) se pierden.', items: [
+      { txt: 'Desbloquear', clase: 'grande', fn: () => { Listas.cambiar({ t: 'show', id: l.id, show: null }); aviso('Show desbloqueado.'); } }] });
+  },
+  detalle(cont, l) {
+    $('.buscar') && 0;
+    const bloq = l.show && l.show.bloqueado;
+    const cab = el('div', 'listaCab');
+    const volver = el('button', 'listaVolver', '‹ Listas'); volver.onclick = () => { this.abierta = null; Bib.dibujar(); };
+    const mas = el('button', 'listaMas', '⋯'); mas.onclick = () => this.menuLista(l);
+    cab.appendChild(volver); cab.appendChild(mas); cont.appendChild(cab);
+    cont.appendChild(el('div', 'setTit', l.nombre + (bloq ? ' 🔒' : '')));
+    const dur = l.ids.reduce((s, id) => { const r = Listas.resolver(id); return s + (r && r.c.duracion || 0); }, 0);
+    cont.appendChild(el('div', 'setSub', l.ids.length + (l.ids.length === 1 ? ' canción' : ' canciones') + (dur ? ' · ' + Math.round(dur / 60) + ' min' : '') + (bloq ? ' · mezclas bloqueadas' : '')));
+    const ult = bloq ? Object.keys(l.show.ultimo || {}).filter(id => l.ids.includes(id)) : [];
+    if (ult.length) cont.appendChild(el('div', 'aviso2', '✎ En el último show' + (l.show.ultimoFecha ? ' (' + new Date(l.show.ultimoFecha).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'numeric' }) + ')' : '') + ' cambiaste ' + ult.length + (ult.length === 1 ? ' canción.' : ' canciones.')));
+    const filas = el('div', 'filasLista'); cont.appendChild(filas);
+    l.ids.forEach((cid, i) => {
+      const r = Listas.resolver(cid);
+      const f = el('div', 'tema filaSet' + (r ? '' : ' falta')); f.dataset.cid = cid;
+      f.appendChild(el('span', 'num', String(i + 1)));
+      const mini = el('div', 'mini');
+      if (r) { const k = (r.lib.local ? 'local' : r.lib.clave) + '|' + cid, url = Bib.miniaturas[k]; if (url) mini.appendChild(Bib.imgDe('set:' + k, url)); }
+      f.appendChild(mini);
+      const tx = el('div', 'tx'); tx.appendChild(el('div', 'tit', r ? (r.c.titulo || cid) : 'No está en tu biblioteca (' + cid + ')'));
+      const m = bloq ? Listas.mezclaShow(l, cid, 'original') : Listas.mezclaBiblioteca(cid);
+      const bs = el('div', 'badges');
+      for (const x of Listas.marcas(m)) bs.appendChild(el('i', x.k, x.t));
+      if (bloq && l.show.ultimo && l.show.ultimo[cid]) { const d = Listas.diferencias(l.show.original[cid], l.show.ultimo[cid]); bs.appendChild(el('i', 'vivo', '✎ en vivo' + (d.length ? ': ' + d.slice(0, 2).join(', ') : ''))); }
+      if (!bs.children.length && r) bs.appendChild(el('i', 'gris', [r.c.tonalidad ? Modelo.lindo(r.c.tonalidad) : '', r.c.bpm ? Math.round(r.c.bpm) + ' BPM' : '', r.c.duracion ? fmtT(r.c.duracion) : ''].filter(Boolean).join(' · ')));
+      tx.appendChild(bs); f.appendChild(tx);
+      const masF = el('button', 'masFila', '⋯'); masF.onclick = e => { e.stopPropagation(); this.menuCancion(l, cid, i); };
+      const asa = el('span', 'asa', '≡');
+      f.appendChild(masF); f.appendChild(asa);
+      f.onclick = e => { if (e.target.closest('.asa') || e.target.closest('.masFila')) return; if (r) abrirCancion(r.c, r.lib); };
+      this.arrastre(asa, f, filas, l);
+      filas.appendChild(f);
+    });
+    const ag = el('button', 'mas', '＋ Agregar canciones'); ag.onclick = () => this.elegir(l); cont.appendChild(ag);
+    if (l.ids.length) { const t = el('button', 'btnGrande', '▶ Tocar en modo escenario'); t.onclick = () => Escenario.empezar(l.id); cont.appendChild(t); }
+    Bib.estado(l.ids.length ? '' : 'Lista vacía: tocá «＋ Agregar canciones».');
+    $('#cuenta').textContent = '';
+  },
+  menuCancion(l, cid, i) {
+    const r = Listas.resolver(cid), bloq = l.show && l.show.bloqueado, vivo = bloq && l.show.ultimo && l.show.ultimo[cid];
+    const mover = (a) => { const ids = l.ids.slice(); const [x] = ids.splice(i, 1); ids.splice(Math.max(0, Math.min(ids.length, a)), 0, x); Listas.cambiar({ t: 'orden', id: l.id, ids }); };
+    Hoja.abrir({ tit: r ? (r.c.titulo || cid) : cid, sub: 'en «' + l.nombre + '»' + (vivo ? ' · cambiada en vivo' : ''), items: [
+      vivo && { txt: 'Usar la original', fn: () => Listas.cambiar({ t: 'mezcla', id: l.id, cid, cual: 'ultimo', mezcla: null }) },
+      vivo && { txt: 'Quedarme con la del último show', fn: () => { Listas.cambiar({ t: 'mezcla', id: l.id, cid, cual: 'original', mezcla: l.show.ultimo[cid] }); Listas.cambiar({ t: 'mezcla', id: l.id, cid, cual: 'ultimo', mezcla: null }); } },
+      bloq && { txt: 'Tomar la mezcla de la biblioteca', fn: () => { Listas.cambiar({ t: 'mezcla', id: l.id, cid, cual: 'original', mezcla: Listas.mezclaBiblioteca(cid) }); Listas.cambiar({ t: 'mezcla', id: l.id, cid, cual: 'ultimo', mezcla: null }); aviso('Tomé la mezcla que tiene hoy en la biblioteca.'); } },
+      i > 0 && { txt: '↑ Subir', fn: () => mover(i - 1) },
+      i < l.ids.length - 1 && { txt: '↓ Bajar', fn: () => mover(i + 1) },
+      l.ids.length > 2 && { txt: 'Mover a…', fn: () => Hoja.texto({ tit: 'Mover a la posición (1 a ' + l.ids.length + ')', valor: String(i + 1), ok: 'Mover', fn: v => { const n = parseInt(v, 10); if (n >= 1) mover(n - 1); } }) },
+      { txt: 'Sacar de la lista', clase: 'rojo', fn: () => Listas.cambiar({ t: 'sacar', id: l.id, cid }) },
+    ] });
+  },
+  // ≡: mantener y arrastrar para ordenar (los demás se corren al pasar por su mitad)
+  arrastre(asa, f, cont, l) {
+    asa.addEventListener('pointerdown', e => {
+      e.preventDefault(); e.stopPropagation();
+      try { asa.setPointerCapture(e.pointerId); } catch {}
+      f.classList.add('arrastrando');
+      const mover = ev => {
+        const y = ev.clientY;
+        const prev = f.previousElementSibling, next = f.nextElementSibling;
+        if (prev && y < prev.getBoundingClientRect().top + prev.offsetHeight / 2) cont.insertBefore(f, prev);
+        else if (next && y > next.getBoundingClientRect().top + next.offsetHeight / 2) cont.insertBefore(next, f);
+      };
+      const soltar = () => {
+        asa.removeEventListener('pointermove', mover); asa.removeEventListener('pointerup', soltar); asa.removeEventListener('pointercancel', soltar);
+        f.classList.remove('arrastrando');
+        const ids = [...cont.children].map(x => x.dataset.cid);
+        if (ids.join() !== l.ids.join()) Listas.cambiar({ t: 'orden', id: l.id, ids });
+      };
+      asa.addEventListener('pointermove', mover); asa.addEventListener('pointerup', soltar); asa.addEventListener('pointercancel', soltar);
+    });
+  },
+  // agregar canciones: buscador + todas las canciones; tocar = agregar / sacar
+  elegir(l) {
+    const caja = el('div', 'elegirCaja'), inp = el('input'); inp.type = 'search'; inp.placeholder = 'Buscar canción o artista'; inp.id = 'elegirQ';
+    const lista = el('div', 'elegirLista'); caja.appendChild(inp); caja.appendChild(lista);
+    const todas = [], vistos = new Set();
+    for (const lib of Bib.libs) for (const c of Bib.porLib[lib.clave] || []) if (!vistos.has(c.id) && !Listas.esOculta(c.id) && !Bib.incompleta(c, lib)) { vistos.add(c.id); todas.push({ c, lib }); }
+    const col = new Intl.Collator('es', { numeric: true, sensitivity: 'base' });
+    todas.sort((a, b) => col.compare(a.c.artista || '', b.c.artista || '') || col.compare(a.c.titulo || '', b.c.titulo || ''));
+    const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const pintar = () => {
+      const q = norm(inp.value.trim()), L = Listas.lista(l.id); lista.innerHTML = '';
+      for (const { c } of todas) {
+        if (q && !norm(c.titulo + ' ' + c.artista).includes(q)) continue;
+        const ya = L && L.ids.includes(c.id);
+        const b = el('button', 'elegirFila' + (ya ? ' on' : ''));
+        b.appendChild(el('span', 'ck', ya ? '✓' : '＋'));
+        const t = el('span', 'tx'); t.appendChild(el('b', '', c.titulo || c.id)); t.appendChild(el('small', '', c.artista || '')); b.appendChild(t);
+        b.onclick = () => { const L2 = Listas.lista(l.id); if (L2.ids.includes(c.id)) Listas.cambiar({ t: 'sacar', id: l.id, cid: c.id }); else Listas.cambiar({ t: 'agregar', id: l.id, cid: c.id, mezcla: L2.show && L2.show.bloqueado ? Listas.mezclaBiblioteca(c.id) : undefined }); pintar(); };
+        lista.appendChild(b);
+      }
+    };
+    inp.addEventListener('input', pintar);
+    Hoja.abrir({ tit: 'Agregar a «' + l.nombre + '»', cuerpo: caja, cancelar: 'Listo' });
+    pintar();
+  },
+  // desde el ⋯ de una canción de la biblioteca
+  agregarA(c) {
+    const ls = Listas.d.listas;
+    Hoja.abrir({ tit: 'Agregar «' + (c.titulo || c.id) + '» a…', items: [
+      ...ls.map(l => ({ txt: (l.ids.includes(c.id) ? '✓ ' : '') + l.nombre + (l.show && l.show.bloqueado ? ' 🔒' : ''), desactivado: l.ids.includes(c.id),
+        fn: () => { Listas.cambiar({ t: 'agregar', id: l.id, cid: c.id, mezcla: l.show && l.show.bloqueado ? Listas.mezclaBiblioteca(c.id) : undefined }); aviso('Agregada a «' + l.nombre + '»' + (l.show && l.show.bloqueado ? ' (con la mezcla de hoy)' : '') + '.'); } })),
+      { txt: '＋ Nueva lista…', fn: () => Hoja.texto({ tit: 'Nueva lista', ok: 'Crear', fn: nombre => { const id = Listas.nuevaId(); Listas.cambiar({ t: 'nueva', lista: { id, nombre, ids: [c.id], sinBajo: false } }); aviso('Lista «' + nombre + '» creada.'); } }) },
+    ] });
+  },
+};
+
+// ── modo escenario ──
+const Escenario = {
+  activo: false, bloqueado: true, lista: null, idx: 0, version: 'original', mix: null,
+  async empezar(idLista) {
+    const l = Listas.lista(idLista); if (!l || !l.ids.length) return;
+    const bloq = l.show && l.show.bloqueado, ult = bloq ? Object.keys(l.show.ultimo || {}).filter(id => l.ids.includes(id)) : [];
+    const faltan = l.ids.map(id => Listas.resolver(id)).filter(r => r && !r.lib.local && !Bib.guardadas.has(r.lib.clave + '|' + r.c.id));
+    const noEsta = l.ids.filter(id => !Listas.resolver(id)).length;
+    if (!ult.length && !faltan.length && !noEsta) return this.arrancar(l, 'original');
+    let version = ult.length ? 'ultimo' : 'original';
+    const cuerpo = el('div', 'escPrev');
+    if (ult.length) {
+      cuerpo.appendChild(el('div', 'hgTexto', ult.length + (ult.length === 1 ? ' canción tiene' : ' canciones tienen') + ' cambios del último show: ' + ult.map(id => { const r = Listas.resolver(id); return r ? r.c.titulo : id; }).join(', ') + '.'));
+      const seg = el('div', 'expSeg'), b1 = el('button', 'on', 'Como quedó el último show'), b2 = el('button', '', 'Las originales');
+      b1.onclick = () => { version = 'ultimo'; b1.classList.add('on'); b2.classList.remove('on'); };
+      b2.onclick = () => { version = 'original'; b2.classList.add('on'); b1.classList.remove('on'); };
+      seg.appendChild(b1); seg.appendChild(b2); cuerpo.appendChild(seg);
+    }
+    if (noEsta) cuerpo.appendChild(el('div', 'hgTexto', '⚠ ' + noEsta + (noEsta === 1 ? ' canción no está' : ' canciones no están') + ' en tu biblioteca: se saltean.'));
+    cuerpo.appendChild(el('div', 'hgTexto', faltan.length ? '⚠ ' + faltan.length + ' de ' + l.ids.length + ' no están guardadas en ' + EQUIPO + ' (sin internet no van a sonar).' : '✓ Todas guardadas en ' + EQUIPO + '.'));
+    Hoja.abrir({ tit: 'Tocar «' + l.nombre + '»', cuerpo, items: [
+      faltan.length && { txt: '⬇ Guardar las ' + faltan.length + ' que faltan y empezar', fn: () => { Descargas.agregar(faltan.map(r => ({ c: r.c, lib: r.lib }))); this.arrancar(l, version); } },
+      { txt: '▶ Empezar', clase: 'grande', fn: () => this.arrancar(l, version) },
+    ] });
+  },
+  arrancar(l, version) {
+    this.activo = true; this.bloqueado = true; this.lista = l.id; this.version = version; this.idx = 0;
+    anotar('escenario: «' + l.nombre + '»', l.ids.length, 'canciones · mezclas', l.show && l.show.bloqueado ? (version === 'ultimo' ? 'del último show' : 'originales') : 'de la biblioteca');
+    this.abrir(0);
+  },
+  l() { return Listas.lista(this.lista); },
+  async abrir(i) {
+    const l = this.l(); if (!l) return this.salir();
+    while (i < l.ids.length && !Listas.resolver(l.ids[i])) i++;
+    if (i >= l.ids.length) { aviso('Fin de la lista.'); return; }
+    this.idx = i;
+    const cid = l.ids[i], r = Listas.resolver(cid);
+    this.mix = Listas.mezclaShow(l, cid, this.version);
+    this.cid = cid;
+    Rep.mixForzada = this.mix;
+    await abrirCancion(r.c, r.lib);
+    if (!this.activo || this.cid !== cid) return;
+    $('#pRep').classList.add('escenario');
+    pantallaPrendida(true);
+    try { Rep.medir(); } catch {}
+    this.pintar();
+    // la que viene: si no está guardada en el aparato, se baja ya (así el paso entre canciones no espera)
+    const sig = l.ids.slice(i + 1).map(id => Listas.resolver(id)).find(Boolean);
+    if (sig && !sig.lib.local && !Bib.guardadas.has(sig.lib.clave + '|' + sig.c.id)) { anotar('escenario: bajo la siguiente', sig.c.titulo); Descargas.agregar([{ c: sig.c, lib: sig.lib }]); }
+  },
+  siguiente() { const l = this.l(); if (!l) return; if (this.idx + 1 >= l.ids.length) { aviso('Es la última de la lista.'); return; } this.abrir(this.idx + 1); },
+  anterior() { if (this.idx > 0) this.abrir(this.idx - 1); },
+  alTerminar() { if (!this.activo) return; const l = this.l(); if (l && this.idx + 1 < l.ids.length) this.abrir(this.idx + 1); else aviso('Fin del show 🎉', 4000); },
+  salir() {
+    if (!this.activo) return;
+    this.activo = false; Rep.mixForzada = null; this.mix = null;
+    $('#pRep').classList.remove('escenario', 'escMezcla'); $('#escFicha').classList.remove('ver');
+    anotar('escenario: fin');
+    Bib.modo = 'listas'; ListasUI.abierta = this.lista;
+    salirDeCancion(); Bib.dibujarChips(); Bib.dibujar();
+  },
+  // lo que se toca en vivo con el show bloqueado se guarda como «último show» (la original no se toca)
+  guardarMix(m) {
+    const l = this.l(); if (!l || !l.show || !l.show.bloqueado) return false;
+    const x = { ...m, cuentaCompases: Rep.nCuentaCompases(), loop: false };
+    clearTimeout(this.tMix); this.tMix = setTimeout(() => { Listas.cambiar({ t: 'mezcla', id: l.id, cid: this.cid, cual: 'ultimo', mezcla: x }); this.version = 'ultimo'; }, 1200);
+    return true;
+  },
+  pintar() {
+    if (!this.activo) return;
+    const l = this.l(); if (!l) return;
+    $('#escPos').textContent = (this.idx + 1) + ' / ' + l.ids.length;
+    $('#escTit').textContent = Rep.cancion ? (Rep.cancion.titulo || Rep.cancion.id) : '';
+    $('#escCandado').textContent = this.bloqueado ? '🔒' : '🔓';
+    $('#escCandado').classList.toggle('abierto', !this.bloqueado);
+    const V = $('#escViene'); V.innerHTML = '';
+    V.appendChild(el('small', '', 'LO QUE VIENE'));
+    const prox = l.ids.slice(this.idx + 1, this.idx + 3);
+    if (!prox.length) V.appendChild(el('div', '', 'Es la última 🎉'));
+    prox.forEach((id, k) => { const r = Listas.resolver(id); V.appendChild(el('div', k ? 'gris' : '', (this.idx + 2 + k) + ' · ' + (r ? (r.c.titulo || id) + (r.c.tonalidad ? ' · ' + Modelo.lindo(r.c.tonalidad) : '') : '(no está)'))); });
+    $('#escSig').disabled = this.idx + 1 >= l.ids.length;
+    this.refrescar();
+  },
+  refrescar() { if (this.activo) $('#escPlay').classList.toggle('sonando', !!Audio.sonando); },
+  ficha() {
+    const F = $('#escFicha'); if (F.classList.contains('ver')) { F.classList.remove('ver'); return; }
+    const l = this.l(), a = Rep.aj, T = Rep.tempo || 1; F.innerHTML = '';
+    const lin = (k, v, cl) => { const d = el('div', 'fLin'); d.appendChild(el('span', '', k)); d.appendChild(el('b', cl || '', v)); F.appendChild(d); };
+    F.appendChild(el('div', 'fTit', (Rep.cancion.titulo || '') + ' ')).appendChild(el('small', '', l && l.show && l.show.bloqueado ? (this.version === 'ultimo' && l.show.ultimo[this.cid] ? 'mezcla del último show' : 'mezcla original del show') : 'mezcla de la biblioteca'));
+    lin('Cuenta', a.cuenta ? '1·2·3·4 · ' + Rep.nCuentaCompases() + (Rep.nCuentaCompases() === 1 ? ' compás' : ' compases') + (a.cuentaMuda ? ' · muda' : ' · con sonido') : 'apagada', a.cuenta ? 'verde' : 'apag');
+    const click = (Rep.filas || []).find(f => f.tipo === 'click');
+    lin('Click', click && !click.mute ? 'prendido' : 'apagado', click && !click.mute ? 'verde' : 'apag');
+    lin('Tono', Rep.tono ? (Rep.tono > 0 ? '+' : '−') + Math.abs(Rep.tono) + ($('#tonoKey').textContent ? ' (' + $('#tonoKey').textContent + ')' : '') : 'original', Rep.tono ? 'nar' : '');
+    lin('Tempo', T === 1 ? '100 %' : Math.round(T * 100) + ' %', T === 1 ? '' : 'nar');
+    const p = el('div', 'fLin col'); p.appendChild(el('span', '', 'Pistas')); const ch = el('div', 'fChips');
+    for (const { f, on } of Exportar.sonando()) { const db = 20 * Math.log10(Math.max(1e-4, f.gan)); const c = el('i', on ? '' : 'off', f.nombre + (on && Math.abs(db) >= 0.5 ? ' ' + (db > 0 ? '+' : '−') + Math.abs(Math.round(db)) + ' dB' : '')); if (on) c.style.background = f.color; ch.appendChild(c); }
+    p.appendChild(ch); F.appendChild(p);
+    const sig = l && l.ids[this.idx + 1];
+    if (sig) {
+      F.appendChild(el('div', 'fSep')); const r = Listas.resolver(sig);
+      const m = Listas.mezclaShow(l, sig, this.version) || Listas.mezclaBiblioteca(sig), mk = Listas.marcas(m).map(x => x.t);
+      lin('Después: ' + (r ? r.c.titulo : sig), mk.length ? mk.join(' · ') : 'sin cuenta · todo sonando · tono y tempo originales', 'apag');
+    }
+    F.classList.add('ver');
+  },
+};
+// los botones del escenario
+$('#escSalir').onclick = () => Hoja.abrir({ tit: '¿Salir del modo escenario?', items: [{ txt: 'Salir', clase: 'grande', fn: () => Escenario.salir() }] });
+$('#escInfo').onclick = () => Escenario.ficha();
+$('#escPlay').onclick = () => $('#btnPlay').click();
+$('#escSig').onclick = () => Escenario.siguiente();
+$('#escViene').onclick = () => {
+  const l = Escenario.l(); if (!l) return;
+  Hoja.abrir({ tit: l.nombre, items: l.ids.map((id, i) => { const r = Listas.resolver(id); return { txt: (i === Escenario.idx ? '▶ ' : (i + 1) + '. ') + (r ? r.c.titulo : id + ' (no está)'), desactivado: !r || i === Escenario.idx, fn: () => Escenario.abrir(i) }; }) });
+};
+$('#escMezclaBtn').onclick = () => $('#pRep').classList.toggle('escMezcla');
+document.addEventListener('pointerdown', e => { const F = $('#escFicha'); if (F.classList.contains('ver') && !e.target.closest('#escFicha') && !e.target.closest('#escInfo')) F.classList.remove('ver'); }, true);
+// 🔒: tocar avisa; mantener apretado medio segundo = desbloquear / bloquear los toques
+(() => {
+  const b = $('#escCandado'); let t = null, hecho = false;
+  b.addEventListener('pointerdown', () => { hecho = false; t = setTimeout(() => { hecho = true; Escenario.bloqueado = !Escenario.bloqueado; if (navigator.vibrate) try { navigator.vibrate(20); } catch {} aviso(Escenario.bloqueado ? '🔒 Toques bloqueados: la letra y la barra no responden.' : '🔓 Toques desbloqueados.', 2200); Escenario.pintar(); }, 500); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(k => b.addEventListener(k, () => clearTimeout(t)));
+  b.addEventListener('contextmenu', e => e.preventDefault());
+  b.onclick = () => { if (!hecho) aviso(Escenario.bloqueado ? 'Mantené apretado 🔒 para desbloquear los toques.' : 'Mantené apretado 🔓 para volver a bloquear.', 2200); };
+})();
+// deslizar hacia arriba desde la barra de abajo = mostrar los faders; hacia abajo = esconderlos
+(() => {
+  const z = $('#escBot'); let y0 = null;
+  z.addEventListener('pointerdown', e => { y0 = e.clientY; });
+  z.addEventListener('pointerup', e => { if (y0 == null) return; const d = e.clientY - y0; y0 = null; if (d < -40) $('#pRep').classList.add('escMezcla'); else if (d > 40) $('#pRep').classList.remove('escMezcla'); });
+})();
 </script>
 </body>
 </html>
