@@ -3139,7 +3139,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.8.9';
+const VERSION = '0.8.10';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -4389,6 +4389,12 @@ const Rep = {
   },
 
   // ── transporte ──
+  // (0.8.9) prender el loop estando afuera de él = ir a su comienzo (si sonaba, sigue sonando)
+  alLoop() {
+    const a = this.aj, t = Audio.sonando ? Audio.ahora() : Audio.pos;
+    if (!(a.loop && a.cicloFin > a.cicloIni + 0.2) || (t >= a.cicloIni - 0.05 && t < a.cicloFin)) return;
+    this.reanudar = true; this.ir(a.cicloIni);
+  },
   aplicarLoop() {
     const a = this.aj, ok = a.loop && a.cicloFin > a.cicloIni + 0.2;
     Audio.enviar({ t: 'loop', on: !!ok, a: a.cicloIni * Audio.sr, b: a.cicloFin * Audio.sr });
@@ -4957,6 +4963,7 @@ $('#btnLoop').onclick = () => {
   const a = Rep.aj;
   if (!(a.cicloFin > a.cicloIni + 0.2)) { aviso('Primero marcá el loop: mantené apretada la barra un momento y deslizá hasta donde quieras.', 4000); return; }
   a.loop = !a.loop; Rep.aplicarLoop(); Rep.guardarLocal();
+  if (a.loop) Rep.alLoop();   // (0.8.9) fabao: "al seleccionar el loop no loopea ahí": si estás afuera, va al comienzo del loop
 };
 Audio.alTerminar = () => { Audio.tvSigue(false); Rep.reanudar = false; Rep.refrescarBotones(); pantallaPrendida(false); Medios.estado(); };   // (0.8.0) B18
 
@@ -5110,7 +5117,7 @@ document.addEventListener('pointerdown', e => { const M = $('#popCuenta'); if (M
     let ini = Math.min(i, f), fin = Math.max(i, f);
     if (fin - ini < 0.5) return;
     marca.movio = true;
-    a.cicloIni = ini; a.cicloFin = Math.min(Rep.dur, fin); a.loop = false;
+    a.cicloIni = ini; a.cicloFin = Math.min(Rep.dur, fin); a.loop = marca.antes.on;   // si ya estaba prendido, sigue prendido
     Rep.aplicarLoop();
     aviso('Loop ' + Exportar.mmss(a.cicloIni) + ' a ' + Exportar.mmss(a.cicloFin), 1200);
   };
@@ -5126,7 +5133,8 @@ document.addEventListener('pointerdown', e => { const M = $('#popCuenta'); if (M
       const m = marca; marca = null;
       if (m.movio) {
         Rep.guardarLocal(); anotar('loop marcado', Rep.aj.cicloIni.toFixed(2), '→', Rep.aj.cicloFin.toFixed(2));
-        aviso('Loop marcado: ' + Exportar.mmss(Rep.aj.cicloIni) + ' a ' + Exportar.mmss(Rep.aj.cicloFin) + '. Tocá ⟲ para repetirlo.', 3500);
+        if (Rep.aj.loop) { Rep.alLoop(); aviso('Repitiendo ' + Exportar.mmss(Rep.aj.cicloIni) + ' a ' + Exportar.mmss(Rep.aj.cicloFin), 2500); }
+        else aviso('Loop marcado: ' + Exportar.mmss(Rep.aj.cicloIni) + ' a ' + Exportar.mmss(Rep.aj.cicloFin) + '. Tocá ⟲ para repetirlo.', 3500);
         return;
       }
       // mantener sin deslizar: sobre una parte (Intro, Coro…) se repite esa parte, como antes
