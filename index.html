@@ -642,6 +642,14 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 .escFicha .fChips i.off{background:transparent;color:var(--gris);text-decoration:line-through;border:1px solid rgba(255,255,255,.15)}
 .escFicha .verde{color:var(--verde)}.escFicha .nar{color:#ff9f43}.escFicha .apag{color:var(--gris);font-weight:600}
 .escFicha .fSep{height:1px;background:rgba(255,255,255,.12)}
+
+/* (0.9.0) ✕ para borrar la búsqueda de una vez */
+.qCaja{flex:1;min-width:0;position:relative;display:flex}
+.qCaja input{padding-right:44px!important}
+.qCaja input::-webkit-search-cancel-button{display:none;-webkit-appearance:none}
+.qBorrar{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.14);color:var(--texto);font-size:15px;font-weight:700;display:grid;place-items:center}
+.qBorrar:active{background:rgba(255,255,255,.25)}
+.qBorrar[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -667,7 +675,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="btnMenu" class="icono" aria-label="Menú">⋯</button>
   </header>
   <nav id="libs" class="chips"></nav>
-  <div class="buscar"><input id="q" type="search" placeholder="Buscar canción o artista" autocomplete="off" autocorrect="off" spellcheck="false"><button id="btnGuardadas" class="filtroG" title="Solo las guardadas en el teléfono (sin conexión)">⬇ Guardadas</button></div>
+  <div class="buscar"><span class="qCaja"><input id="q" type="search" placeholder="Buscar canción o artista" autocomplete="off" autocorrect="off" spellcheck="false"><button id="qBorrar" class="qBorrar" aria-label="Borrar la búsqueda" hidden>✕</button></span><button id="btnGuardadas" class="filtroG" title="Solo las guardadas en el teléfono (sin conexión)">⬇ Guardadas</button></div>
   <div id="bajando" class="bajando" style="display:none"><span id="bajTxt"></span><button id="bajCortar">Detener</button></div>
   <div id="barraLocal" class="barraLocal" style="display:none"><button id="btnImportar">＋ Importar .youstem</button><button id="btnCarpeta" style="display:none"></button></div>
   <div id="estadoBib" class="estado" style="display:none"></div>
@@ -3901,7 +3909,9 @@ const Bib = {
     this.dibujar(); aviso('Borrada: ' + t);
   }
 };
-$('#q').addEventListener('input', () => Bib.dibujar());
+$('#q').addEventListener('input', () => { $('#qBorrar').hidden = !$('#q').value; Bib.dibujar(); });
+// (0.9.0) ✕ borra la búsqueda de una vez y vuelve a la biblioteca entera
+$('#qBorrar').onclick = () => { $('#q').value = ''; $('#qBorrar').hidden = true; $('#q').blur(); Bib.dibujar(); $('#lista').scrollTop = 0; };
 
 // (0.4.3) estirar la lista hacia abajo (estando arriba de todo) = actualizar la biblioteca, como en el navegador
 (() => {
