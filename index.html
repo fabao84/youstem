@@ -1095,7 +1095,7 @@ class YouStem extends AudioWorkletProcessor {
       if (S.n < i0 + 4) {
         if (!this.sonando) { L.fill(0, k); R.fill(0, k); FL.fill(0, k); FR.fill(0, k); return; }
         if (this.sFase > 4096) { const q = i0 - 2; S.descartar(q); SF.descartar(q); this.sFase -= q; i0 -= q; }
-        this.cargar(); continue;   // vuelve a probar con más mezcla (k no avanza)
+        this.cargar(); k--; continue;   // vuelve a probar con más mezcla. (0.8.11) k-- : sin él el "continue" del for SÍ avanzaba k y cada 2048 muestras quedaba una en cero (un tic constante con el motor de tono y al exportar)
       }
       const f = this.sFase - i0, a = Math.max(0, i0 - 1);
       L[k] = cubica(S.L[a], S.L[i0], S.L[i0 + 1], S.L[i0 + 2], f); R[k] = cubica(S.R[a], S.R[i0], S.R[i0 + 1], S.R[i0 + 2], f);
@@ -3139,7 +3139,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.8.10';
+const VERSION = '0.8.11';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
