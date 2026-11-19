@@ -606,6 +606,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="btnVolver" class="icono" aria-label="Biblioteca">‹</button>
     <div class="rtit"><div id="rTit"></div><div id="rArt"></div></div>
     <button id="btnTonoTempo" class="tonoTempo" aria-label="Tono y tempo"><span id="tonoVal">0</span><span class="sepTT"></span><span id="tempoVal">100 %</span></button>
+    <button id="btnCompartir" class="icono" aria-label="Exportar mezcla (MP3)" title="Exportar mezcla (MP3)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M8 10H6.5A1.5 1.5 0 0 0 5 11.5v8A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-8a1.5 1.5 0 0 0-1.5-1.5H16"/></svg></button>
     <button id="btnEditar" class="icono soloGrande" aria-label="Editar acordes y arreglos" title="Editar acordes y arreglos">✎</button>
     <button id="btnMenu2" class="icono" aria-label="Menú">⋯</button>
   </header>
@@ -5205,7 +5206,8 @@ $('#btnGuardadas').onclick = () => { Pref.set('soloGuardadas', !Pref.get('soloGu
 $('#bajCortar').onclick = () => Descargas.cortar();
 $('#accCerrar').onclick = () => $('#acciones').classList.remove('ver');
 $('#acciones').addEventListener('click', e => { if (e.target.id === 'acciones') $('#acciones').classList.remove('ver'); });
-$('#menuCompartir').onclick = () => { cerrarMenu(); if (Rep.cancion) compartirCancion(Rep.cancion, Rep.lib); };   // (0.8.9) antes era el botón de arriba
+$('#menuCompartir').onclick = () => { cerrarMenu(); if (Rep.cancion) compartirCancion(Rep.cancion, Rep.lib); };   // (0.8.9) el .youstem va en el menú
+$('#btnCompartir').onclick = () => Exportar.abrir();   // (0.8.10) el botón de arriba exporta la mezcla en MP3
 
 // ══════════════════════ (0.5.0) PEDIR UNA CANCIÓN A TU MAC (Mac 1.4.18) ══════════════════════
 // Pegás un link de YouTube; una Mac con YouSTEM abierto lo toma, la baja, hace la Máxima, la sube a tu carpeta
