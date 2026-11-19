@@ -546,6 +546,26 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 @media (min-width:700px){ .tonoTempo{height:46px;font-size:18px;padding:0 16px} }
 
 .pieOcultas{color:var(--gris);font-size:12px;text-align:center;padding:18px 16px 28px;opacity:.8}   /* (0.8.6) */
+
+/* (0.8.8) exportar mezcla */
+.hojaCaja.exp{gap:12px}
+.expCol{display:flex;flex-direction:column;gap:12px}
+.expChips{display:flex;flex-wrap:wrap;gap:6px}
+.chipExp{padding:5px 10px;border-radius:999px;font-size:13px;font-weight:700;color:#14161a}
+.chipExp.off{background:transparent;color:var(--gris);text-decoration:line-through;border:1px solid rgba(255,255,255,.15)}
+.expLin{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.expLin span{color:var(--gris)}.expLin b{font-variant-numeric:tabular-nums;text-align:right}
+.expLin b.naranja{color:var(--naranjaT)}
+.expSeg{display:flex;background:var(--panel2);border-radius:12px;padding:3px;gap:3px}
+.expSeg button{flex:1;padding:10px 6px;border-radius:9px;font-size:13px;font-weight:700;color:var(--gris);background:transparent}
+.expSeg button.on{background:#e9edf2;color:#14161a}
+#expIr{background:var(--verde,#3ddc84);color:#0c1a10;font-weight:800;text-align:center;align-items:center}
+#expIr:disabled{opacity:.4}
+.expNota{font-size:12px;color:var(--gris);line-height:1.4}
+.expBarraF{height:10px;background:var(--panel2);border-radius:6px;overflow:hidden}
+.expBarraF i{display:block;height:100%;width:0;background:var(--verde,#3ddc84)}
+.expPasos{display:grid;gap:6px;font-size:13.5px}
+.expPasos .expOk{color:var(--verde,#3ddc84)}.expPasos .expVa{color:var(--naranjaT)}
 </style>
 </head>
 <body>
@@ -655,6 +675,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="menuAvisar">⚠ Avisar un error en esta parte</button>
     <button id="menuEnviar">Enviar mis correcciones</button>
     <button id="menuDescartar">Descartar mis correcciones de esta canción</button>
+    <button id="menuExportar">Exportar mezcla (MP3)</button>
     <button id="menuAudio">Reiniciar el audio</button>
     <button id="menuMac">Mezcla de cero (0 dB, sin banderas)</button>
     <button id="menuGestos">Gestos en la letra: sí</button>
@@ -697,6 +718,28 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <div class="hojaTit"><span id="lcTit"></span><span id="lcSub" class="gris"></span></div>
     <button id="lcEnviar" class="grande">Enviar</button>
     <button id="lcCerrar" class="cerrar">Cancelar</button>
+  </div>
+</div>
+<div id="hojaExp" class="hoja">
+  <div class="hojaCaja exp">
+    <div id="expElegir" class="expCol">
+      <div class="hojaTit"><span>Exportar mezcla (MP3)</span></div>
+      <div id="expChips" class="expChips"></div>
+      <div class="expLin"><span>Tono</span><b id="expTono"></b></div>
+      <div class="expLin"><span>Tempo</span><b id="expTempo"></b></div>
+      <div id="expParte" class="expSeg"><button id="expEntera"></button><button id="expLoop"></button></div>
+      <div class="expLin"><span>Volumen</span><b>Al volumen del original</b></div>
+      <button id="expIr" class="grande">Exportar</button>
+      <div id="expNota" class="expNota"></div>
+      <button id="expCerrar" class="cerrar">Cancelar</button>
+    </div>
+    <div id="expProceso" class="expCol" style="display:none">
+      <div class="hojaTit"><span id="expTit">Exportando…</span></div>
+      <div class="expBarraF"><i id="expBarra"></i></div>
+      <div id="expPasos" class="expPasos"></div>
+      <div class="expNota">Se arma en este aparato, sin internet. Mientras tanto la canción no suena.</div>
+      <button id="expCancelar" class="cerrar">Cancelar</button>
+    </div>
   </div>
 </div>
 <div id="hojaAviso" class="hoja"><div class="hojaCaja" id="haCaja"></div></div>
@@ -764,6 +807,7 @@ class YouStem extends AudioWorkletProcessor {
     this.loopOn = false; this.loopA = 0; this.loopB = 0;
     this.master = 1; this.gMaster = 1;
     this.ratio = 1; this.rw = 1;   // ratio = remuestreo total; rw = cuánto estira el WSOLA (1 = no estira: solo velocidad)
+    this.exp = null;   // (0.8.8) exportando
     this.tempo = 1; this.dual = false;   // (0.8.5) tempo ≠ 1: un solo WSOLA con los MISMOS cortes para lo tonal y la batería/click (no se desfasan)
     this.click = { on: false, g: 1, beats: [], fuerte: [], desde: 0, suaveHasta: 0, i: 0 };
     this.cuenta = { desde: 0, hasta: -1, pos: [], fuerte: [] };
@@ -807,6 +851,9 @@ class YouStem extends AudioWorkletProcessor {
       case 'regiones': if (this.pistas[m.i]) this.pistas[m.i].reg = m.reg; break;
       case 'ctl': this.ctl.set(m.g); break;
       case 'master': this.master = m.v; break;
+      case 'exportar': this.exportar(m); break;           // (0.8.8) exportar la mezcla
+      case 'expMas': if (this.exp) this.exp.credito += m.n || 1; break;
+      case 'expCancelar': if (this.exp) this.expTerminar(false); break;
       case 'play': this.sonando = true; break;
       case 'pausa': this.sonando = false; this.previa = null; this.pos = Math.round(this.posOida()); this.reiniciarTono(); this.avisar(); break;   // (0.8.0) B11: lo en vuelo se tira: pos = lo oído
       case 'previa': this.previa = m.n > 0 ? { n: Math.round(m.n), t: 0, pos: m.pos, fuerte: m.fuerte } : null; break;
@@ -849,7 +896,7 @@ class YouStem extends AudioWorkletProcessor {
       }
       if (this.pos >= this.largo) {
         if (this.loopOn && this.loopB > this.loopA) { this.pos = this.loopA; this.click.i = 0; continue; }
-        this.sonando = false; this.port.postMessage({ t: 'fin' }); return hecho;
+        this.sonando = false; if (!this.exp) this.port.postMessage({ t: 'fin' }); return hecho;
       }
       let lim = this.largo;
       if (this.loopOn && this.loopB > this.loopA && this.pos < this.loopB) lim = Math.min(lim, this.loopB);
@@ -1078,8 +1125,44 @@ class YouStem extends AudioWorkletProcessor {
     this.oLeido += n;
   }
 
+  // (0.8.8) EXPORTAR: el mismo motor arma la mezcla sin sonar (sin click, sin cuenta, sin loop, sin Master), separada en
+  // lo tonal y la batería/click (para que el tono se cambie aparte, igual que al escuchar), al tempo elegido. Sale de a
+  // trozos de 4096 y solo si hay "crédito" (el que codifica pide más): así no se junta la canción entera en memoria.
+  exportar(m) {
+    if (this.exp) return;
+    const g = { pos: this.pos, ratio: this.ratio, rw: this.rw, tempo: this.tempo, dual: this.dual, externo: this.externo, sonando: this.sonando,
+                loopOn: this.loopOn, clickOn: this.click.on, cuenta: this.cuenta, previa: this.previa };
+    this.exp = { g, falta: Math.max(0, Math.round(m.n)), credito: m.credito || 12 };
+    this.loopOn = false; this.click.on = false; this.cuenta = { desde: 0, hasta: -1, pos: [], fuerte: [] }; this.previa = null;
+    this.ratio = m.r; this.rw = m.rw; this.tempo = m.tempo || 1; this.dual = Math.abs(this.tempo - 1) > 1e-4;
+    this.pos = Math.max(0, Math.min(this.largo, Math.round(m.desde))); this.sonando = true;
+    this.reiniciarTono();
+  }
+  expTerminar(ok) {
+    const g = this.exp.g; this.exp = null;
+    Object.assign(this, { ratio: g.ratio, rw: g.rw, tempo: g.tempo, dual: g.dual, externo: g.externo, loopOn: g.loopOn, cuenta: g.cuenta, previa: null });
+    this.click.on = g.clickOn; this.pos = g.pos; this.sonando = false;
+    this.reiniciarTono(); this.click.i = 0;
+    this.port.postMessage({ t: ok ? 'expFin' : 'expCancelado' }); this.avisar();
+  }
+  expTrozos(veces) {
+    const e = this.exp;
+    for (let v = 0; v < veces && e.credito > 0 && e.falta > 0; v++) {
+      const n = Math.min(4096, e.falta), L = new Float32Array(n), R = new Float32Array(n), FL = new Float32Array(n), FR = new Float32Array(n);
+      if (this.dual) this.dualProc(L, R, FL, FR, n); else this.externoProc(L, R, FL, FR, n);
+      e.falta -= n; e.credito--;
+      this.port.postMessage({ t: 'expTrozo', L, R, FL, FR }, [L.buffer, R.buffer, FL.buffer, FR.buffer]);
+    }
+    if (e.falta <= 0) this.expTerminar(true);
+  }
+
   process(_in, outputs) {
     const out = outputs[0], L = out[0], R = out[1] || out[0], n = L.length;
+    if (this.exp) {   // exportando: no suena nada
+      for (const o of outputs) for (const c of o) c.fill(0);
+      this.expTrozos(6);
+      return true;
+    }
     const gm = this.master;
     const o2 = outputs[1], L2 = o2 && o2[0], R2 = o2 && (o2[1] || o2[0]);
     if (this.externo && L2) {
@@ -1447,7 +1530,8 @@ ia.IXMAX_VAL=8206;var sa={};sa.SFBMAX=3*c.SBMAX_s;c.ENCDELAY=576;c.POSTDELAY=115
 u.setModules(B,G,f,b,v,a,m,z,g);G.setModules(B,g,m,a);z.setModules(G,m);f.setModules(u);v.setModules(G,e,b,l);b.setModules(l,e,u.enc.psy);e.setModules(G);l.setModules(b);a.setModules(u,G,m);w.setModules(d,g);d.setModules(m,z,f);var q=u.lame_init();q.num_channels=c;q.in_samplerate=k;q.brate=n;q.mode=la.STEREO;q.quality=3;q.bWriteVbrTag=!1;q.disable_reservoir=!0;q.write_id3tag_automatic=!1;u.lame_init_params(q);var D=1152,p=0|1.25*D+7200,r=new Int8Array(p);this.encodeBuffer=function(a,b){1==c&&(b=a);
 a.length>D&&(D=a.length,p=0|1.25*D+7200,r=new Int8Array(p));a=u.lame_encode_buffer(q,a,b,a.length,r,0,p);return new Int8Array(r.subarray(0,a))};this.flush=function(){var a=u.lame_encode_flush(q,r,0,p);return new Int8Array(r.subarray(0,a))}};lamejs.WavHeader=Fa}lamejs();
 </script>
-<script>
+<script>/*SS-INICIO*/
+
 var SignalsmithStretch = (() => {
   var _scriptName = typeof document != 'undefined' ? document.currentScript?.src : undefined;
   
@@ -1903,6 +1987,7 @@ if (typeof exports === 'object' && typeof module === 'object') {
 	define([], () => SignalsmithStretch);
 }
 
+/*SS-FIN*/
 // ── Modelo: port fiel de Modelo.h/Modelo.cpp de YouSTEM 1.4.0 ──────────────────
 // analisis.json (pulso, compases, acordes con tus correcciones, arreglos), letra.json y ajustes.json
 
@@ -3051,7 +3136,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.8.7';
+const VERSION = '0.8.8';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -3107,6 +3192,7 @@ const Audio = {
       const m = e.data;
       if (m.t === 'pos') { this.pos = m.pos / this.sr; this.posCt = m.ct; this.sonando = m.sonando; }
       else if (m.t === 'hola') { const f = this.esperando && this.esperando[m.n]; if (f) { delete this.esperando[m.n]; f(); } }
+      else if (m.t && m.t.startsWith('exp')) Exportar.mensaje(m);   // (0.8.8)
       else if (m.t === 'fin') { this.sonando = false; this.fondoPausa(); this.alTerminar && this.alTerminar(); }
     };
     this.ctx.resume().catch(() => {});
@@ -3717,6 +3803,7 @@ let abriendo = 0;
 
 async function abrirCancion(c, lib, op = {}) {
   const turno = ++abriendo;
+  if (Exportar.activo) Exportar.cancelar('abriste otra canción');   // (0.8.8)
   // (0.8.0) A3: `vivo` = esta apertura sigue siendo la última (si tocaste otra canción, esta se abandona en silencio)
   const vivo = () => turno === abriendo;
   let liberada = false;
@@ -3981,6 +4068,7 @@ const Rep = {
   // (0.3.9) motor de audio nuevo con la misma canción, en el mismo lugar (lo que hacía cerrar y abrir la app)
   async reiniciarAudio(motivo, sonarSiOSi) {
     if (!this.cancion || this.reiniciando) return;
+    if (Exportar.activo) Exportar.cancelar('se reinició el audio');   // (0.8.8)
     if (abrirCancion.enCurso) { anotar('audio: reinicio pedido mientras se abre una canción, se ignora', motivo); return; }   // (0.8.0) B1
     // (0.8.0) A4: si el motor nuevo tampoco arranca (iOS sin un toque), no se entra en un bucle de reinicios: se pide un toque
     if (motivo === 'no arrancaba' && Date.now() - (this.ultimoReinicio || 0) < 15000) { anotar('audio: sigue sin arrancar; espero un toque en ▶'); aviso('El audio no arranca solo: tocá ▶.', 4000); this.refrescarBotones(); return; }
@@ -4306,6 +4394,7 @@ const Rep = {
   },
   ir(seg) { this.avisoC = null; Audio.pos = Math.max(0, Math.min(this.dur, seg)); Audio.enviar({ t: 'ir', pos: Audio.pos * Audio.sr }); this.saltoTele = true; Medios.estado(); },
   async tocar() {
+    if (Exportar.activo) { aviso('Esperá a que termine de exportar (o cancelalo).', 2500); return; }   // (0.8.8)
     Audio.fondoTocar();   // (0.6.3) dentro del toque (el navegador lo pide)
     await Audio.iniciar();
     Audio.fondoTocar();
@@ -4799,7 +4888,7 @@ const Medios = {
 };
 
 // ── controles de Reproducción ──
-function salirDeCancion() { Rep.parar(); Rep.refrescarBotones(); pantalla('pBib'); Bib.dibujar(); subirAlSalir(); if (Sesion.pendiente) setTimeout(() => Sesion.revisar('saliste de la canción'), 1500); }
+function salirDeCancion() { if (Exportar.activo) Exportar.cancelar('saliste de la canción'); Rep.parar(); Rep.refrescarBotones(); pantalla('pBib'); Bib.dibujar(); subirAlSalir(); if (Sesion.pendiente) setTimeout(() => Sesion.revisar('saliste de la canción'), 1500); }
 // (0.8.1) ‹ en pantalla: si hay un paso de la canción en el historial, se consume (así Volver del control no queda "debiendo" uno)
 $('#btnVolver').onclick = () => { if (history.state && history.state.ysCancion) history.back(); else salirDeCancion(); };
 addEventListener('popstate', () => {
@@ -5028,6 +5117,7 @@ async function abrirMenu() {
   const enRep = !!Rep.cancion && $('#pRep').classList.contains('activa');
   $('#menuMac').style.display = enRep ? '' : 'none';
   $('#menuAudio').style.display = enRep ? '' : 'none';
+  $('#menuExportar').style.display = enRep ? '' : 'none';   // (0.8.8)
   $('#menuEditar').style.display = enRep && Editor.puede() ? '' : 'none';
   $('#menuEnviar').style.display = enRep && !Rep.lib.mia ? '' : 'none';
   $('#menuPulso').style.display = enRep && Rep.an.valido ? '' : 'none';
@@ -5042,6 +5132,14 @@ $('#menuRecargar').onclick = () => { cerrarMenu(); pantalla('pBib'); Bib.iniciar
 $('#menuBloqueada').onclick = () => { const on = !Pref.get('bloqueada', true); Pref.set('bloqueada', on); if (on) { if (Audio.sonando) Audio.fondoTocar(); } else Audio.fondoPausa(); abrirMenu(); };
 $('#menuGestos').onclick = () => { Pref.set('gestos', !Pref.get('gestos', true)); abrirMenu(); };
 $('#menuMac').onclick = () => { cerrarMenu(); Rep.volverALaMac(); };
+// (0.8.8) exportar la mezcla
+$('#menuExportar').onclick = () => { cerrarMenu(); Exportar.abrir(); };
+$('#expEntera').onclick = () => { Exportar.soloLoop = false; Exportar.pintarParte(); };
+$('#expLoop').onclick = () => { Exportar.soloLoop = true; Exportar.pintarParte(); };
+$('#expIr').onclick = () => Exportar.empezar();
+$('#expCerrar').onclick = () => $('#hojaExp').classList.remove('ver');
+$('#expCancelar').onclick = () => Exportar.cancelar();
+$('#hojaExp').addEventListener('click', e => { if (e.target.id === 'hojaExp' && !Exportar.activo) $('#hojaExp').classList.remove('ver'); });
 $('#menuAudio').onclick = () => { cerrarMenu(); Rep.reiniciarAudio('a pedido'); };
 $('#menuBorrar').onclick = async () => {
   if (!confirm('¿Borrar ' + DE_EQUIPO() + ' las copias de OneDrive guardadas? Siguen en tu OneDrive. Las importadas no se tocan.')) return;
@@ -7367,6 +7465,273 @@ onmessage = e => {
 })();
 
 $('#menuCrearLib').onclick = () => { cerrarMenu(); Propia.crear(); };
+
+// ══════════════════════ (0.8.8) EXPORTAR LA MEZCLA EN MP3 ══════════════════════
+// fabao: "exportar la mezcla con el tono y el tempo, la canción entera o si está seleccionado el loop solo esa parte, y la
+// normalización como la Mac". Sale lo que se escucha: pistas que suenan (mute/solo/fader), tono y tempo puestos; sin click,
+// sin cuenta y sin Master (como en la Mac). Volumen "al volumen del original": la web no nivela las pistas, así que la suma
+// queda tal cual y un limitador a −1 dBFS (mira 1,5 ms adelante, vuelve en ~80 ms) evita que recorte.
+// Cómo: el motor que suena (worklet) arma la mezcla sin sonar, separada en lo tonal y la batería, al tempo; un hilo aparte
+// cambia el tono de lo tonal con Signalsmith (el mismo motor que al escuchar), suma la batería atrasada lo mismo, limita y
+// codifica a MP3 320 kbps de a trozos (nunca está la canción entera en memoria).
+const Exportar = {
+  activo: false, hilo: null,
+
+  // ── la hoja: qué se exporta ──
+  sonando() {   // filas con audio que entran (mismo criterio que enviarControles)
+    const F = Rep.filas || [], algunSolo = F.some(f => f.solo && (f.tipo === 'pista' || f.tipo === 'grupo' || f.tipo === 'virtual'));
+    return F.filter(f => f.tipo === 'pista' || f.tipo === 'grupo').map(f => ({ f, on: !(f.mute || (algunSolo && !f.solo)) && f.gan > 0 }));
+  },
+  hayLoop() { const a = Rep.aj; return !!(a && a.loop && a.cicloFin > a.cicloIni + 0.2); },
+  mmss(t) { t = Math.max(0, t); return Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0'); },
+  abrir() {
+    if (!Rep.cancion) return;
+    if (this.activo) { $('#hojaExp').classList.add('ver'); return; }
+    const filas = this.sonando();
+    $('#expChips').innerHTML = '';
+    for (const { f, on } of filas) {
+      const c = el('span', 'chipExp' + (on ? '' : ' off'), f.nombre);
+      if (on) c.style.background = f.color;
+      $('#expChips').appendChild(c);
+    }
+    const T = Rep.tempo || 1, bpm = (Rep.an && Rep.an.bpm) || (Rep.cancion && Rep.cancion.bpm) || 0;
+    $('#expTono').textContent = Rep.tono ? (Rep.tono > 0 ? '+' : '−') + Math.abs(Rep.tono) + ($('#tonoKey').textContent ? ' (' + $('#tonoKey').textContent + ')' : '') : 'Original';
+    $('#expTono').classList.toggle('naranja', !!Rep.tono);
+    $('#expTempo').textContent = T === 1 ? 'Original' : Math.round(T * 100) + ' %' + (bpm ? ' · ≈ ' + Math.round(bpm * T) + ' BPM' : '');
+    $('#expTempo').classList.toggle('naranja', T !== 1);
+    const loop = this.hayLoop(), a = Rep.aj;
+    $('#expParte').style.display = loop ? '' : 'none';
+    $('#expEntera').textContent = 'Canción entera · ' + this.mmss(Rep.dur / T);
+    $('#expLoop').textContent = loop ? 'Solo el loop · ' + this.mmss(a.cicloIni) + ' a ' + this.mmss(a.cicloFin) : '';
+    this.soloLoop = loop;
+    this.pintarParte();
+    const nada = !filas.some(x => x.on);
+    $('#expIr').disabled = nada;
+    $('#expNota').textContent = nada ? 'Todas las pistas están en silencio: no hay nada para exportar.' : 'El click no entra. Las pistas en mute tampoco. Archivo: «' + this.nombre() + '».';
+    $('#expElegir').style.display = ''; $('#expProceso').style.display = 'none';
+    $('#hojaExp').classList.add('ver');
+  },
+  pintarParte() {
+    $('#expEntera').classList.toggle('on', !this.soloLoop); $('#expLoop').classList.toggle('on', !!this.soloLoop);
+    if ($('#expNota').textContent.startsWith('El click')) $('#expNota').textContent = 'El click no entra. Las pistas en mute tampoco. Archivo: «' + this.nombre() + '».';
+  },
+  nombre() {
+    const c = Rep.cancion, filas = this.sonando(), on = filas.filter(x => x.on), off = filas.filter(x => !x.on), partes = [];
+    if (off.length && on.length) partes.push(on.length <= off.length && on.length <= 2 ? 'solo ' + on.map(x => x.f.nombre.toLowerCase()).join(' y ') : 'sin ' + off.map(x => x.f.nombre.toLowerCase()).join(', '));
+    if (Rep.tono) partes.push((Rep.tono > 0 ? '+' : '−') + Math.abs(Rep.tono));
+    if ((Rep.tempo || 1) !== 1) partes.push(Math.round(Rep.tempo * 100) + ' %');
+    const m = t => this.mmss(t).replace(':', '.');
+    let n = (c.titulo || c.id) + (partes.length ? ' (' + partes.join(', ') + ')' : '') + (this.soloLoop ? ' ' + m(Rep.aj.cicloIni) + '-' + m(Rep.aj.cicloFin) : '');
+    return n.replace(/[\\/:*?"<>|]+/g, '-').slice(0, 120) + '.mp3';
+  },
+
+  // ── el hilo que cambia el tono, limita y codifica ──
+  codigoHilo() {
+    if (this.codigo) return this.codigo;
+    let ss = '';
+    for (const s of document.scripts) { const t = s.textContent, a = t.indexOf('/*SS-INICIO*/'), b = t.indexOf('/*SS-FIN*/'); if (a >= 0 && b > a) { ss = t.slice(a, b); break; } }
+    ss = ss.replace('SignalsmithStretch = ((Module, audioNodeKey) =>', 'self.__ssFabrica = SignalsmithStretch;\nSignalsmithStretch = ((Module, audioNodeKey) =>');
+    if (!ss.includes('self.__ssFabrica')) ss = '';   // sin el motor de tono (no debería pasar): el tono se avisa
+    this.codigo = document.getElementById('codigoLame').textContent + '\n' + ss + '\n(' + hiloExportar.toString() + ')();';
+    return this.codigo;
+  },
+
+  // ── exportar ──
+  async empezar() {
+    if (this.activo || !Rep.cancion || !Audio.nodo) return;
+    if (Audio.sonando) Rep.pausa();
+    const sr = Audio.sr, T = Rep.tempo || 1, rc = Math.pow(2, Rep.centsRef / 1200), a = Rep.aj;
+    const desde = this.soloLoop ? a.cicloIni : 0, hasta = this.soloLoop ? a.cicloFin : Rep.dur;
+    const n = Math.max(1, Math.round((hasta - desde) * sr / (rc * T)));   // muestras de salida
+    const nombre = this.nombre(), t0 = performance.now();
+    this.activo = true; this.n = n; this.hechas = 0; this.nombreArch = nombre;
+    $('#expElegir').style.display = 'none'; $('#expProceso').style.display = '';
+    this.pintarAvance(0, 'Preparando…');
+    anotar('exportar:', nombre, '·', (n / sr).toFixed(1), 's · tono', Rep.tono, '· tempo', T, '· desde', desde.toFixed(2), 'hasta', hasta.toFixed(2));
+    let w;
+    try { w = new Worker(URL.createObjectURL(new Blob([this.codigoHilo()], { type: 'application/javascript' }))); }
+    catch (e) { this.fallo('no pude arrancar el exportador (' + e.message + ')'); return; }
+    this.hilo = w;
+    w.onerror = e => this.fallo('el exportador se cortó (' + (e.message || 'error') + ')');
+    w.onmessage = e => {
+      const m = e.data; if (w !== this.hilo) return;
+      if (m.t === 'listo') Audio.enviar({ t: 'exportar', desde: desde * sr, n, r: rc === 1 ? 1 : rc, rw: 1 / T, tempo: T, credito: 12 });
+      else if (m.t === 'mas') Audio.enviar({ t: 'expMas', n: 1 });
+      else if (m.t === 'avance') this.pintarAvance(m.hecho / n, m.hecho / n < 0.999 ? null : 'Terminando el MP3…');
+      else if (m.t === 'aviso') anotar('exportar:', m.txt);
+      else if (m.t === 'mp3') {
+        const f = new File([m.mp3], nombre, { type: 'audio/mpeg' });
+        anotar('exportar: listo', (f.size / 1048576).toFixed(1), 'MB en', ((performance.now() - t0) / 1000).toFixed(1), 's');
+        this.terminar(); this.listo(f);
+      } else if (m.t === 'error') this.fallo(m.txt);
+    };
+    w.postMessage({ t: 'iniciar', sr, semis: Rep.tono || 0, n, kbps: 320 });
+  },
+  mensaje(m) {   // del worklet
+    if (!this.activo || !this.hilo) return;
+    if (m.t === 'expTrozo') this.hilo.postMessage({ t: 'trozo', L: m.L, R: m.R, FL: m.FL, FR: m.FR }, [m.L.buffer, m.R.buffer, m.FL.buffer, m.FR.buffer]);
+    else if (m.t === 'expFin') this.hilo.postMessage({ t: 'fin' });
+  },
+  pintarAvance(f, txt) {
+    const ahora = performance.now(); if (!txt && f > 0 && ahora - (this.tPint || 0) < 120) return; this.tPint = ahora;
+    const p = Math.max(0, Math.min(1, f));
+    $('#expBarra').style.width = (p * 100).toFixed(1) + '%';
+    $('#expTit').textContent = txt || ('Exportando… ' + Math.round(p * 100) + ' %');
+    const T = Rep.tempo || 1;
+    $('#expPasos').innerHTML = '';
+    const pasos = [['Mezcla de ' + this.sonando().filter(x => x.on).length + ' pistas', p > 0],
+      ...(Rep.tono || T !== 1 ? [[[Rep.tono ? 'Tono ' + (Rep.tono > 0 ? '+' : '−') + Math.abs(Rep.tono) : '', T !== 1 ? 'tempo ' + Math.round(T * 100) + ' %' : ''].filter(Boolean).join(' y '), p > 0]] : []),
+      ['Al volumen del original · limitador −1 dB', p > 0], ['MP3 320 kbps', p >= 0.999]];
+    for (const [t, ok] of pasos) $('#expPasos').appendChild(el('div', ok ? 'expOk' : 'expVa', (ok ? '✓ ' : '● ') + t));
+  },
+  terminar() {
+    if (this.hilo) { try { this.hilo.terminate(); } catch {} }
+    this.hilo = null; this.activo = false;
+  },
+  cancelar(porque) {
+    if (!this.activo) { $('#hojaExp').classList.remove('ver'); return; }
+    Audio.enviar({ t: 'expCancelar' }); this.terminar();
+    anotar('exportar: cancelado', porque || '');
+    $('#hojaExp').classList.remove('ver');
+    if (porque) aviso('Exportación cancelada (' + porque + ').', 3500);
+  },
+  fallo(txt) {
+    anotar('exportar: FALLÓ', txt);
+    if (this.activo) Audio.enviar({ t: 'expCancelar' });
+    this.terminar(); $('#hojaExp').classList.remove('ver');
+    aviso('No pude exportar: ' + txt, 6000);
+  },
+  async listo(f) {
+    $('#hojaExp').classList.remove('ver');
+    await mandarArchivo(f);
+  },
+};
+
+// corre en el hilo aparte (Worker): cambia el tono de lo tonal con Signalsmith, suma la batería atrasada lo mismo,
+// fundidos de punta, limitador −1 dBFS y MP3 de a trozos
+function hiloExportar() {
+  let sr = 48000, semis = 0, N = 0, enc = null, mp3 = [], salidas = 0, recibidas = 0, kbps = 320;
+  let ss = null, lat = 0, B = 512, bufLen = 0, inL = 0, inR = 0, outL = 0, outR = 0, retF = null, retI = 0, saltar = 0;
+  const lim = {};
+  const TECHO = Math.pow(10, -1 / 20);
+  function armarLim() {
+    const W = Math.max(8, Math.round(sr * 0.0015)), D = 2 * W, M = D + 4;
+    Object.assign(lim, { W, D, M, kRel: 1 - Math.exp(-1 / (sr * 0.08)), dqI: new Float64Array(M), dqV: new Float32Array(M), h: 0, t: 0, i: 0, g1: 1,
+      caja: new Float32Array(W).fill(1), suma: W, ci: 0, dL: new Float32Array(W), dR: new Float32Array(W), di: 0, picos: 0, minG: 1 });
+  }
+  function limitar(L, R, n) {   // devuelve lo de hace W muestras, con la ganancia que garantiza el techo
+    const z = lim, oL = new Float32Array(n), oR = new Float32Array(n);
+    for (let k = 0; k < n; k++) {
+      const l = L[k], r = R[k], p = Math.max(Math.abs(l), Math.abs(r)), req = p > TECHO ? TECHO / p : 1;
+      while (z.t > z.h && z.dqV[(z.t - 1) % z.M] >= req) z.t--;
+      z.dqI[z.t % z.M] = z.i; z.dqV[z.t % z.M] = req; z.t++;
+      while (z.dqI[z.h % z.M] <= z.i - z.D) z.h++;
+      const m = z.dqV[z.h % z.M];
+      z.g1 = Math.min(m, z.g1 + (1 - z.g1) * z.kRel);
+      z.suma += z.g1 - z.caja[z.ci]; z.caja[z.ci] = z.g1; z.ci = (z.ci + 1) % z.W;
+      const g = Math.min(1, z.suma / z.W);
+      if (g < 0.999 && g < z.minG) z.minG = g;
+      const xl = z.dL[z.di], xr = z.dR[z.di]; z.dL[z.di] = l; z.dR[z.di] = r; z.di = (z.di + 1) % z.W;
+      let a = xl * g, b = xr * g;
+      if (a > 1) a = 1; else if (a < -1) a = -1; if (b > 1) b = 1; else if (b < -1) b = -1;
+      oL[k] = a; oR[k] = b; z.i++;
+    }
+    return [oL, oR];
+  }
+  let limSaltar = 0;
+  function codificar(L, R, n) {   // fundidos + limitador + MP3; solo las primeras N muestras
+    // fundidos: 10 ms al entrar, 30 ms al salir
+    const fi = Math.round(sr * 0.01), fo = Math.round(sr * 0.03);
+    for (let k = 0; k < n; k++) {
+      const j = salidas + k; let g = 1;
+      if (j < fi) g = j / fi; if (j > N - fo) g = Math.max(0, (N - j) / fo);
+      if (j >= N) g = 0;
+      L[k] *= g; R[k] *= g;
+    }
+    salidas += n;
+    let [a, b] = limitar(L, R, n);
+    if (limSaltar > 0) { const q = Math.min(limSaltar, a.length); a = a.subarray(q); b = b.subarray(q); limSaltar -= q; }
+    escribir(a, b);
+  }
+  let escritas = 0, picoEsc = 0;
+  function escribir(a, b) {
+    const n = Math.min(a.length, N - escritas); if (n <= 0) return;
+    const l16 = new Int16Array(n), r16 = new Int16Array(n);
+    for (let k = 0; k < n; k++) { l16[k] = Math.round(a[k] * 32767); r16[k] = Math.round(b[k] * 32767); const q = Math.max(Math.abs(a[k]), Math.abs(b[k])); if (q > picoEsc) picoEsc = q; }
+    const m = enc.encodeBuffer(l16, r16); if (m.length) mp3.push(new Uint8Array(m));
+    escritas += n;
+  }
+  function memoria() { return ss.exports ? ss.exports.memory.buffer : ss.HEAP8.buffer; }
+  function tonoYSuma(L, R, FL, FR, n) {   // lo tonal por Signalsmith (de a B), la batería atrasada "lat" muestras
+    const oL = new Float32Array(n), oR = new Float32Array(n);
+    for (let k = 0; k < n; k += B) {
+      const m = Math.min(B, n - k), mem = memoria();
+      new Float32Array(mem, inL, m).set(L.subarray(k, k + m)); new Float32Array(mem, inR, m).set(R.subarray(k, k + m));
+      ss._process(m, m);
+      const mem2 = memoria();
+      oL.set(new Float32Array(mem2, outL, m), k); oR.set(new Float32Array(mem2, outR, m), k);
+    }
+    const RL = retF[0], RR = retF[1], Lr = RL.length;
+    for (let k = 0; k < n; k++) {   // batería: línea de retardo de lat muestras
+      oL[k] += RL[retI]; oR[k] += RR[retI]; RL[retI] = FL[k]; RR[retI] = FR[k]; retI = (retI + 1) % Lr;
+    }
+    return [oL, oR];
+  }
+  function procesar(L, R, FL, FR, n) {
+    let a, b;
+    if (ss) [a, b] = tonoYSuma(L, R, FL, FR, n);
+    else { a = L; b = R; for (let k = 0; k < n; k++) { a[k] += FL[k]; b[k] += FR[k]; } }
+    if (saltar > 0) { const q = Math.min(saltar, n); a = a.subarray(q); b = b.subarray(q); saltar -= q; }
+    if (a.length) codificar(a.slice(), b.slice(), a.length);
+  }
+  async function iniciar(m) {
+    sr = m.sr; semis = m.semis; N = m.n; kbps = m.kbps || 320;
+    enc = new lamejs.Mp3Encoder(2, sr, kbps);
+    armarLim(); limSaltar = lim.W;
+    if (semis) {
+      if (typeof self.__ssFabrica !== 'function') { postMessage({ t: 'aviso', txt: 'sin motor de tono: sale en el tono original' }); semis = 0; }
+      else {
+        ss = await self.__ssFabrica();
+        try { ss._main && ss._main(); } catch {}
+        ss._presetDefault(2, sr);
+        lat = ss._inputLatency() + ss._outputLatency();
+        bufLen = lat; B = Math.max(128, Math.min(1024, bufLen));
+        const p = ss._setBuffers(2, bufLen), lb = bufLen * 4;
+        inL = p; inR = p + lb; outL = p + 2 * lb; outR = p + 3 * lb;
+        ss._setTransposeSemitones(semis, 8000 / sr);
+        ss._setFormantSemitones(0, false); ss._setFormantBase(0);
+        retF = [new Float32Array(lat), new Float32Array(lat)]; retI = 0; saltar = lat;
+        postMessage({ t: 'aviso', txt: 'tono ' + semis + ' con Signalsmith · atraso ' + (lat / sr * 1000).toFixed(0) + ' ms' });
+      }
+    }
+    postMessage({ t: 'listo' });
+  }
+  function terminar() {
+    // lo que queda adentro de Signalsmith y del limitador: se empuja con silencio
+    const z = new Float32Array(4096);
+    let falta = (ss ? lat : 0);
+    while (falta > 0) { const n = Math.min(4096, falta); procesar(z.subarray(0, n).slice(), z.subarray(0, n).slice(), z.subarray(0, n).slice(), z.subarray(0, n).slice(), n); falta -= n; }
+    let fl = lim.W + 8; while (fl > 0) { const n = Math.min(4096, fl); codificar(new Float32Array(n), new Float32Array(n), n); fl -= n; }
+    if (escritas < N) { let f = N - escritas; while (f > 0) { const n = Math.min(4096, f); escribir(new Float32Array(n), new Float32Array(n)); f -= n; } }
+    const fin = enc.flush(); if (fin.length) mp3.push(new Uint8Array(fin));
+    postMessage({ t: 'aviso', txt: 'pico antes del MP3 ' + (20 * Math.log10(picoEsc || 1e-9)).toFixed(2) + ' dBFS · limitador ' + (lim.minG < 0.999 ? 'bajó hasta ' + (20 * Math.log10(lim.minG)).toFixed(1) + ' dB' : 'no actuó') });
+    const blob = new Blob(mp3, { type: 'audio/mpeg' });
+    postMessage({ t: 'mp3', mp3: blob });
+  }
+  let cola = Promise.resolve();
+  onmessage = e => {
+    const m = e.data;
+    cola = cola.then(async () => {
+      try {
+        if (m.t === 'iniciar') await iniciar(m);
+        else if (m.t === 'trozo') {
+          const n = m.L.length; procesar(m.L, m.R, m.FL, m.FR, n); recibidas += n;
+          postMessage({ t: 'mas' }); postMessage({ t: 'avance', hecho: Math.min(N, recibidas) });
+        } else if (m.t === 'fin') terminar();
+      } catch (err) { postMessage({ t: 'error', txt: (err && err.message) || String(err) }); }
+    });
+  };
+}
 </script>
 </body>
 </html>
