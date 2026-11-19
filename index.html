@@ -559,13 +559,15 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 .expSeg{display:flex;background:var(--panel2);border-radius:12px;padding:3px;gap:3px}
 .expSeg button{flex:1;padding:10px 6px;border-radius:9px;font-size:13px;font-weight:700;color:var(--gris);background:transparent}
 .expSeg button.on{background:#e9edf2;color:#14161a}
-#expIr{background:var(--verde,#3ddc84);color:#0c1a10;font-weight:800;text-align:center;align-items:center}
-#expIr:disabled{opacity:.4}
 .expNota{font-size:12px;color:var(--gris);line-height:1.4}
 .expBarraF{height:10px;background:var(--panel2);border-radius:6px;overflow:hidden}
 .expBarraF i{display:block;height:100%;width:0;background:var(--verde,#3ddc84)}
 .expPasos{display:grid;gap:6px;font-size:13.5px}
 .expPasos .expOk{color:var(--verde,#3ddc84)}.expPasos .expVa{color:var(--naranjaT)}
+
+/* (0.8.9) el botón principal de las hojas (Enviar, Exportar) se distingue: verde */
+.hojaCaja button.grande{background:var(--verde);color:#0b1d10;font-weight:800;text-align:center;align-items:center;font-size:17px}
+.hojaCaja button.grande:disabled{opacity:.4}
 </style>
 </head>
 <body>
@@ -604,7 +606,6 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="btnVolver" class="icono" aria-label="Biblioteca">‹</button>
     <div class="rtit"><div id="rTit"></div><div id="rArt"></div></div>
     <button id="btnTonoTempo" class="tonoTempo" aria-label="Tono y tempo"><span id="tonoVal">0</span><span class="sepTT"></span><span id="tempoVal">100 %</span></button>
-    <button id="btnCompartir" class="icono" aria-label="Compartir la canción" title="Compartir la canción (.youstem)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M8 10H6.5A1.5 1.5 0 0 0 5 11.5v8A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-8a1.5 1.5 0 0 0-1.5-1.5H16"/></svg></button>
     <button id="btnEditar" class="icono soloGrande" aria-label="Editar acordes y arreglos" title="Editar acordes y arreglos">✎</button>
     <button id="btnMenu2" class="icono" aria-label="Menú">⋯</button>
   </header>
@@ -676,6 +677,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <button id="menuEnviar">Enviar mis correcciones</button>
     <button id="menuDescartar">Descartar mis correcciones de esta canción</button>
     <button id="menuExportar">Exportar mezcla (MP3)</button>
+    <button id="menuCompartir">Compartir la canción (.youstem)</button>
     <button id="menuAudio">Reiniciar el audio</button>
     <button id="menuMac">Mezcla de cero (0 dB, sin banderas)</button>
     <button id="menuGestos">Gestos en la letra: sí</button>
@@ -3136,7 +3138,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.8.8';
+const VERSION = '0.8.9';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -4744,7 +4746,11 @@ const Rep = {
       }
     }
     const a = this.aj;
-    if (a.cicloFin > a.cicloIni + 0.2) { x.fillStyle = a.loop ? 'rgba(90,143,181,.35)' : 'rgba(255,255,255,.10)'; x.fillRect(X(a.cicloIni), 0, X(a.cicloFin) - X(a.cicloIni), H); }
+    if (a.cicloFin > a.cicloIni + 0.2) {   // (0.8.9) el loop marcado se ve aunque esté apagado (bordes blancos)
+      const x0 = X(a.cicloIni), x1 = X(a.cicloFin);
+      x.fillStyle = a.loop ? 'rgba(90,143,181,.38)' : 'rgba(255,255,255,.16)'; x.fillRect(x0, 0, x1 - x0, H);
+      x.fillStyle = a.loop ? 'rgba(124,196,255,.95)' : 'rgba(255,255,255,.7)'; const g = Math.max(1, Math.round(dpr * 1.5)); x.fillRect(x0, 0, g, H); x.fillRect(x1 - g, 0, g, H);
+    }
     x.fillStyle = 'rgba(255,255,255,.22)'; x.fillRect(0, H * 0.18, X(t), H * 0.64);
     const bandera = (s, col) => { if (s < 0) return; x.fillStyle = col; x.beginPath(); x.moveTo(X(s), 0); x.lineTo(X(s) + 10, 0); x.lineTo(X(s) + 10, 3); x.lineTo(X(s), 10); x.fill(); x.fillRect(X(s) - 1.5, 0, 3, H); };
     if (a.marcaInicio >= 0) bandera(a.marcaInicio, '#4cd97b');
@@ -4948,7 +4954,7 @@ document.addEventListener('pointerdown', e => { const M = $('#popClick'); if (M.
 $('#btnVerde').onclick = () => Rep.alternarVerde();
 $('#btnLoop').onclick = () => {
   const a = Rep.aj;
-  if (!(a.cicloFin > a.cicloIni + 0.2)) { aviso('Mantené apretada una parte de la barra (Intro, Coro…) para repetirla.'); return; }
+  if (!(a.cicloFin > a.cicloIni + 0.2)) { aviso('Primero marcá el loop: mantené apretada la barra un momento y deslizá hasta donde quieras.', 4000); return; }
   a.loop = !a.loop; Rep.aplicarLoop(); Rep.guardarLocal();
 };
 Audio.alTerminar = () => { Audio.tvSigue(false); Rep.reanudar = false; Rep.refrescarBotones(); pantallaPrendida(false); Medios.estado(); };   // (0.8.0) B18
@@ -5042,7 +5048,7 @@ $('#popCuenta').addEventListener('click', e => {
 });
 document.addEventListener('pointerdown', e => { const M = $('#popCuenta'); if (M.classList.contains('ver') && !e.target.closest('#popCuenta') && !e.target.closest('#btnCuenta')) M.classList.remove('ver'); }, true);
 
-// barra: tocar = ir ahí; mantener apretado sobre una parte del arreglo = repetir esa parte
+// barra: tocar = ir ahí; mantener apretado y deslizar = marcar el loop (0.8.9); mantener sin deslizar sobre una parte = repetir esa parte
 (() => {
   // (0.3.1) solo con el botón apretado / el dedo apoyado: con el mouse, pasar por encima NO mueve nada
   const cv = $('#barra'); let tLargo = null, x0 = 0, arrastrando = false, apretado = false, bandera = null, largoHecho = false;
@@ -5079,19 +5085,57 @@ document.addEventListener('pointerdown', e => { const M = $('#popCuenta'); if (M
   cv.addEventListener('pointerup', soltarBandera); cv.addEventListener('pointercancel', soltarBandera);
   cv.addEventListener('pointerdown', e => {
     if (e.button > 0 || bandera) return;
-    cv.setPointerCapture(e.pointerId); x0 = e.clientX; arrastrando = false; apretado = true; largoHecho = false;
+    try { cv.setPointerCapture(e.pointerId); } catch {} x0 = e.clientX; arrastrando = false; apretado = true; largoHecho = false;
     const s = seg(e);
     if (candidata) return;   // (0.7.2) sobre una bandera, mantener apretado = moverla (no repetir la parte)
+    // (0.8.9) fabao: "mantener presionado un momento y deslizar hasta el lugar deseado y eso es el loop; luego se enciende
+    // con el botón loop". Sirve aunque la canción no tenga partes. Los bordes caen en el compás más cercano (si hay pulso).
     tLargo = setTimeout(() => {
       tLargo = null; largoHecho = true;
-      const b = Rep.an.arreglo.find(x => s >= x.t && s < x.fin);
-      if (b) { Rep.aj.cicloIni = b.t; Rep.aj.cicloFin = b.fin; Rep.aj.loop = true; Rep.aplicarLoop(); Rep.guardarLocal(); aviso('Repitiendo: ' + (b.nombre || 'esta parte')); if (navigator.vibrate) navigator.vibrate(20); }
-      else aviso(Rep.an.arreglo.length ? 'Ahí no hay ninguna parte marcada.' : 'Esta canción no tiene partes (Intro, Coro…) para repetir: se marcan en el editor.', 3500);   // (0.8.0) C4
-    }, 550);
+      marca = { ancla: pegar(s), antes: { i: Rep.aj.cicloIni, f: Rep.aj.cicloFin, on: Rep.aj.loop }, movio: false };
+      if (navigator.vibrate) try { navigator.vibrate(20); } catch {}
+      aviso('Deslizá hasta donde termina el loop', 1800);
+    }, 500);
   });
-  cv.addEventListener('pointermove', e => { if (!apretado) return; if (Math.abs(e.clientX - x0) > 8) { arrastrando = true; if (tLargo) { clearTimeout(tLargo); tLargo = null; } Rep.ir(seg(e)); } });
-  cv.addEventListener('pointercancel', () => { apretado = false; if (tLargo) { clearTimeout(tLargo); tLargo = null; } });
-  cv.addEventListener('pointerup', e => { if (!apretado) return; apretado = false; if (!arrastrando && !largoHecho) { if (tLargo) clearTimeout(tLargo); tLargo = null; Rep.reanudar = true; Rep.ir(seg(e)); } else if (arrastrando) Rep.reanudar = true; });
+  let marca = null;
+  const pegar = t => {   // al compás más cercano (sin pulso: libre, de a 0,1 s)
+    const c = Rep.an.valido ? Rep.an.compasesEfectivos() : [];
+    if (c.length < 2) return Math.round(t * 10) / 10;
+    let m = c[0]; for (const x of c) if (Math.abs(x - t) < Math.abs(m - t)) m = x;
+    return Math.abs(m - t) < 4 ? m : t;
+  };
+  const marcar = e => {
+    const a = Rep.aj, f = pegar(seg(e)), i = marca.ancla;
+    let ini = Math.min(i, f), fin = Math.max(i, f);
+    if (fin - ini < 0.5) return;
+    marca.movio = true;
+    a.cicloIni = ini; a.cicloFin = Math.min(Rep.dur, fin); a.loop = false;
+    Rep.aplicarLoop();
+    aviso('Loop ' + Exportar.mmss(a.cicloIni) + ' a ' + Exportar.mmss(a.cicloFin), 1200);
+  };
+  cv.addEventListener('pointermove', e => {
+    if (!apretado) return;
+    if (marca) { e.preventDefault(); marcar(e); return; }
+    if (Math.abs(e.clientX - x0) > 8) { arrastrando = true; if (tLargo) { clearTimeout(tLargo); tLargo = null; } Rep.ir(seg(e)); }
+  });
+  cv.addEventListener('pointercancel', () => { apretado = false; if (tLargo) { clearTimeout(tLargo); tLargo = null; } if (marca) { const v = marca.antes; Object.assign(Rep.aj, { cicloIni: v.i, cicloFin: v.f, loop: v.on }); Rep.aplicarLoop(); marca = null; } });
+  cv.addEventListener('pointerup', e => {
+    if (!apretado) return; apretado = false;
+    if (marca) {
+      const m = marca; marca = null;
+      if (m.movio) {
+        Rep.guardarLocal(); anotar('loop marcado', Rep.aj.cicloIni.toFixed(2), '→', Rep.aj.cicloFin.toFixed(2));
+        aviso('Loop marcado: ' + Exportar.mmss(Rep.aj.cicloIni) + ' a ' + Exportar.mmss(Rep.aj.cicloFin) + '. Tocá ⟲ para repetirlo.', 3500);
+        return;
+      }
+      // mantener sin deslizar: sobre una parte (Intro, Coro…) se repite esa parte, como antes
+      const s = seg(e), b = Rep.an.arreglo.find(x => s >= x.t && s < x.fin);
+      if (b) { Rep.aj.cicloIni = b.t; Rep.aj.cicloFin = b.fin; Rep.aj.loop = true; Rep.aplicarLoop(); Rep.guardarLocal(); aviso('Repitiendo: ' + (b.nombre || 'esta parte')); }
+      else aviso('Para marcar el loop: mantené apretado y, sin soltar, deslizá hasta donde termina.', 3500);
+      return;
+    }
+    if (!arrastrando && !largoHecho) { if (tLargo) clearTimeout(tLargo); tLargo = null; Rep.reanudar = true; Rep.ir(seg(e)); } else if (arrastrando) Rep.reanudar = true;
+  });
 })();
 
 addEventListener('resize', () => { if (Rep.cancion) requestAnimationFrame(() => Rep.medir()); });
@@ -5118,6 +5162,7 @@ async function abrirMenu() {
   $('#menuMac').style.display = enRep ? '' : 'none';
   $('#menuAudio').style.display = enRep ? '' : 'none';
   $('#menuExportar').style.display = enRep ? '' : 'none';   // (0.8.8)
+  $('#menuCompartir').style.display = enRep ? '' : 'none';   // (0.8.9)
   $('#menuEditar').style.display = enRep && Editor.puede() ? '' : 'none';
   $('#menuEnviar').style.display = enRep && !Rep.lib.mia ? '' : 'none';
   $('#menuPulso').style.display = enRep && Rep.an.valido ? '' : 'none';
@@ -5160,7 +5205,7 @@ $('#btnGuardadas').onclick = () => { Pref.set('soloGuardadas', !Pref.get('soloGu
 $('#bajCortar').onclick = () => Descargas.cortar();
 $('#accCerrar').onclick = () => $('#acciones').classList.remove('ver');
 $('#acciones').addEventListener('click', e => { if (e.target.id === 'acciones') $('#acciones').classList.remove('ver'); });
-$('#btnCompartir').onclick = () => Rep.cancion && compartirCancion(Rep.cancion, Rep.lib);
+$('#menuCompartir').onclick = () => { cerrarMenu(); if (Rep.cancion) compartirCancion(Rep.cancion, Rep.lib); };   // (0.8.9) antes era el botón de arriba
 
 // ══════════════════════ (0.5.0) PEDIR UNA CANCIÓN A TU MAC (Mac 1.4.18) ══════════════════════
 // Pegás un link de YouTube; una Mac con YouSTEM abierto lo toma, la baja, hace la Máxima, la sube a tu carpeta
