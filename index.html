@@ -650,6 +650,32 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 .qBorrar{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.14);color:var(--texto);font-size:15px;font-weight:700;display:grid;place-items:center}
 .qBorrar:active{background:rgba(255,255,255,.25)}
 .qBorrar[hidden]{display:none}
+
+/* ═════ (0.9.1) de corrido y enganches ═════ */
+.setPausa{display:block;margin:0 6px 10px;padding:7px 10px;border-radius:10px;background:var(--panel2);color:#c9d0d9;font-size:13px;font-weight:600;text-align:left}
+.engBarra{position:sticky;top:0;z-index:3;margin:0 0 8px;padding:10px;border-radius:14px;background:#1f2a36;border:1px solid rgba(124,196,255,.35);display:flex;flex-direction:column;gap:8px}
+.engTxt{font-size:13px;color:#cfe6ff;font-weight:600}
+.engBtns{display:flex;gap:6px;flex-wrap:wrap}
+.engBtns button{padding:9px 12px;border-radius:10px;background:var(--panel2);font-weight:700;font-size:13.5px}
+.engBtns button:disabled{opacity:.4}
+.engBtns .engSi{background:#7cc4ff;color:#0b1520}
+.engBtns .rojo{color:#ff7a7a}
+.engBtns .engListo{margin-left:auto;background:var(--verde);color:#0b1d10}
+.filaSet.eng{box-shadow:inset 4px 0 0 var(--eng);border-radius:0;background:color-mix(in srgb, var(--eng) 8%, transparent)}
+.filaSet.eng.engIni{border-top-left-radius:12px;border-top-right-radius:12px}
+.filaSet.eng.engFin{border-bottom-left-radius:12px;border-bottom-right-radius:12px;margin-bottom:6px}
+.engTxtFila{font-size:11px;color:var(--eng,#7cc4ff);font-weight:700;margin-top:2px}
+.filasLista.eligiendo .filaSet .num{width:24px;height:24px;border-radius:50%;border:2px solid #4c5562;color:transparent;display:grid;place-items:center;font-size:0}
+.filasLista.eligiendo .filaSet.elegida{background:rgba(124,196,255,.14)}
+.filasLista.eligiendo .filaSet.elegida .num{background:#7cc4ff;border-color:#7cc4ff}
+.filasLista.eligiendo .filaSet.elegida .num::after{content:'✓';font-size:14px;font-weight:900;color:#0b1520}
+.filasLista.eligiendo .asa,.filasLista.eligiendo .masFila{visibility:hidden}
+.escCuenta{position:fixed;inset:0;z-index:80;background:rgba(7,9,12,.88);display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:20px}
+.escCuenta.ver{display:flex}
+.escCuenta small{color:var(--gris);letter-spacing:2px;text-transform:uppercase;font-size:13px;font-weight:700}
+.escCuenta b{font-size:24px;text-align:center}
+.escCuentaN{font-size:min(42vw,220px);font-weight:900;line-height:1;color:var(--verde);font-variant-numeric:tabular-nums}
+.escCuenta button{margin-top:14px;padding:13px 22px;border-radius:14px;background:var(--panel2);font-size:16px;font-weight:800}
 </style>
 </head>
 <body>
@@ -686,6 +712,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 <section id="pRep" class="pantalla">
   <div id="escTop" class="escTop"><span id="escPos"></span><b id="escTit"></b><button id="escInfo" class="escB" aria-label="Cómo está fijada">ⓘ</button><button id="escCandado" class="escB" aria-label="Bloqueo de toques">🔒</button><button id="escSalir" class="escB" aria-label="Salir del escenario">✕</button></div>
   <div id="escFicha" class="escFicha"></div>
+  <div id="escCuenta" class="escCuenta"><small>Sigue</small><b id="escCuentaTit"></b><div id="escCuentaN" class="escCuentaN"></div><button id="escCuentaEsperar">Esperar ▶</button></div>
   <header class="rcab">
     <button id="btnVolver" class="icono" aria-label="Biblioteca">‹</button>
     <div class="rtit"><div id="rTit"></div><div id="rArt"></div></div>
@@ -3251,7 +3278,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.9.0';
+const VERSION = '0.9.1';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -3949,18 +3976,9 @@ const colorDe = (id, guardado) => {
 };
 let abriendo = 0;
 
-async function abrirCancion(c, lib, op = {}) {
-  const turno = ++abriendo;
-  if (!Escenario.activo) Rep.mixForzada = null;   // (0.9.0)
-  if (Exportar.activo) Exportar.cancelar('abriste otra canción');   // (0.8.8)
-  // (0.8.0) A3: `vivo` = esta apertura sigue siendo la última (si tocaste otra canción, esta se abandona en silencio)
-  const vivo = () => turno === abriendo;
-  let liberada = false;
-  abrirCancion.enCurso = turno;   // (0.8.0) B1: mientras se abre, un reinicio de audio espera
-  try {
-    if (!Audio.ctx) await Audio.iniciar();   // (0.8.0) C10: el motor se arma UNA vez acá (dentro del toque); abajo se renueva solo si ya se usó
-    Rep.parar();
-    cargando('Abriendo ' + (c.titulo || c.id) + '…');
+// (0.9.1) leer una canción (manifiesto, json, qué pistas) sin tocar lo que suena: lo usa abrir y también PREPARAR la
+// siguiente del show mientras suena la actual (enganches sin silencio)
+async function leerCancion(c, lib, red, sigue) {
     const clave = rel => Nube.claveCache(lib.clave, c.id, rel);
     let man;
     // (0.4.1) lo que ya está guardado en el aparato se abre DIRECTO, sin preguntar a OneDrive (sin internet o con mala
@@ -3970,7 +3988,7 @@ async function abrirCancion(c, lib, op = {}) {
       man = await deManifiesto();
       if (!man) throw new Error('Esta canción ya no está en ' + EQUIPO + ': importala de nuevo.');
       man.offline = true; man.local = true;
-    } else if (!op.red && (man = await deManifiesto())) { man.offline = true; man.deCache = true; }
+    } else if (!red && (man = await deManifiesto())) { man.offline = true; man.deCache = true; }
     else man = null;
     const deLaRed = async () => {
       try {
@@ -3987,7 +4005,7 @@ async function abrirCancion(c, lib, op = {}) {
       }
     };
     if (!man) man = await deLaRed();
-    if (turno !== abriendo) return;
+    if (!sigue()) return null;
     let anJ, leJ, ajJ, vmJ, pistas, compensacion;
     for (let vuelta = 0; vuelta < 2; vuelta++) {
       const item = (lista, n) => man.offline ? null : lista.find(x => x.name === n);
@@ -4015,8 +4033,55 @@ async function abrirCancion(c, lib, op = {}) {
       if (completa) { anotar('abrir', c.id, 'desde lo guardado en ' + EQUIPO); break; }
       anotar('abrir', c.id, 'no está completa en ' + EQUIPO + ': la pido a OneDrive');
       man = await deLaRed();
-      if (turno !== abriendo) return;
+      if (!sigue()) return null;
     }
+    return { man, anJ, leJ, ajJ, vmJ, pistas, compensacion, clave };
+}
+
+// (0.9.1) bajar (o leer del aparato) y decodificar UNA pista a Int16 (+ la melodía de la voz). null = se abandonó
+async function decodificarPista(p, man, clave, compensacion, notasVoz, progreso, preparando, sigue) {
+  const item = (lista, n) => man.offline ? null : lista.find(x => x.name === n);
+  const buf = await Nube.bajar(item(man.pistas, p.f.name), clave(man.dir + '/' + p.f.name), progreso);
+  preparando && preparando();
+  if (!sigue()) return null;
+  const ab = await Audio.decodificar(buf);
+  if (!sigue()) return null;
+  const n = ab.length, L = new Int16Array(n), R = new Int16Array(n);
+  const k = Math.max(0.05, +compensacion[p.id] || 1);   // (0.8.0) C14: también atenuaciones
+  const a0 = ab.getChannelData(0), a1 = ab.numberOfChannels > 1 ? ab.getChannelData(1) : a0;
+  for (let j = 0; j < n; j++) {
+    let x = a0[j] * k * 32767; L[j] = x > 32767 ? 32767 : x < -32768 ? -32768 : x;
+    x = a1[j] * k * 32767; R[j] = x > 32767 ? 32767 : x < -32768 ? -32768 : x;
+  }
+  // (0.3.11) la batería (y el click y la cuenta) no cambian de tono: solo los instrumentos y la voz
+  const fija = /bater|drum|percus/i.test(p.id + ' ' + (p.nombre || ''));
+  let M = null;
+  if (p.id === 'voz' && notasVoz) {   // voz → MIDI: la melodía (flauta) al lado de la voz, al mismo nivel que el canto
+    try {
+      const t0 = performance.now();
+      const r = Melodia.renderizar(notasVoz, Audio.sr, n, a0, a1, k); M = r.datos;
+      anotar('voz-midi', notasVoz.notas.length + ' notas, ' + notasVoz.cents.toFixed(1) + ' c, nivel x' + r.k.toFixed(2) + ', ' + Math.round(performance.now() - t0) + ' ms');
+    } catch (e) { anotar('voz-midi', e); }
+  }
+  return { L, R, n, fija, M };
+}
+
+async function abrirCancion(c, lib, op = {}) {
+  const turno = ++abriendo;
+  if (!Escenario.activo) Rep.mixForzada = null;   // (0.9.0)
+  if (Exportar.activo) Exportar.cancelar('abriste otra canción');   // (0.8.8)
+  // (0.8.0) A3: `vivo` = esta apertura sigue siendo la última (si tocaste otra canción, esta se abandona en silencio)
+  const vivo = () => turno === abriendo;
+  let liberada = false;
+  abrirCancion.enCurso = turno;   // (0.8.0) B1: mientras se abre, un reinicio de audio espera
+  try {
+    if (!Audio.ctx) await Audio.iniciar();   // (0.8.0) C10: el motor se arma UNA vez acá (dentro del toque); abajo se renueva solo si ya se usó
+    pantallaPrendida(true);   // (0.9.1) fabao: "cuando tarda en descargar un stem se bloquea la pantalla": mientras abre, no se apaga
+    Rep.parar();
+    cargando('Abriendo ' + (c.titulo || c.id) + '…');
+    const L0 = op.prep ? op.prep.lectura : await leerCancion(c, lib, op.red, vivo);
+    if (!L0) return;
+    const clave = L0.clave; let { man, anJ, pistas } = L0; const { leJ, ajJ, vmJ, compensacion } = L0;
     if (!vivo()) return;
     const item = (lista, n) => man.offline ? null : lista.find(x => x.name === n);
     const notasVoz = Melodia.leer(vmJ);
@@ -4036,7 +4101,9 @@ async function abrirCancion(c, lib, op = {}) {
     // motor nuevo va antes de la carga y no después.)
     if (!vivo()) return;
     Rep.liberar(); liberada = true;
-    if (Audio.usado) {   // (0.8.0) C10: si el motor es nuevo y sin pistas, se usa ese (no se tira para armar otro igual)
+    if (op.mismoMotor && Audio.ctx && Audio.nodo) {   // (0.9.1) escenario de corrido: el mismo motor (un AudioContext nuevo pediría un toque)
+      Audio.enviar({ t: 'vaciar' }); await Audio.listo();
+    } else if (Audio.usado) {   // (0.8.0) C10: si el motor es nuevo y sin pistas, se usa ese (no se tira para armar otro igual)
       await Audio.cerrar();
       await new Promise(r => setTimeout(r, 120));
       if (!vivo()) return;
@@ -4048,36 +4115,20 @@ async function abrirCancion(c, lib, op = {}) {
       const p = pistas[i];
       if (turno !== abriendo) return;
       const base = hecho;
-      const buf = await Nube.bajar(item(man.pistas, p.f.name), clave(man.dir + '/' + p.f.name), (n) => cargando(`Bajando ${p.nombre}…`, Math.min(1, (base + n) / total)));
-      hecho += p.f.size || buf.byteLength;
-      cargando(`Preparando ${p.nombre}…`, Math.min(1, hecho / total));
-      if (!vivo()) return;
-      const ab = await Audio.decodificar(buf);
-      if (!vivo()) return;
-      const n = ab.length, L = new Int16Array(n), R = new Int16Array(n);
-      const k = Math.max(0.05, +compensacion[p.id] || 1);   // (0.8.0) C14: también atenuaciones
-      const a0 = ab.getChannelData(0), a1 = ab.numberOfChannels > 1 ? ab.getChannelData(1) : a0;
-      for (let j = 0; j < n; j++) {
-        let x = a0[j] * k * 32767; L[j] = x > 32767 ? 32767 : x < -32768 ? -32768 : x;
-        x = a1[j] * k * 32767; R[j] = x > 32767 ? 32767 : x < -32768 ? -32768 : x;
+      let D = op.prep ? op.prep.datos[i] : null;
+      if (!D) {
+        D = await decodificarPista(p, man, clave, compensacion, notasVoz, n => cargando(`Bajando ${p.nombre}…`, Math.min(1, (base + n) / total)), () => cargando(`Preparando ${p.nombre}…`, Math.min(1, (base + (p.f.size || 0)) / total)), vivo);
+        if (!D) return;
       }
-      // (0.3.11) la batería (y el click y la cuenta) no cambian de tono: solo los instrumentos y la voz
-      const fija = /bater|drum|percus/i.test(p.id + ' ' + (p.nombre || ''));
-      Audio.enviar({ t: 'pista', i, L, R, len: n, fija }, [L.buffer, R.buffer]); Audio.usado = true;
-      let mel = false;
-      if (p.id === 'voz' && notasVoz) {   // voz → MIDI: la melodía (flauta) al lado de la voz, al mismo nivel que el canto
-        try {
-          cargando('Armando la melodía de la voz…', Math.min(1, hecho / total));
-          const t0 = performance.now();
-          const M = Melodia.renderizar(notasVoz, Audio.sr, n, a0, a1, k);
-          Audio.enviar({ t: 'melodia', i, M: M.datos }, [M.datos.buffer]);
-          mel = true;
-          anotar('voz-midi', notasVoz.notas.length + ' notas, ' + notasVoz.cents.toFixed(1) + ' c, nivel x' + M.k.toFixed(2) + ', ' + Math.round(performance.now() - t0) + ' ms');
-        } catch (e) { anotar('voz-midi', e); }
-      }
+      hecho += p.f.size || 0;
+      if (!vivo()) return;
+      const n = D.n, mel = !!D.M;
+      Audio.enviar({ t: 'pista', i, L: D.L, R: D.R, len: n, fija: D.fija }, [D.L.buffer, D.R.buffer]); Audio.usado = true;
+      if (D.M) Audio.enviar({ t: 'melodia', i, M: D.M }, [D.M.buffer]);
+      D.L = D.R = D.M = null;
       cargadas.push({ ...p, largo: n / Audio.sr, mel });
       memoria += n * 4 + (mel ? n * 2 : 0);
-      await new Promise(r => setTimeout(r, 30));   // un respiro entre pista y pista (deja limpiar la memoria del decodificado)
+      if (!op.prep) await new Promise(r => setTimeout(r, 30));   // un respiro entre pista y pista (deja limpiar la memoria del decodificado)
     }
     anotar('abierta', c.id, pistas.length + ' pistas', fmtT(Math.max(...cargadas.map(x => x.largo), 0)), Math.round(memoria / 1048576) + ' MB de audio en memoria', Audio.sr + ' Hz');
     if (!man.offline) Nube.guardarManifiesto(clave('manifiesto'), { raiz: man.raiz.map(x => ({ name: x.name, size: x.size })), pistas: man.pistas.map(x => ({ name: x.name, size: x.size })), dir: man.dir });
@@ -4097,7 +4148,10 @@ async function abrirCancion(c, lib, op = {}) {
     if (liberada && $('#pRep').classList.contains('activa')) { Rep.parar(); pantalla('pBib'); Bib.dibujar(); }
     if (e.sinSesion) { try { sessionStorage.setItem('ys.retomar', JSON.stringify({ lib: lib.clave, id: c.id, cuando: Date.now() })); } catch {} sesionVencida(); return; }
     aviso(/failed to fetch|load failed|network/i.test(e.message || '') ? 'Se cortó la conexión mientras bajaba la canción. Probá de nuevo.' : (e.message || String(e)), 6000);
-  } finally { if (abrirCancion.enCurso === turno) abrirCancion.enCurso = 0; }
+  } finally {
+    if (abrirCancion.enCurso === turno) abrirCancion.enCurso = 0;
+    if (turno === abriendo && !Audio.sonando && !Escenario.activo && !Descargas.activo) pantallaPrendida(false);
+  }
 }
 
 // (0.4.1) después de abrir desde lo guardado: si hay conexión, se fija si en OneDrive cambió algo y lo baja.
@@ -5584,6 +5638,7 @@ const Descargas = {
   },
   async seguir() {
     this.activo = true; this.parar = false;
+    pantallaPrendida(true);   // (0.9.1) mientras guarda en el aparato, la pantalla no se apaga (si se apaga, el iPhone corta la descarga)
     let errores = 0;
     while (this.cola.length && !this.parar) {
       const x = this.cola.shift(); this.actual = x; this.pct = 0; this.pintar();
@@ -5595,6 +5650,7 @@ const Descargas = {
     this.deteniendo = false;
     if (this.cola.length) { this.hechas = 0; this.total = this.cola.length; return this.seguir(); }   // (0.8.0) C3: entró algo mientras se detenía
     this.activo = false; this.actual = null; this.pct = null; this.hechas = 0; this.total = 0; this.pintar();
+    if (!Audio.sonando && !Escenario.activo && !abrirCancion.enCurso) pantallaPrendida(false);
     aviso((this.parar ? 'Detenido. ' : '') + (n ? n + (n === 1 ? ' canción guardada' : ' canciones guardadas') + ' en ' + EQUIPO + '.' : '') + (errores ? ' ' + errores + ' no se pudieron bajar (ver registro).' : ''), 4000);
   }
 };
@@ -8027,7 +8083,9 @@ const Listas = {
       case 'renombrar': { const l = L(op.id); if (l) { l.nombre = op.nombre; l.editado = ahora; } break; }
       case 'borrar': d.listas = d.listas.filter(l => l.id !== op.id); break;
       case 'agregar': { const l = L(op.id); if (l && !l.ids.includes(op.cid)) { l.ids.push(op.cid); l.editado = ahora; if (l.show && l.show.bloqueado && op.mezcla) l.show.original[op.cid] = op.mezcla; } break; }
-      case 'sacar': { const l = L(op.id); if (l) { l.ids = l.ids.filter(x => x !== op.cid); l.editado = ahora; if (l.show) { delete l.show.original[op.cid]; delete l.show.ultimo[op.cid]; } } break; }
+      case 'sacar': { const l = L(op.id); if (l) { l.ids = l.ids.filter(x => x !== op.cid); l.editado = ahora; if (l.show) { delete l.show.original[op.cid]; delete l.show.ultimo[op.cid]; } if (l.enganches) l.enganches = l.enganches.map(g => g.filter(x => x !== op.cid)).filter(g => g.length > 1); } break; }
+      case 'pausa': { const l = L(op.id); if (l) { if (op.pausa == null) delete l.pausa; else l.pausa = op.pausa; l.editado = ahora; } break; }   // (0.9.1) null = esperar ▶ · 0 = pegadas · N = segundos
+      case 'enganches': { const l = L(op.id); if (l) { if (op.enganches && op.enganches.length) l.enganches = op.enganches; else delete l.enganches; l.editado = ahora; } break; }   // (0.9.1) grupos de canciones que van pegadas
       case 'orden': { const l = L(op.id); if (l) { const quedan = op.ids.filter(x => l.ids.includes(x)), resto = l.ids.filter(x => !quedan.includes(x)); l.ids = [...quedan, ...resto]; l.editado = ahora; } break; }
       case 'show': { const l = L(op.id); if (l) { if (op.show) l.show = op.show; else delete l.show; l.editado = ahora; } break; }
       case 'mezcla': {   // una canción del show: cual = original | ultimo; mezcla null = sacarla
@@ -8125,6 +8183,20 @@ const Listas = {
     return r;
   },
   nuevaId() { return Math.random().toString(16).slice(2, 10); },
+  // (0.9.1) ¿a y b (seguidas en la lista) van enganchadas? = están seguidas dentro del mismo grupo
+  engancha(l, a, b) { return !!(l && l.enganches || []).find(g => { const i = g.indexOf(a); return i >= 0 && g[i + 1] === b; }); },
+  // qué pasa al terminar la canción i: 'fin' · 'esperar' (▶) · 'pegado' · N segundos
+  modoPaso(l, i) {
+    if (!l || i + 1 >= l.ids.length) return 'fin';
+    if (this.engancha(l, l.ids[i], l.ids[i + 1])) return 'pegado';
+    const p = l.pausa; return p == null || p < 0 ? 'esperar' : p === 0 ? 'pegado' : p;
+  },
+  textoPausa(p) { return p == null || p < 0 ? 'esperar ▶' : p === 0 ? 'pegadas (sin silencio)' : p + ' s y sigue sola'; },
+  // grupos ordenados como la lista; los que quedaron de a uno se van
+  ordenarEnganches(l, gs) {
+    const pos = id => l.ids.indexOf(id);
+    return gs.map(g => g.filter(id => pos(id) >= 0).sort((a, b) => pos(a) - pos(b))).filter(g => g.length > 1);
+  },
 };
 
 // ── una hoja genérica (menú de abajo) ──
@@ -8186,9 +8258,45 @@ const ListasUI = {
     Hoja.abrir({ tit: l.nombre, sub: l.ids.length + ' canciones', items: [
       { txt: '▶ Tocar en modo escenario', fn: () => Escenario.empezar(l.id), desactivado: !l.ids.length },
       { txt: bloq ? '🔓 Desbloquear el show' : '🔒 Bloquear el show (guarda la mezcla de cada canción)', fn: () => bloq ? this.desbloquear(l) : this.bloquear(l) },
+      { txt: '⏭ Entre canciones: ' + Listas.textoPausa(l.pausa), fn: () => this.elegirPausa(l) },
+      { txt: '⛓ Enganchar canciones…', fn: () => { this.eng = l.id; this.engSel = new Set(); Bib.dibujar(); }, desactivado: l.ids.length < 2 },
       { txt: 'Renombrar', fn: () => Hoja.texto({ tit: 'Renombrar la lista', valor: l.nombre, fn: n => Listas.cambiar({ t: 'renombrar', id: l.id, nombre: n }) }) },
       { txt: 'Borrar la lista', clase: 'rojo', fn: () => Hoja.abrir({ tit: '¿Borrar «' + l.nombre + '»?', sub: 'Las canciones no se borran: solo la lista' + (bloq ? ' y las mezclas guardadas del show' : '') + '.', items: [{ txt: 'Borrar la lista', clase: 'grande rojoF', fn: () => { Listas.cambiar({ t: 'borrar', id: l.id }); if (this.abierta === l.id) this.abierta = null; Bib.dibujar(); } }] }) },
     ] });
+  },
+  elegirPausa(l) {
+    const op = (txt, v, sub) => ({ txt: (l.pausa === v || (v == null && l.pausa == null) ? '✓ ' : '') + txt, fn: () => Listas.cambiar({ t: 'pausa', id: l.id, pausa: v }) });
+    Hoja.abrir({ tit: 'Al terminar cada canción…', sub: 'Las enganchadas (⛓) van siempre pegadas.', items: [
+      op('Esperar ▶ (como hasta ahora)', null), op('Seguir sola a los 2 segundos', 2), op('Seguir sola a los 5 segundos', 5), op('Seguir sola a los 10 segundos', 10), op('Pegadas, sin silencio', 0)] });
+  },
+  // (0.9.1) enganches: elegir canciones seguidas y pintarlas juntas (como los arreglos); puede haber varios grupos
+  barraEnganche(cont, l) {
+    const b = el('div', 'engBarra'), n = this.engSel.size;
+    b.appendChild(el('div', 'engTxt', n ? n + (n === 1 ? ' elegida' : ' elegidas') : 'Tocá las canciones seguidas que van pegadas'));
+    const fila = el('div', 'engBtns');
+    const eng = el('button', 'engSi', '⛓ Enganchar' + (n > 1 ? ' (' + n + ')' : '')); eng.disabled = n < 2;
+    eng.onclick = () => {
+      const idx = [...this.engSel].map(id => l.ids.indexOf(id)).sort((a, b) => a - b);
+      if (idx[idx.length - 1] - idx[0] + 1 !== idx.length) { aviso('Elegí canciones SEGUIDAS en la lista (sin saltear).', 3000); return; }
+      let nuevo = idx.map(i => l.ids[i]); const quedan = [];
+      for (const g of l.enganches || []) { if (g.some(id => nuevo.includes(id))) nuevo = [...new Set([...nuevo, ...g])]; else quedan.push(g); }
+      Listas.cambiar({ t: 'enganches', id: l.id, enganches: Listas.ordenarEnganches(l, [...quedan, nuevo]) });
+      this.engSel = new Set(); aviso('Enganchadas: van pegadas, sin silencio.', 2500);
+    };
+    const sol = el('button', '', 'Soltar'); sol.disabled = !n;
+    sol.onclick = () => {
+      const out = [];
+      for (const g of l.enganches || []) {   // sacar las elegidas y partir el grupo donde quedó un hueco
+        let actual = [];
+        for (const id of g) { if (this.engSel.has(id)) { out.push(actual); actual = []; } else actual.push(id); }
+        out.push(actual);
+      }
+      Listas.cambiar({ t: 'enganches', id: l.id, enganches: Listas.ordenarEnganches(l, out) }); this.engSel = new Set();
+    };
+    const todos = el('button', 'rojo', 'Quitar todos'); todos.disabled = !(l.enganches && l.enganches.length);
+    todos.onclick = () => { Listas.cambiar({ t: 'enganches', id: l.id, enganches: [] }); this.engSel = new Set(); };
+    const listo = el('button', 'engListo', 'Listo'); listo.onclick = () => { this.eng = null; Bib.dibujar(); };
+    [eng, sol, todos, listo].forEach(x => fila.appendChild(x)); b.appendChild(fila); cont.appendChild(b);
   },
   bloquear(l) {
     const original = {}; for (const cid of l.ids) original[cid] = Listas.mezclaBiblioteca(cid);
@@ -8209,12 +8317,19 @@ const ListasUI = {
     cont.appendChild(el('div', 'setTit', l.nombre + (bloq ? ' 🔒' : '')));
     const dur = l.ids.reduce((s, id) => { const r = Listas.resolver(id); return s + (r && r.c.duracion || 0); }, 0);
     cont.appendChild(el('div', 'setSub', l.ids.length + (l.ids.length === 1 ? ' canción' : ' canciones') + (dur ? ' · ' + Math.round(dur / 60) + ' min' : '') + (bloq ? ' · mezclas bloqueadas' : '')));
+    const pz = el('button', 'setPausa', '⏭ Entre canciones: ' + Listas.textoPausa(l.pausa) + (l.enganches && l.enganches.length ? ' · ⛓ ' + l.enganches.length + (l.enganches.length === 1 ? ' enganche' : ' enganches') : ''));
+    pz.onclick = () => this.elegirPausa(l); cont.appendChild(pz);
+    if (this.eng === l.id) this.barraEnganche(cont, l); else if (this.eng) this.eng = null;
     const ult = bloq ? Object.keys(l.show.ultimo || {}).filter(id => l.ids.includes(id)) : [];
     if (ult.length) cont.appendChild(el('div', 'aviso2', '✎ En el último show' + (l.show.ultimoFecha ? ' (' + new Date(l.show.ultimoFecha).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'numeric' }) + ')' : '') + ' cambiaste ' + ult.length + (ult.length === 1 ? ' canción.' : ' canciones.')));
-    const filas = el('div', 'filasLista'); cont.appendChild(filas);
+    const filas = el('div', 'filasLista' + (this.eng === l.id ? ' eligiendo' : '')); cont.appendChild(filas);
+    // grupos enganchados: corridas de canciones pegadas, cada una de un color
+    const COL = ['#7cc4ff', '#ffb470', '#a78bfa', '#4cd97b', '#f08ec4'], color = [], pega = l.ids.map((id, i) => Listas.engancha(l, id, l.ids[i + 1]));
+    let g = -1; l.ids.forEach((id, i) => { const conAnt = i > 0 && pega[i - 1]; if (!conAnt && pega[i]) g++; color[i] = (conAnt || pega[i]) ? COL[g % COL.length] : null; });
     l.ids.forEach((cid, i) => {
       const r = Listas.resolver(cid);
-      const f = el('div', 'tema filaSet' + (r ? '' : ' falta')); f.dataset.cid = cid;
+      const f = el('div', 'tema filaSet' + (r ? '' : ' falta') + (color[i] ? ' eng' + (i > 0 && pega[i - 1] ? '' : ' engIni') + (pega[i] ? '' : ' engFin') : '') + (this.eng === l.id && this.engSel.has(cid) ? ' elegida' : '')); f.dataset.cid = cid;
+      if (color[i]) f.style.setProperty('--eng', color[i]);
       f.appendChild(el('span', 'num', String(i + 1)));
       const mini = el('div', 'mini');
       if (r) { const k = (r.lib.local ? 'local' : r.lib.clave) + '|' + cid, url = Bib.miniaturas[k]; if (url) mini.appendChild(Bib.imgDe('set:' + k, url)); }
@@ -8229,7 +8344,12 @@ const ListasUI = {
       const masF = el('button', 'masFila', '⋯'); masF.onclick = e => { e.stopPropagation(); this.menuCancion(l, cid, i); };
       const asa = el('span', 'asa', '≡');
       f.appendChild(masF); f.appendChild(asa);
-      f.onclick = e => { if (e.target.closest('.asa') || e.target.closest('.masFila')) return; if (r) abrirCancion(r.c, r.lib); };
+      if (pega[i]) tx.appendChild(el('div', 'engTxtFila', '⛓ sigue pegada'));
+      f.onclick = e => {
+        if (e.target.closest('.asa') || e.target.closest('.masFila')) return;
+        if (this.eng === l.id) { if (this.engSel.has(cid)) this.engSel.delete(cid); else this.engSel.add(cid); Bib.dibujar(); return; }   // eligiendo para enganchar
+        if (r) abrirCancion(r.c, r.lib);
+      };
       this.arrastre(asa, f, filas, l);
       filas.appendChild(f);
     });
@@ -8334,21 +8454,26 @@ const Escenario = {
     ] });
   },
   arrancar(l, version) {
-    this.activo = true; this.bloqueado = true; this.lista = l.id; this.version = version; this.idx = 0;
+    this.activo = true; this.bloqueado = true; this.lista = l.id; this.version = version; this.idx = 0; this.prep = null; this.auto = null;
+    clearInterval(this.tPrep); this.tPrep = setInterval(() => this.vigilar(), 1500);
     anotar('escenario: «' + l.nombre + '»', l.ids.length, 'canciones · mezclas', l.show && l.show.bloqueado ? (version === 'ultimo' ? 'del último show' : 'originales') : 'de la biblioteca');
     this.abrir(0);
   },
   l() { return Listas.lista(this.lista); },
-  async abrir(i) {
+  async abrir(i, o = {}) {
     const l = this.l(); if (!l) return this.salir();
     while (i < l.ids.length && !Listas.resolver(l.ids[i])) i++;
     if (i >= l.ids.length) { aviso('Fin de la lista.'); return; }
+    if (!o.auto) { this.auto = null; this.esconderCuenta(); }
     this.idx = i;
     const cid = l.ids[i], r = Listas.resolver(cid);
     this.mix = Listas.mezclaShow(l, cid, this.version);
     this.cid = cid;
     Rep.mixForzada = this.mix;
-    await abrirCancion(r.c, r.lib);
+    // (0.9.1) si la siguiente ya estaba preparada en memoria (enganche), entra al instante y con el MISMO motor
+    const prep = this.prep && this.prep.idx === i && this.prep.cid === cid ? this.prep : null;
+    this.prep = null; this.prepTok = (this.prepTok || 0) + 1; this.preparando = false;
+    await abrirCancion(r.c, r.lib, { prep: prep ? { lectura: prep.lectura, datos: prep.datos } : undefined, mismoMotor: !!o.auto });
     if (!this.activo || this.cid !== cid) return;
     $('#pRep').classList.add('escenario');
     pantallaPrendida(true);
@@ -8357,13 +8482,71 @@ const Escenario = {
     // la que viene: si no está guardada en el aparato, se baja ya (así el paso entre canciones no espera)
     const sig = l.ids.slice(i + 1).map(id => Listas.resolver(id)).find(Boolean);
     if (sig && !sig.lib.local && !Bib.guardadas.has(sig.lib.clave + '|' + sig.c.id)) { anotar('escenario: bajo la siguiente', sig.c.titulo); Descargas.agregar([{ c: sig.c, lib: sig.lib }]); }
+    // de corrido: arranca sola (con su cuenta 1·2·3·4 si la tiene) cuando se cumple la pausa elegida
+    if (o.auto && this.auto && !this.auto.cancelado) {
+      const falta = this.auto.hasta - Date.now();
+      if (falta > 0) await new Promise(ok => setTimeout(ok, falta));
+      if (!this.activo || this.cid !== cid || !this.auto || this.auto.cancelado) return;
+      this.esconderCuenta(); this.auto = null;
+      if (!Audio.sonando) { Rep.reanudar = false; await Rep.tocar(); }
+      anotar('escenario: siguió sola', r.c.titulo, '· desde el final de la anterior', Math.round(performance.now() - (this.tFin || performance.now())), 'ms', prep ? '(estaba preparada)' : '');
+    }
   },
+  // cada 1,5 s: si lo que viene sigue sola (pegada o con pausa) y faltan menos de 45 s, se prepara la siguiente en memoria
+  vigilar() {
+    if (!this.activo || this.prep || this.preparando || !Audio.sonando || !Rep.cancion) return;
+    const l = this.l(), mp = Listas.modoPaso(l, this.idx); if (mp === 'esperar' || mp === 'fin') return;   // pegada o con pausa: se prepara antes
+    if (Rep.dur - Audio.ahora() > 45) return;
+    if (navigator.deviceMemory && navigator.deviceMemory < 3) { if (!this.avisoMem) { this.avisoMem = true; anotar('escenario: poca memoria (' + navigator.deviceMemory + ' GB): la siguiente no se prepara antes'); } return; }
+    this.preparar(this.idx + 1);
+  },
+  async preparar(i) {
+    const l = this.l(), cid = l && l.ids[i], r = cid && Listas.resolver(cid); if (!r) return;
+    const tok = this.prepTok = (this.prepTok || 0) + 1, sigue = () => tok === this.prepTok && this.activo;
+    this.preparando = true; const t0 = performance.now();
+    try {
+      const lectura = await leerCancion(r.c, r.lib, false, sigue);
+      if (!lectura || !lectura.pistas.length || !sigue()) return;
+      const notasVoz = Melodia.leer(lectura.vmJ), datos = []; let mb = 0;
+      for (const p of lectura.pistas) {
+        const D = await decodificarPista(p, lectura.man, lectura.clave, lectura.compensacion, notasVoz, null, null, sigue);
+        if (!D) return;
+        datos.push(D); mb += D.n * 4 / 1048576;
+        await new Promise(ok => setTimeout(ok, 40));
+      }
+      if (!sigue()) return;
+      this.prep = { idx: i, cid, lectura, datos };
+      anotar('escenario: siguiente preparada en memoria', r.c.titulo, Math.round(mb) + ' MB', Math.round(performance.now() - t0) + ' ms');
+    } catch (e) { anotar('escenario: no pude preparar la siguiente', e && e.message); }
+    finally { if (tok === this.prepTok) this.preparando = false; }
+  },
+  mostrarCuenta() {
+    const C = $('#escCuenta'); C.classList.add('ver');
+    const l = this.l(), r = Listas.resolver(l.ids[this.idx + 1] || l.ids[this.idx]);
+    $('#escCuentaTit').textContent = r ? (r.c.titulo || '') : '';
+    clearInterval(this.tCuenta);
+    const pintar = () => { if (!this.auto) return; const s = Math.max(0, Math.ceil((this.auto.hasta - Date.now()) / 1000)); $('#escCuentaN').textContent = s || '…'; };
+    pintar(); this.tCuenta = setInterval(pintar, 200);
+  },
+  esconderCuenta() { clearInterval(this.tCuenta); $('#escCuenta').classList.remove('ver'); },
   siguiente() { const l = this.l(); if (!l) return; if (this.idx + 1 >= l.ids.length) { aviso('Es la última de la lista.'); return; } this.abrir(this.idx + 1); },
   anterior() { if (this.idx > 0) this.abrir(this.idx - 1); },
-  alTerminar() { if (!this.activo) return; const l = this.l(); if (l && this.idx + 1 < l.ids.length) this.abrir(this.idx + 1); else aviso('Fin del show 🎉', 4000); },
+  alTerminar() {
+    if (!this.activo) return;
+    const l = this.l(); if (!l) return;
+    this.tFin = performance.now();
+    const m = Listas.modoPaso(l, this.idx);
+    if (m === 'fin') { aviso('Fin del show 🎉', 4000); return; }
+    if (m === 'esperar') { this.abrir(this.idx + 1); return; }   // la siguiente queda lista; ▶ la arranca
+    this.auto = { hasta: Date.now() + (m === 'pegado' ? 0 : m * 1000), cancelado: false };
+    if (m !== 'pegado') this.mostrarCuenta();
+    anotar('escenario: sigue', m === 'pegado' ? 'pegada' : 'a los ' + m + ' s');
+    this.abrir(this.idx + 1, { auto: true });
+  },
   salir() {
     if (!this.activo) return;
     this.activo = false; Rep.mixForzada = null; this.mix = null;
+    clearInterval(this.tPrep); this.prep = null; this.prepTok = (this.prepTok || 0) + 1; this.auto = null; this.esconderCuenta();
     $('#pRep').classList.remove('escenario', 'escMezcla'); $('#escFicha').classList.remove('ver');
     anotar('escenario: fin');
     Bib.modo = 'listas'; ListasUI.abierta = this.lista;
@@ -8384,7 +8567,8 @@ const Escenario = {
     $('#escCandado').textContent = this.bloqueado ? '🔒' : '🔓';
     $('#escCandado').classList.toggle('abierto', !this.bloqueado);
     const V = $('#escViene'); V.innerHTML = '';
-    V.appendChild(el('small', '', 'LO QUE VIENE'));
+    const mp = Listas.modoPaso(l, this.idx);
+    V.appendChild(el('small', '', 'LO QUE VIENE' + (mp === 'pegado' ? ' · ⛓ PEGADA' : typeof mp === 'number' ? ' · SIGUE A LOS ' + mp + ' S' : '')));
     const prox = l.ids.slice(this.idx + 1, this.idx + 3);
     if (!prox.length) V.appendChild(el('div', '', 'Es la última 🎉'));
     prox.forEach((id, k) => { const r = Listas.resolver(id); V.appendChild(el('div', k ? 'gris' : '', (this.idx + 2 + k) + ' · ' + (r ? (r.c.titulo || id) + (r.c.tonalidad ? ' · ' + Modelo.lindo(r.c.tonalidad) : '') : '(no está)'))); });
@@ -8419,6 +8603,7 @@ $('#escSalir').onclick = () => Hoja.abrir({ tit: '¿Salir del modo escenario?', 
 $('#escInfo').onclick = () => Escenario.ficha();
 $('#escPlay').onclick = () => $('#btnPlay').click();
 $('#escSig').onclick = () => Escenario.siguiente();
+$('#escCuentaEsperar').onclick = () => { if (Escenario.auto) Escenario.auto.cancelado = true; Escenario.esconderCuenta(); aviso('La siguiente queda lista: tocá ▶ cuando quieras.', 2500); };
 $('#escViene').onclick = () => {
   const l = Escenario.l(); if (!l) return;
   Hoja.abrir({ tit: l.nombre, items: l.ids.map((id, i) => { const r = Listas.resolver(id); return { txt: (i === Escenario.idx ? '▶ ' : (i + 1) + '. ') + (r ? r.c.titulo : id + ' (no está)'), desactivado: !r || i === Escenario.idx, fn: () => Escenario.abrir(i) }; }) });
