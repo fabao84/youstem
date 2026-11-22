@@ -135,7 +135,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .fila.sec{display:inline-block;font-size:.5em;font-weight:800;letter-spacing:1.2px;padding:.25em .8em;border-radius:999px;background:var(--panel2);color:var(--gris);margin-bottom:.7em}
 .fila.sec.actual{background:#2c3440;color:var(--texto)}
 .fila.compases{display:flex;gap:0;margin-bottom:.45em;font-size:calc(1em * min(var(--kLetra,1), 1.15) / var(--kLetra,1))}   /* (0.8.5) la grilla de compases casi no crece con el pellizco: no entra */
-.cmp{flex:1 1 0;min-width:0;border-left:2px solid rgba(255,255,255,.14);padding:.08em .35em;display:flex;gap:.4em;align-items:baseline}
+.cmp{flex:1 1 0;min-width:0;box-sizing:border-box;border-left:2px solid rgba(255,255,255,.14);padding:.08em .35em;display:flex;flex-wrap:wrap;column-gap:.4em;row-gap:0;align-items:baseline}   /* (0.9.2) si igual no entran, bajan de línea (nunca se pisan) */
 .cmp:last-child{border-right:2px solid rgba(255,255,255,.14)}
 .cmp .ac{font-size:.82em}
 .ac.repite{opacity:.35}
@@ -3278,7 +3278,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.9.1';
+const VERSION = '0.9.2';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -4735,14 +4735,23 @@ const Rep = {
         return { t: cv.t, fin: cv.fin, acordes: (nuevos.length ? nuevos : cv.acordes.slice(0, 1)).map(x => ({ t: x.t, nombre: x.nombre })) };
       });
       const libre = cel => !filas.some(f => f.tipo === 'letra' && cel.t < zonaDe(f)[1] - 0.05 && cel.fin > zonaDe(f)[0] + 0.05) && cel.acordes.length;
-      let tanda = [];
-      const cerrar = () => { if (tanda.length) filas.push({ tipo: 'compases', t: tanda[0].t, fin: tanda[tanda.length - 1].fin, celdas: tanda }); tanda = []; };
-      celdas.forEach((cel, i) => {
-        if (!libre(cel)) { cerrar(); return; }
-        if (tanda.length && (tanda.length >= 4 || Math.abs(tanda[tanda.length - 1].fin - cel.t) > 0.05)) cerrar();
-        tanda.push(cel);
+      // (0.9.2) fabao (Misty): "se ven todos los acordes encimados" / "que elija de acuerdo al tamaño de la pantalla si muestra 2, 3, 4
+      // compases por fila o más". Cada tramo de compases seguidos elige SOLO la mayor cantidad por fila (8, 6, 4, 3, 2 o 1) en la que
+      // entran todos sus acordes, medidos con la letra real; todo el tramo usa la misma para que las barras queden alineadas.
+      const cabe = this.compasesQueEntran(acordes);
+      const tramos = []; let tr = null;
+      celdas.forEach(cel => {
+        if (!libre(cel)) { tr = null; return; }
+        if (!tr || Math.abs(tr[tr.length - 1].fin - cel.t) > 0.05) tramos.push(tr = []);
+        tr.push(cel);
       });
-      cerrar();
+      for (const tramo of tramos) {
+        const n = Math.min(...tramo.map(cabe));
+        for (let i = 0; i < tramo.length; i += n) {
+          const c = tramo.slice(i, i + n);
+          filas.push({ tipo: 'compases', t: c[0].t, fin: c[c.length - 1].fin, celdas: c, porFila: n });
+        }
+      }
     } else if (!comps.length && sueltos.length) {
       for (let i = 0; i < sueltos.length; i += 4) { const g = sueltos.slice(i, i + 4); filas.push({ tipo: 'compases', t: g[0].t, fin: g[g.length - 1].fin, celdas: g.map(a => ({ t: a.t, fin: a.fin, acordes: [a] })) }); }
     }
@@ -4781,7 +4790,7 @@ const Rep = {
       } else if (f.tipo === 'compases') {
         let ant = previo && previo.tipo === 'compases' ? previo.ultimo : null;
         for (const cel of f.celdas) {
-          const c = el('span', 'cmp' + (cel.acordes.length >= 4 ? ' n4' : cel.acordes.length === 3 ? ' n3' : ''));
+          const c = el('span', 'cmp' + ((f.porFila || f.celdas.length) > 2 ? (cel.acordes.length >= 4 ? ' n4' : cel.acordes.length === 3 ? ' n3' : '') : ''));   // (0.9.2) achicar solo si son 4 por fila
           // verde hasta que suena el acorde siguiente (aunque siga en el compás de al lado)
           cel.acordes.forEach((ac, j) => { let fin = cel.fin; for (const x of acordes) { if (x.t <= ac.t + 0.05) fin = x.finV; else break; } ac.finV = j + 1 < cel.acordes.length ? Math.min(fin, cel.acordes[j + 1].t) : fin; });
           for (const ac of cel.acordes) {
@@ -4789,6 +4798,7 @@ const Rep = {
             if (cel.acordes.length === 1 && ant === ac.nombre) chip.classList.add('repite');
             c.appendChild(chip); ant = ac.nombre;
           }
+          if (f.porFila) c.style.flex = '0 0 ' + (100 / f.porFila) + '%';   // (0.9.2) la última fila corta no se estira: barras alineadas
           d.appendChild(c);
         }
         f.ultimo = ant;
@@ -4803,6 +4813,26 @@ const Rep = {
     for (let k = 0; k + 1 < cmps.length; k++) cmps[k].fin = Math.min(cmps[k].fin, Math.max(cmps[k].t + 0.05, cmps[k + 1].t));
     this.iFila = -1; this.iPal = -1; this.iAc = -1; this.saltoTele = true;
     this.pintarAcordes();
+  },
+  // (0.9.2) cuántos compases por fila admite una casilla (8, 6, 4, 3, 2 o 1): ancho que piden sus acordes vs ancho de la pantalla
+  compasesQueEntran() {
+    const rio = $('#rio'), W = (rio && rio.clientWidth) || 360;
+    const cs = rio ? getComputedStyle(rio) : null, fs = cs ? parseFloat(cs.fontSize) || 24 : 24;
+    const k = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--kLetra')) || 1;
+    const filaPx = fs * Math.min(k, 1.15) / k;   // .fila.compases
+    const cv = this.cvMedir || (this.cvMedir = document.createElement('canvas').getContext('2d'));
+    const ancho = (txt, px) => { cv.font = '800 ' + px + 'px ' + (cs ? cs.fontFamily : 'sans-serif'); return cv.measureText(txt).width; };
+    return cel => {
+      const n = cel.acordes.length;
+      const pide = (porFila) => {
+        const cmpPx = filaPx * (porFila > 2 ? (n >= 4 ? 0.6 : n === 3 ? 0.72 : 1) : 1), acPx = cmpPx * 0.82;
+        let w = cmpPx * 0.7 + 2 + cmpPx * 0.4 * Math.max(0, n - 1);
+        for (const a of cel.acordes) w += ancho(this.nombreAcorde(a.nombre, a.t), acPx);
+        return w;
+      };
+      for (const k of [8, 6, 4, 3, 2]) if (W / k >= filaPx * 3.2 && pide(k) <= W / k) return k;   // y nunca casillas más angostas que ~3 letras grandes
+      return 1;
+    };
   },
   chipAcorde(ac, enCompas) {
     const b = el('b', 'ac'); b.dataset.n = ac.nombre;
@@ -5367,7 +5397,10 @@ document.addEventListener('pointerdown', e => { const M = $('#popCuenta'); if (M
   });
 })();
 
-addEventListener('resize', () => { if (Rep.cancion) requestAnimationFrame(() => Rep.medir()); });
+// (0.9.2) al cambiar ancho o tamaño de letra se rearman las filas de compases (4/2/1 por fila)
+let tRearmar = 0;
+function rearmarTele() { clearTimeout(tRearmar); tRearmar = setTimeout(() => { if (!Rep.cancion) return; try { Rep.armarTele(); } catch (e) {} Rep.medir(); Rep.iViene = -2; Rep.iAc = -2; }, 150); }
+addEventListener('resize', () => { if (Rep.cancion) { requestAnimationFrame(() => Rep.medir()); rearmarTele(); } });
 addEventListener('orientationchange', () => setTimeout(() => Rep.cancion && Rep.medir(), 300));
 
 // ══════════════════════ Menú ══════════════════════
@@ -5857,7 +5890,7 @@ function repetirParte() {
 const Gestos = {
   ultimo: null,                // destino del último salto (para encadenar toques rápidos sin esperar al audio)
   tam() { return Math.min(2.2, Math.max(0.6, +Pref.get('tamLetra', 1) || 1)); },
-  aplicarTam(k) { document.documentElement.style.setProperty('--kLetra', k); if (Rep.cancion) Rep.medir(); },
+  aplicarTam(k) { document.documentElement.style.setProperty('--kLetra', k); if (Rep.cancion) { Rep.medir(); rearmarTele(); } },
   flash(txt) {
     const el = $('#gesto'); el.textContent = txt; el.classList.remove('ver'); void el.offsetWidth; el.classList.add('ver');
     clearTimeout(this.tf); this.tf = setTimeout(() => el.classList.remove('ver'), 750);
