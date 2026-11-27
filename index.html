@@ -111,7 +111,9 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .acs2{display:flex;align-items:baseline;gap:10px;justify-content:center}
 .acAhora{font-size:34px;font-weight:800;color:var(--verde);letter-spacing:-.5px;min-width:1ch;text-align:center}
 .acProx{font-size:17px;color:var(--gris);font-weight:600;white-space:nowrap}
-.key{justify-self:end;text-align:right;color:var(--gris);font-size:12px;font-weight:600;padding:8px 10px;margin:-8px -10px;border-radius:10px;cursor:pointer}
+.key{justify-self:end;text-align:right;color:var(--gris);font-size:12px;font-weight:600;padding:8px 10px;margin:-8px -10px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;gap:6px}
+.key .circ{all:unset;box-sizing:border-box;cursor:pointer;width:2.2em;height:2.2em;min-width:26px;min-height:26px;border-radius:50%;background:var(--panel2);color:var(--texto,#e8ecf1);font-weight:700;font-size:1.05em;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.key #btnLetra{font-size:.85em}.key #btnLetra.apagada{background:transparent;color:var(--gris);text-decoration:line-through;box-shadow:inset 0 0 0 1px var(--panel2)}.key .circ[hidden]{display:none}   /* (0.9.5) ♭/♯ y letra */
 .key:active{background:var(--panel2)}
 .key.grados span::after{content:" · grados";color:var(--acento)}
 .key span:not(:empty)::before{content:"Tono ";font-weight:500}
@@ -215,6 +217,8 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .cargando{position:fixed;inset:0;background:rgba(10,12,14,.72);display:none;align-items:center;justify-content:center;z-index:20;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .cargando.ver{display:flex}
 .cargCaja{width:min(300px,80vw);text-align:center;color:var(--texto)}
+.cargCancelar{all:unset;box-sizing:border-box;cursor:pointer;margin-top:16px;padding:10px 22px;min-height:44px;border-radius:22px;background:var(--panel2);color:var(--texto);font-weight:700;font-size:15px}.cargCancelar[hidden],.cargNota[hidden]{display:none}.cargNota{margin-top:10px;font-size:12px;color:var(--gris)}   /* (0.9.6) */
+.tema.noGuardada{opacity:.38}.franjaOff{font-size:13px;color:#e0b45a;background:#2a2418;border-radius:8px;padding:8px 12px;margin:6px 0 8px}   /* (0.9.6) sin conexión */
 .giro{width:34px;height:34px;margin:0 auto 14px;border-radius:50%;border:3px solid rgba(255,255,255,.15);border-top-color:#fff;animation:gira .8s linear infinite}
 @keyframes gira{to{transform:rotate(360deg)}}
 .cargRiel{height:5px;border-radius:3px;background:rgba(255,255,255,.12);margin-top:12px;overflow:hidden}
@@ -729,7 +733,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
       <div class="ahora">
         <div class="secPul"><span id="seccion"></span><span id="pulsos" class="pulsos"></span></div>
         <div class="acs2"><span id="acAhora" class="acAhora"></span><span id="acProx" class="acProx"></span></div>
-        <div class="key"><span id="tonoKey"></span></div>
+        <div class="key"><span id="tonoKey"></span><button id="btnEscr" class="circ" aria-label="Bemoles o sostenidos">♭</button><button id="btnLetra" class="circ" aria-label="Mostrar u ocultar la letra">Aa</button></div>
       </div>
       <div id="tele" class="tele"><div id="rio" class="rio"></div><div id="gesto"></div></div>
     </div>
@@ -777,7 +781,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
     <div class="puGrupo"><span>El 1 elegido (tocá un rombo)</span><div><button id="puIzq" class="edChip">◀ un pulso</button><button id="puDer" class="edChip">un pulso ▶</button><button id="puBorrar" class="edChip rojo">Borrar</button><button id="puParejo" class="edChip">Parejo desde acá</button><button id="puBorrarTodo" class="edChip rojo">Borrar todos</button></div></div>
   </div>
 </section>
-<div id="cargando" class="cargando"><div class="cargCaja"><div class="giro"></div><div id="cargTxt"></div><div class="cargRiel"><div id="cargBarra"></div></div></div></div>
+<div id="cargando" class="cargando"><div class="cargCaja"><div class="giro"></div><div id="cargTxt"></div><div class="cargRiel"><div id="cargBarra"></div></div><button id="cargCancelar" class="cargCancelar" hidden>✕ Cancelar</button><div id="cargNota" class="cargNota" hidden>Lo que suena sigue sonando</div></div></div>
 
 <div id="menu" class="hoja">
   <div class="hojaCaja">
@@ -2644,6 +2648,7 @@ const Nube = (() => {
     let r = null;
     for (let intento = 0; intento < 4; intento++) {
       r = await fetch(ruta.startsWith('http') ? ruta : GRAPH + ruta, { ...opc, headers: { Authorization: 'Bearer ' + await token(), ...(opc.headers || {}) } });
+      latidoRed();   // (0.9.6) OneDrive respondió: el vigía de la apertura no corta
       if (r.status === 401 && intento === 0) { const s = sesion(); if (s) { s.vence = 0; guardar(s); } continue; }
       if (r.status === 429 || (r.status >= 500 && !escribe)) {
         const ra = +r.headers.get('Retry-After') || 0;
@@ -2795,20 +2800,21 @@ const Nube = (() => {
   const CACHE = 'youstem-canciones-v1';
   const claveCache = (lib, id, rel) => `https://cache.youstem/${encodeURIComponent(lib)}/${encodeURIComponent(id)}/${rel.split('/').map(encodeURIComponent).join('/')}`;
 
-  async function bajar(item, clave, alAvanzar) {
+  async function bajar(item, clave, alAvanzar, senal) {
     const cache = await caches.open(CACHE);
     const hay = await cache.match(clave);
     if (hay && (!item || hay.headers.get('x-etag') === item.eTag)) return hay.arrayBuffer();
     if (!item) throw new Error('falta ' + clave.split('/').pop() + ' en la copia guardada');   // (0.8.0) C12
     const url = item['@microsoft.graph.downloadUrl'];
-    const r = url ? await fetch(url) : await g(`/drives/${item.parentReference.driveId}/items/${item.id}/content`);
+    const r = url ? await fetch(url, senal ? { signal: senal } : undefined) : await g(`/drives/${item.parentReference.driveId}/items/${item.id}/content`);
+    latidoRed();
     if (!r.ok) throw new Error('no pude bajar ' + item.name + ' (' + r.status + ')');
     const total = +r.headers.get('content-length') || item.size || 0;
     const lector = r.body && r.body.getReader ? r.body.getReader() : null;
     let buf;
     if (lector) {
       const partes = []; let n = 0;
-      while (true) { const { done, value } = await lector.read(); if (done) break; partes.push(value); n += value.length; alAvanzar && alAvanzar(n, total); }
+      while (true) { if (senal && senal.aborted) { try { lector.cancel(); } catch {} throw new Error('cancelada'); } const { done, value } = await lector.read(); if (done) break; partes.push(value); n += value.length; latidoRed(); alAvanzar && alAvanzar(n, total); }
       buf = new Uint8Array(n); let o = 0; for (const p of partes) { buf.set(p, o); o += p.length; }
       buf = buf.buffer;
     } else { buf = await r.arrayBuffer(); alAvanzar && alAvanzar(buf.byteLength, total); }
@@ -3280,7 +3286,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.9.4';
+const VERSION = '0.9.6';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -3299,7 +3305,7 @@ function aviso(t, ms = 3200) { const a = $('#aviso'); a.textContent = t; a.class
 function pantalla(id) { document.querySelectorAll('.pantalla').forEach(p => p.classList.toggle('activa', p.id === id)); }
 function cargando(txt, frac) {
   const c = $('#cargando');
-  if (txt == null) { c.classList.remove('ver'); return; }
+  if (txt == null) { c.classList.remove('ver'); $('#cargCancelar').hidden = true; $('#cargNota').hidden = true; return; }
   c.classList.add('ver'); $('#cargTxt').textContent = txt;
   $('#cargBarra').style.width = frac == null ? '0%' : Math.round(frac * 100) + '%';
   $('#cargBarra').parentElement.style.visibility = frac == null ? 'hidden' : 'visible';
@@ -3624,6 +3630,8 @@ const Bib = {
     let i = 0, malas = [];
     await Promise.all([0, 1, 2, 3].map(async () => {
       while (i < faltan.length) {
+        await sinSonar();   // (0.9.6)
+        if (i >= faltan.length) break;
         const c = faltan[i++];
         try { const t = await Nube.tienePistas(c); ok[l.clave + '|' + c.id] = { e: c._etag || '', ok: t }; if (!t) malas.push(c.titulo || c.id); }
         catch (e) { if (e.sinSesion) return; }   // sin red: se revisa la próxima vez
@@ -3836,6 +3844,8 @@ const Bib = {
     lista.sort((a, b) => col.compare(a.c.artista || '', b.c.artista || '') || col.compare(a.c.album || '', b.c.album || '') || col.compare(a.c.titulo || '', b.c.titulo || ''));
     $('#barraLocal').style.display = elegidas.some(v => v.lib.local) ? '' : 'none';
     const cont = $('#lista'); cont.innerHTML = '';
+    const sinRed = Nube.conectado() && !navigator.onLine;   // (0.9.6) sin internet: las no guardadas se ven apagadas
+    if (sinRed) cont.appendChild(el('div', 'franjaOff', 'Sin conexión: solo se abren las guardadas en ' + EQUIPO + '.'));
     let artista = null;
     for (const { c, lib } of lista) {
       if (!qq && (c.artista || '') !== artista) { artista = c.artista || ''; cont.appendChild(el('div', 'grupoArt', artista || 'Sin artista')); }
@@ -3857,6 +3867,8 @@ const Bib = {
       else if (c.privada) ic.appendChild(el('span', 'ic', '🔒'));
       if (c.privadaCarpeta !== undefined && c.privada !== c.privadaCarpeta) ic.appendChild(el('span', 'ic deLib', 'pasando…'));
       if (!lib.local && this.guardadas.has(lib.clave + '|' + c.id)) ic.appendChild(el('span', 'ic guard', '●'));
+      const noGuardada = sinRed && !lib.local && !this.guardadas.has(lib.clave + '|' + c.id);
+      if (noGuardada) { f.classList.add('noGuardada'); ic.appendChild(el('span', 'ic deLib', 'sin conexión')); }
       // (0.4.0) ⭐ lista (curada) · en las tuyas: ⚠ avisos y ✎ correcciones de colegas sin mirar
       if (lib.mia) { const P = Corr.pendientes(c.id); if (P.some(p => p.tipo === 'aviso')) ic.appendChild(el('span', 'ic aviso', '⚠')); if (P.some(p => p.tipo === 'corr')) ic.appendChild(el('span', 'ic corr', '✎')).title = 'Correcciones de ' + [...new Set(P.filter(p => p.tipo === 'corr').map(p => p.lib.nombre))].join(', '); }
       if (c.listaParaVivo) ic.appendChild(el('span', 'ic curada', '🎼')).title = 'Curada: correcciones bloqueadas';   // (0.9.0) antes ⭐
@@ -3866,7 +3878,7 @@ const Bib = {
       ic.appendChild(mas);
       f.appendChild(ic);
       f.addEventListener('contextmenu', e => { e.preventDefault(); this.acciones(c, lib); });   // clic derecho en la compu
-      f.onclick = e => { if (e.target.closest('.masFila')) { e.stopPropagation(); this.acciones(c, lib); return; } abrirCancion(c, lib); };
+      f.onclick = e => { if (e.target.closest('.masFila')) { e.stopPropagation(); this.acciones(c, lib); return; } if (noGuardada && !navigator.onLine) { aviso('Sin conexión: esta canción no está guardada en ' + EQUIPO + '.', 2500); return; } abrirCancion(c, lib); };
       cont.appendChild(f);
     }
     // el buscador busca en las pestañas elegidas; si hay en otras, lo avisa
@@ -3995,7 +4007,7 @@ async function leerCancion(c, lib, red, sigue) {
     const deLaRed = async () => {
       try {
         const a = await Nube.archivosDe(c);
-        Nube.guardarManifiesto(clave('manifiesto'), { raiz: a.raiz.map(x => ({ name: x.name, size: x.size })), pistas: a.pistas.map(x => ({ name: x.name, size: x.size })), dir: a.dirPistas });   // (0.8.0) C11: con tamaños
+        // (0.9.6) el manifiesto (= "guardada") se escribe recién con todo bajado, al final de abrirCancion / guardarCancion
         return { raiz: a.raiz, pistas: a.pistas, dir: a.dirPistas };
       } catch (e) {
         anotar('lista de archivos', e);
@@ -4068,6 +4080,47 @@ async function decodificarPista(p, man, clave, compensacion, notasVoz, progreso,
   return { L, R, n, fija, M };
 }
 
+// (0.9.6) fabao: "me tardó tanto que me desesperé… no tenía forma de cancelar" + "si se nos fue el dedo no podemos cancelar la apertura".
+// Cartel con ✕ Cancelar; si OneDrive no manda nada en 15 s, se cancela solo. Mientras baja, lo que suena SIGUE sonando:
+// se para recién cuando todo está bajado (y ahí se prepara la nueva). Si se cancela mientras prepara, vuelve la anterior en pausa.
+function latidoRed() { try { Apertura.avance(); } catch {} }
+const Apertura = {
+  turno: 0, ctl: null, ult: 0, red: false, timer: 0, prev: null, liberada: false,
+  empezar(turno, prev) {
+    this.fin(); this.turno = turno; this.prev = prev; this.liberada = false; this.red = true; this.ult = Date.now();
+    this.ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    $('#cargCancelar').hidden = false; $('#cargNota').hidden = !Audio.sonando;
+    this.timer = setInterval(() => { if (this.red && Date.now() - this.ult > 15000) this.cancelar('OneDrive no responde. Probá de nuevo.'); }, 1000);
+  },
+  get senal() { return this.ctl ? this.ctl.signal : undefined; },
+  avance() { this.ult = Date.now(); },
+  preparando() { this.red = false; $('#cargNota').hidden = true; },
+  fin() { clearInterval(this.timer); this.timer = 0; this.red = false; },
+  cancelar(motivo) {
+    if (!this.turno || this.turno !== abriendo) return;
+    const prev = this.liberada ? this.prev : null;
+    abriendo++; this.fin(); this.turno = 0;
+    try { this.ctl && this.ctl.abort(); } catch {}
+    cargando(null); abrirCancion.enCurso = 0;
+    anotar('abrir: cancelada', motivo || 'a mano', prev ? '· vuelve ' + (prev.c.titulo || prev.c.id) : '');
+    aviso(motivo || 'Cancelado', motivo ? 4500 : 1400);
+    const esc = Escenario.activo ? Escenario.anteriorAbierta : null;
+    if (esc) {   // en el escenario: vuelve la canción de la lista que estaba (y sus datos de la lista)
+      if (prev) { Escenario.abrir(esc.idx); return; }
+      Escenario.idx = esc.idx; Escenario.cid = esc.cid; Escenario.mix = esc.mix; Rep.mixForzada = esc.mix;
+      try { Escenario.pintar(); } catch {}
+      return;
+    }
+    if (prev) abrirCancion(prev.c, prev.lib, { pos: prev.pos });   // la anterior ya se había soltado: vuelve en pausa, donde estaba
+    else if (!Audio.sonando && !Escenario.activo && !Descargas.activo) pantallaPrendida(false);
+  }
+};
+$('#cargCancelar').onclick = () => Apertura.cancelar();
+addEventListener('online', () => { if ($('#pBib').classList.contains('activa')) Bib.dibujar(); });
+addEventListener('offline', () => { if ($('#pBib').classList.contains('activa')) Bib.dibujar(); });
+// (0.9.6) fabao: "necesitamos dar prioridad a que esté sonando": lo de fondo espera a que pares
+async function sinSonar() { while (Audio.sonando) await new Promise(r => setTimeout(r, 2000)); }
+
 async function abrirCancion(c, lib, op = {}) {
   const turno = ++abriendo;
   if (!Escenario.activo) Rep.mixForzada = null;   // (0.9.0)
@@ -4075,12 +4128,13 @@ async function abrirCancion(c, lib, op = {}) {
   // (0.8.0) A3: `vivo` = esta apertura sigue siendo la última (si tocaste otra canción, esta se abandona en silencio)
   const vivo = () => turno === abriendo;
   let liberada = false;
-  abrirCancion.enCurso = turno;   // (0.8.0) B1: mientras se abre, un reinicio de audio espera
+  // (0.9.6) la que está abierta: si se cancela después de soltarla, vuelve (en pausa, donde estaba)
+  const prev = !op.prep && Rep.cancion && Rep.lib && $('#pRep').classList.contains('activa') ? { c: Rep.cancion, lib: Rep.lib, pos: Audio.ahora() } : null;
   try {
     if (!Audio.ctx) await Audio.iniciar();   // (0.8.0) C10: el motor se arma UNA vez acá (dentro del toque); abajo se renueva solo si ya se usó
     pantallaPrendida(true);   // (0.9.1) fabao: "cuando tarda en descargar un stem se bloquea la pantalla": mientras abre, no se apaga
-    Rep.parar();
     cargando('Abriendo ' + (c.titulo || c.id) + '…');
+    Apertura.empezar(turno, prev);
     const L0 = op.prep ? op.prep.lectura : await leerCancion(c, lib, op.red, vivo);
     if (!L0) return;
     const clave = L0.clave; let { man, anJ, pistas } = L0; const { leJ, ajJ, vmJ, compensacion } = L0;
@@ -4096,13 +4150,32 @@ async function abrirCancion(c, lib, op = {}) {
     // bajar (o leer del iPhone) y decodificar de a una: así entra en memoria
     const total = pistas.reduce((s, p) => s + (p.f.size || 0), 0) || 1;
     let hecho = 0, memoria = 0;
+    // (0.9.6) 1) primero se BAJA todo lo que falte, de a una pista, sin tocar lo que suena (bajar es red: no le roba al audio)
+    if (!op.prep) {
+      let base = 0;
+      for (const p of pistas) {
+        if (!vivo()) return;
+        const it = item(man.pistas, p.f.name), k = clave(man.dir + '/' + p.f.name);
+        if (man.offline) { if (!(await Nube.hay(k))) throw new Error('Sin conexión, y esta canción no terminó de guardarse en ' + EQUIPO + '.'); }
+        else if (!it || (await Nube.etagCache(k)) !== (it.eTag || '')) {
+          const b0 = base;
+          await Nube.bajar(it, k, n => cargando(`Bajando ${p.nombre}…`, Math.min(1, (b0 + n) / total)), Apertura.senal);
+        }
+        base += p.f.size || 0;
+      }
+    }
+    // 2) recién ahora se para lo que suena y se prepara la nueva (todo sale de lo guardado en el aparato)
+    if (!vivo()) return;
+    Apertura.preparando();
+    Rep.parar();
+    abrirCancion.enCurso = turno;   // (0.8.0) B1: mientras se prepara, un reinicio de audio espera (antes de esto, la anterior se puede reiniciar)
     // (0.3.8) antes de cargar: el motor suelta la canción anterior y la pantalla también, y se le da un respiro al navegador
     // (0.7.3) fabao: "que se reinicie el audio al entrar a la canción". Cada canción arranca con un motor de audio NUEVO
     // (lo mismo que Menú › Reiniciar el audio), armado justo antes de cargar las pistas: nada de la canción anterior
     // ni de una salida que se trabó queda colgado. (Las pistas pasan al motor a medida que se decodifican, por eso el
     // motor nuevo va antes de la carga y no después.)
     if (!vivo()) return;
-    Rep.liberar(); liberada = true;
+    Rep.liberar(); liberada = true; Apertura.liberada = true;
     if (op.mismoMotor && Audio.ctx && Audio.nodo) {   // (0.9.1) escenario de corrido: el mismo motor (un AudioContext nuevo pediría un toque)
       Audio.enviar({ t: 'vaciar' }); await Audio.listo();
     } else if (Audio.usado) {   // (0.8.0) C10: si el motor es nuevo y sin pistas, se usa ese (no se tira para armar otro igual)
@@ -4136,7 +4209,7 @@ async function abrirCancion(c, lib, op = {}) {
     if (!man.offline) Nube.guardarManifiesto(clave('manifiesto'), { raiz: man.raiz.map(x => ({ name: x.name, size: x.size })), pistas: man.pistas.map(x => ({ name: x.name, size: x.size })), dir: man.dir });
     Bib.guardadas.add(lib.clave + '|' + c.id);
     if (turno !== abriendo) return;
-    cargando(null);
+    cargando(null); Apertura.fin(); Apertura.turno = 0;
     Rep.anJson = anJ;
     Rep.restaurar = op;
     Rep.mostrar(c, lib, cargadas, Modelo.Analisis.deJson(anJ), Modelo.letraDeJson(leJ), Modelo.ajustesDeJson(ajJ || {}));
@@ -4145,13 +4218,15 @@ async function abrirCancion(c, lib, op = {}) {
   } catch (e) {
     anotar('abrir', c.id, e);
     if (!vivo()) return;   // (0.8.0) B5: una apertura abandonada no tapa a la nueva con su error
-    cargando(null);
+    cargando(null); Apertura.fin(); Apertura.turno = 0;
     // (0.8.0) B6: si falló después de soltar la canción anterior, no se puede quedar en Reproducción con la UI vieja
     if (liberada && $('#pRep').classList.contains('activa')) { Rep.parar(); pantalla('pBib'); Bib.dibujar(); }
     if (e.sinSesion) { try { sessionStorage.setItem('ys.retomar', JSON.stringify({ lib: lib.clave, id: c.id, cuando: Date.now() })); } catch {} sesionVencida(); return; }
-    aviso(/failed to fetch|load failed|network/i.test(e.message || '') ? 'Se cortó la conexión mientras bajaba la canción. Probá de nuevo.' : (e.message || String(e)), 6000);
+    const deRed = /failed to fetch|load failed|network/i.test(e.message || '');
+    aviso(deRed && !navigator.onLine ? 'Sin conexión: esta canción no está guardada en ' + EQUIPO + '.' : deRed ? 'Se cortó la conexión mientras bajaba la canción. Probá de nuevo.' : (e.message || String(e)), 6000);   // (0.9.6)
   } finally {
     if (abrirCancion.enCurso === turno) abrirCancion.enCurso = 0;
+    if (Apertura.turno === turno) { Apertura.fin(); Apertura.turno = 0; }
     if (turno === abriendo && !Audio.sonando && !Escenario.activo && !Descargas.activo) pantallaPrendida(false);
   }
 }
@@ -4211,6 +4286,7 @@ const ColaAlDia = {
   async seguir() {
     this.activo = true;
     while (this.cola.length) {
+      await sinSonar();   // (0.9.6) primero lo que suena
       const { c, lib } = this.cola.shift();
       try { const r = await traerCambios(c, lib); if (r) { anotar('al día (biblioteca)', c.id); mostrarCambios(c, lib, null, r); } }
       catch (e) { anotar('al día (biblioteca)', c.id, e); }
@@ -4247,6 +4323,7 @@ const Rep = {
     this.enviarPesos();
     this.armarRegiones();
     this.armarClick();
+    this.leerVista();   // (0.9.5) ♭/♯ y letra de esta canción en este aparato
     this.tono = Math.round(this.aj.tono || 0);
     this.tempo = +this.aj.tempoWeb > 0.45 && +this.aj.tempoWeb < 1.25 ? +this.aj.tempoWeb : 1;   // (0.8.5) solo de este aparato
     this.aplicarTono();
@@ -4305,6 +4382,27 @@ const Rep = {
   },
   // ── tus cambios en el iPhone quedan guardados por canción (la Mac no se toca) ──
   claveLocal() { return 'ys.local.' + this.lib.clave + '|' + this.cancion.id; },
+  // (0.9.5) fabao: circulito ♭/♯ al lado de Tono y Aa para apagar la letra. Por canción, solo en este aparato, solo visual.
+  claveVista() { return 'ys.vista.' + this.lib.clave + '|' + this.cancion.id; },
+  leerVista() { let v = {}; try { v = JSON.parse(localStorage.getItem(this.claveVista()) || '{}') || {}; } catch {} this.escritura = v.escritura === 's' || v.escritura === 'b' ? v.escritura : null; this.sinLetra = !!v.sinLetra; },
+  guardarVista() { try { const v = {}; if (this.escritura) v.escritura = this.escritura; if (this.sinLetra) v.sinLetra = true; if (Object.keys(v).length) localStorage.setItem(this.claveVista(), JSON.stringify(v)); else localStorage.removeItem(this.claveVista()); } catch {} },
+  rearmarVista() { if (!this.rio) return; this.armarTele(); this.medir(); this.iViene = -2; this.iAc = -2; },
+  cambiarEscritura() {
+    this.escritura = this.bemol ? 's' : 'b';
+    this.guardarVista(); this.aplicarTonoTexto(); this.rearmarVista();
+    aviso(this.escritura === 's' ? 'Sostenidos (♯)' : 'Bemoles (♭)', 1400);
+  },
+  cambiarLetra() {
+    this.sinLetra = !this.sinLetra;
+    this.guardarVista(); this.pintarBotonesVista(); this.rearmarVista();
+    aviso(this.sinLetra ? 'Letra apagada: solo acordes' : 'Letra prendida', 1400);
+  },
+  pintarBotonesVista() {
+    const b = $('#btnEscr'), l = $('#btnLetra'); if (!b) return;
+    b.textContent = this.bemol ? '♭' : '♯';
+    const hayLetra = !!(this.letra && this.letra.lineas && this.letra.lineas.some(x => x.t >= 0 && String(x.texto || '').trim()));
+    l.hidden = !hayLetra; l.classList.toggle('apagada', !!this.sinLetra);
+  },
   // (0.4.0) se abre LIMPIA, para escuchar los stems: la preparación en vivo de la Mac (mutes, solos, volúmenes, click,
   // cuenta y banderas) no se usa. Se quedan el tono, los nombres, colores, grupos y tramos de la Mac.
   limpio(aj) {
@@ -4561,6 +4659,10 @@ const Rep = {
   aplicarTonoTexto() {
     const tt = Modelo.tonoTranspuesto(this.an.tonoEn(Audio.ahora()), this.tono);
     this.bemol = Modelo.tonoTranspuesto(this.an.tonalidad, this.tono).bemol;   // la ortografía, por el tono de la canción
+    if (this.escritura) this.bemol = this.escritura === 'b';   // (0.9.5) elegida a mano con el circulito
+    const tt2 = this.escritura ? { nombre: Modelo.transponer(Modelo.tonoTranspuesto(this.an.tonoEn(Audio.ahora()), 0).nombre || '', this.tono, this.bemol) } : null;
+    if (tt2 && tt2.nombre) tt.nombre = tt2.nombre;
+    this.pintarBotonesVista();
     $('#tonoKey').textContent = Modelo.lindo(tt.nombre);
     $('#tonoNumKey').textContent = 'Tono ' + Modelo.lindo(tt.nombre);
   },
@@ -4683,7 +4785,7 @@ const Rep = {
   // ══════════ TELEPROMPTER: letra con los acordes sobre la palabra, y compases sin letra ══════════
   armarTele() {
     this.genTele = (this.genTele || 0) + 1;
-    const an = this.an, le = this.letra, rio = $('#rio');
+    const an = this.an, le = this.sinLetra ? { lineas: [], palabras: [] } : this.letra, rio = $('#rio');   // (0.9.5) Aa apagado: solo acordes
     rio.innerHTML = ''; this.rio = rio; this.filasTele = []; this.palabrasEl = []; this.acordesEl = [];
     const acordes = an.valido || an.acordes.length ? an.acordesAlPulso().filter(a => !a.sigue) : [];
     this.acordes = acordes;
@@ -5206,6 +5308,8 @@ $('#btnInicio').onclick = () => Rep.alInicio();
 $('#tonoMenos').onclick = () => Rep.cambiarTono(-1);
 $('#tonoMas').onclick = () => Rep.cambiarTono(+1);
 $('#tonoKey').parentElement.onclick = () => Rep.cambiarNotacion();
+$('#btnEscr').onclick = e => { e.stopPropagation(); Rep.cambiarEscritura(); };
+$('#btnLetra').onclick = e => { e.stopPropagation(); Rep.cambiarLetra(); };
 $('#tonoNum').onclick = () => { Rep.tono = Math.round(Rep.ajMac.tono || 0); Rep.aplicarTono(); Rep.guardarLocal(); aviso('Tono como en la Mac.'); };
 // (0.8.5) tono y tempo: el cuadrito de arriba abre el panel
 $('#tempoMenos').onclick = () => Rep.ponerTempo((Rep.tempo || 1) - 0.05);
@@ -8532,6 +8636,7 @@ const Escenario = {
     while (i < l.ids.length && !Listas.resolver(l.ids[i])) i++;
     if (i >= l.ids.length) { aviso('Fin de la lista.'); return; }
     if (!o.auto) { this.auto = null; this.esconderCuenta(); }
+    this.anteriorAbierta = this.cid && Rep.cancion ? { idx: this.idx, cid: this.cid, mix: this.mix } : null;   // (0.9.6) si se cancela la apertura
     this.idx = i;
     const cid = l.ids[i], r = Listas.resolver(cid);
     this.mix = Listas.mezclaShow(l, cid, this.version);
