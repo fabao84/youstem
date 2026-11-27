@@ -111,9 +111,10 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .acs2{display:flex;align-items:baseline;gap:10px;justify-content:center}
 .acAhora{font-size:34px;font-weight:800;color:var(--verde);letter-spacing:-.5px;min-width:1ch;text-align:center}
 .acProx{font-size:17px;color:var(--gris);font-weight:600;white-space:nowrap}
-.key{justify-self:end;text-align:right;color:var(--gris);font-size:12px;font-weight:600;padding:8px 10px;margin:-8px -10px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;gap:6px}
-.key .circ{all:unset;box-sizing:border-box;cursor:pointer;width:2.2em;height:2.2em;min-width:26px;min-height:26px;border-radius:50%;background:var(--panel2);color:var(--texto,#e8ecf1);font-weight:700;font-size:1.05em;display:inline-flex;align-items:center;justify-content:center;flex:none}
-.key #btnLetra{font-size:.85em}.key #btnLetra.apagada{background:transparent;color:var(--gris);text-decoration:line-through;box-shadow:inset 0 0 0 1px var(--panel2)}.key .circ[hidden]{display:none}   /* (0.9.5) ♭/♯ y letra */
+.key{justify-self:end;text-align:right;color:var(--gris);font-size:12px;font-weight:600;padding:8px 10px;margin:-8px -10px;border-radius:10px;display:flex;align-items:center;justify-content:flex-end;gap:0}
+#tonoKey{cursor:pointer;padding:8px 6px;margin:-8px 0}   /* (0.9.7) */
+.key .circ{all:unset;box-sizing:border-box;cursor:pointer;width:calc(2.2em + 12px);height:calc(2.2em + 12px);min-width:38px;min-height:38px;padding:6px;background-clip:content-box;margin:-6px -2px;border-radius:50%;background:var(--panel2);-webkit-tap-highlight-color:transparent;touch-action:manipulation;color:var(--texto,#e8ecf1);font-weight:700;font-size:1.05em;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.key #btnLetra{font-size:.85em}.key #btnLetra.apagada{color:var(--gris);text-decoration:line-through;opacity:.55}.key .circ[hidden]{display:none}   /* (0.9.5) ♭/♯ y letra */
 .key:active{background:var(--panel2)}
 .key.grados span::after{content:" · grados";color:var(--acento)}
 .key span:not(:empty)::before{content:"Tono ";font-weight:500}
@@ -3286,7 +3287,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.9.6';
+const VERSION = '0.9.8';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -4988,7 +4989,8 @@ const Rep = {
       if (this.iFila >= 0 && F[this.iFila]) F[this.iFila].el.classList.remove('actual');
       F[i].el.classList.add('actual');
       F.forEach((f, k) => f.el.classList.toggle('pasada', k < i));
-      const y = (F[i].y || 0) - Math.round(this.altoTele * 0.28);
+      // (0.9.8) fabao: "al comienzo siempre hay un espacio grande arriba": la letra nunca baja de la primera fila
+      const y = Math.max((F[0].y || 0) - 8, (F[i].y || 0) - Math.round(this.altoTele * 0.28));
       const rio = this.rio;
       if (this.saltoTele) { rio.style.transition = 'none'; rio.style.transform = `translateY(${-y}px)`; void rio.offsetHeight; rio.style.transition = ''; }
       else rio.style.transform = `translateY(${-y}px)`;
@@ -5021,7 +5023,8 @@ const Rep = {
     const E = this.acordesEl; let prox = null;
     if (this.saltoTele || this.iChip == null || this.iChip >= E.length || (E[this.iChip] && E[this.iChip].t > t + 0.05)) this.iChip = 0;
     let k = this.iChip; while (k + 1 < E.length && E[k + 1].t <= t + 0.05) k++;
-    this.iChip = k;
+    if (k === 0 && E.length && E[0].t > t + 0.05) k = -1;   // (0.9.8) antes del primer acorde: el azul es el PRIMERO (antes salía el segundo)
+    this.iChip = Math.max(0, k);
     for (let j = k + 1; j < E.length; j++) if (E[j].t > t + 0.05) { if (!Modelo.esSilencio(E[j].n)) prox = E[j]; break; }
     const desde = this.saltoTele ? 0 : Math.max(0, k - 12), hasta = this.saltoTele ? E.length : Math.min(E.length, k + 14);
     for (let j = desde; j < hasta; j++) {
@@ -5307,7 +5310,7 @@ $('#btnPlay').onclick = () => Audio.sonando ? Rep.pausa() : Rep.tocar();
 $('#btnInicio').onclick = () => Rep.alInicio();
 $('#tonoMenos').onclick = () => Rep.cambiarTono(-1);
 $('#tonoMas').onclick = () => Rep.cambiarTono(+1);
-$('#tonoKey').parentElement.onclick = () => Rep.cambiarNotacion();
+$('#tonoKey').onclick = e => { e.stopPropagation(); Rep.cambiarNotacion(); };   // (0.9.7) solo el texto «Tono …»: el dedo que caía al lado de ♭/Aa cambiaba el cifrado
 $('#btnEscr').onclick = e => { e.stopPropagation(); Rep.cambiarEscritura(); };
 $('#btnLetra').onclick = e => { e.stopPropagation(); Rep.cambiarLetra(); };
 $('#tonoNum').onclick = () => { Rep.tono = Math.round(Rep.ajMac.tono || 0); Rep.aplicarTono(); Rep.guardarLocal(); aviso('Tono como en la Mac.'); };
