@@ -136,6 +136,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .fila.sec.actual{background:#2c3440;color:var(--texto)}
 .fila.compases{display:flex;gap:0;margin-bottom:.45em;font-size:calc(1em * min(var(--kLetra,1), 1.15) / var(--kLetra,1))}   /* (0.8.5) la grilla de compases casi no crece con el pellizco: no entra */
 .cmp{flex:1 1 0;min-width:0;box-sizing:border-box;border-left:2px solid rgba(255,255,255,.14);padding:.08em .35em;display:flex;flex-wrap:wrap;column-gap:.4em;row-gap:0;align-items:baseline}   /* (0.9.2) si igual no entran, bajan de línea (nunca se pisan) */
+.cmp.prop{column-gap:0;flex-wrap:nowrap}.cmp .sl{flex-grow:0;flex-shrink:1;min-width:max-content}.cmp .sl .ac{margin-right:.4em}   /* (0.9.3) cada acorde en su tiempo */
 .cmp:last-child{border-right:2px solid rgba(255,255,255,.14)}
 .cmp .ac{font-size:.82em}
 .ac.repite{opacity:.35}
@@ -401,6 +402,7 @@ html.app .pantalla{padding-top:calc(var(--sa-t) + 12px)}
 .vac.ya{color:var(--tenue)}
 .va.tres{font-size:15px}
 .va{font-size:19px;font-weight:700;color:var(--acorde);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.va.dos{white-space:normal;display:flex;flex-direction:column;line-height:1.08;flex:1;min-height:0}.va.dos .vac{align-self:flex-start}   /* (0.9.4) dos acordes que no entran: uno debajo del otro */
 .vs{position:absolute;top:2px;left:8px;font-size:9px;font-weight:800;color:var(--gris);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;overflow:hidden;max-width:90%}
 .ancha .transporte{padding:2px 0}
 .ancha .mezcla{height:clamp(170px,26vh,230px);flex:none;padding:0}
@@ -3278,7 +3280,7 @@ const Melodia = (() => {
 })();
 
 // ── YouSTEM web · app ─────────────────────────────────────────────────────────
-const VERSION = '0.9.2';
+const VERSION = '0.9.4';
 const DE_EQUIPO = () => EQUIPO.startsWith('el ') ? 'del ' + EQUIPO.slice(3) : 'de ' + EQUIPO;
 const EQUIPO = /iPhone/.test(navigator.userAgent) ? 'el iPhone' : /iPad/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent)) ? 'el iPad' : 'este dispositivo';
 const $ = s => document.querySelector(s);
@@ -4793,11 +4795,25 @@ const Rep = {
           const c = el('span', 'cmp' + ((f.porFila || f.celdas.length) > 2 ? (cel.acordes.length >= 4 ? ' n4' : cel.acordes.length === 3 ? ' n3' : '') : ''));   // (0.9.2) achicar solo si son 4 por fila
           // verde hasta que suena el acorde siguiente (aunque siga en el compás de al lado)
           cel.acordes.forEach((ac, j) => { let fin = cel.fin; for (const x of acordes) { if (x.t <= ac.t + 0.05) fin = x.finV; else break; } ac.finV = j + 1 < cel.acordes.length ? Math.min(fin, cel.acordes[j + 1].t) : fin; });
-          for (const ac of cel.acordes) {
+          // (0.9.3) fabao: "el acorde dos está muy pegado al acorde 1" → boceto A: con 2+ acordes, cada uno ocupa el tramo del compás
+          // que dura (el del tiempo 3 empieza a mitad del compás). Si no entran, se corren lo justo (min-width) y nunca se pisan.
+          // (0.9.4) todas las casillas con la misma estructura (si no, las de un acorde quedaban más arriba que las de dos)
+          const prop = cel.acordes.length > 0, durC = Math.max(0.01, cel.fin - cel.t);
+          if (prop) {
+            if (cel.acordes.length > 1) c.classList.add('prop');
+            const lead = cel.acordes.length ? (cel.acordes[0].t - cel.t) / durC : 0;
+            if (lead > 0.05) { const sp = el('span', 'sl'); sp.style.flexBasis = (lead * 100) + '%'; sp.style.minWidth = '0'; c.appendChild(sp); }
+          }
+          cel.acordes.forEach((ac, j) => {
             const chip = this.chipAcorde(ac, true);
             if (cel.acordes.length === 1 && ant === ac.nombre) chip.classList.add('repite');
-            c.appendChild(chip); ant = ac.nombre;
-          }
+            if (prop) {
+              const fin = j + 1 < cel.acordes.length ? cel.acordes[j + 1].t : cel.fin;
+              const sl = el('span', 'sl'); sl.style.flexBasis = (Math.max(0, fin - ac.t) / durC * 100) + '%';
+              sl.appendChild(chip); c.appendChild(sl);
+            } else c.appendChild(chip);
+            ant = ac.nombre;
+          });
           if (f.porFila) c.style.flex = '0 0 ' + (100 / f.porFila) + '%';   // (0.9.2) la última fila corta no se estira: barras alineadas
           d.appendChild(c);
         }
@@ -4817,6 +4833,7 @@ const Rep = {
   // (0.9.2) cuántos compases por fila admite una casilla (8, 6, 4, 3, 2 o 1): ancho que piden sus acordes vs ancho de la pantalla
   compasesQueEntran() {
     const rio = $('#rio'), W = (rio && rio.clientWidth) || 360;
+    this.anchoTele = rio ? rio.clientWidth : 0;   // (0.9.4) si al armar todavía no tenía su ancho, medir() rearma
     const cs = rio ? getComputedStyle(rio) : null, fs = cs ? parseFloat(cs.fontSize) || 24 : 24;
     const k = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--kLetra')) || 1;
     const filaPx = fs * Math.min(k, 1.15) / k;   // .fila.compases
@@ -4826,9 +4843,9 @@ const Rep = {
       const n = cel.acordes.length;
       const pide = (porFila) => {
         const cmpPx = filaPx * (porFila > 2 ? (n >= 4 ? 0.6 : n === 3 ? 0.72 : 1) : 1), acPx = cmpPx * 0.82;
-        let w = cmpPx * 0.7 + 2 + cmpPx * 0.4 * Math.max(0, n - 1);
+        let w = cmpPx * 0.7 + 2 + cmpPx * 0.4 * n;   // cada acorde lleva su aire a la derecha (0.9.3)
         for (const a of cel.acordes) w += ancho(this.nombreAcorde(a.nombre, a.t), acPx);
-        return w;
+        return w * 1.06 + 2;   // holgura: el que suena se agranda
       };
       for (const k of [8, 6, 4, 3, 2]) if (W / k >= filaPx * 3.2 && pide(k) <= W / k) return k;   // y nunca casillas más angostas que ~3 letras grandes
       return 1;
@@ -4846,6 +4863,9 @@ const Rep = {
     this.altoTele = tele.clientHeight;
     for (const f of this.filasTele) { f.y = f.el.offsetTop; f.h = f.el.offsetHeight; }
     this.saltoTele = true;
+    // (0.9.4) fabao (computadora): 1 compás por fila. Al abrir, la letra todavía no tenía su ancho (se calculaba con 360 px de teléfono).
+    const rio = $('#rio'), w = rio ? rio.clientWidth : 0;
+    if (w && this.filasTele.some(f => f.tipo === 'compases') && Math.abs(w - (this.anchoTele || 0)) > 8) { this.anchoTele = w; rearmarTele(); }
   },
 
   // un cuadro de animación: cabezal, karaoke, acorde que suena, compás y pulso
@@ -5024,6 +5044,18 @@ const Rep = {
         d.appendChild(va);
         if (cel.acordes.length) ant = cel.acordes[cel.acordes.length - 1].nombre;
         caja.appendChild(d);
+      }
+      // (0.9.4) fabao: en la grilla salían "E♭maj…" / "B♭m7 …": la casilla achica su letra hasta que entra (mínimo 11 px)
+      for (const va of caja.querySelectorAll('.va')) {
+        let px = parseFloat(getComputedStyle(va).fontSize) || 19;
+        const extra = va.parentElement.classList.contains('on') ? 14 : 0;   // el que suena lleva fondo verde con relleno
+        const no = () => va.scrollWidth > va.clientWidth || (extra && Math.max(...[...va.children].map(c => c.offsetLeft + c.offsetWidth)) - va.offsetLeft + extra > va.clientWidth);
+        while (no() && px > 15) { px -= 1; va.style.fontSize = px + 'px'; }
+        if (no() && va.children.length > 1) {   // dos o más acordes: uno debajo del otro, en vez de achicar más
+          va.classList.add('dos'); px = 17; va.style.fontSize = px + 'px';
+          if (!va.parentElement.querySelector('.vs')) va.parentElement.style.padding = '3px 10px';   // sin nombre de sección: usa todo el alto
+          while ((no() || va.scrollHeight > va.clientHeight + 1) && px > 12) { px -= 1; va.style.fontSize = px + 'px'; }
+        } else while (no() && px > 11) { px -= 1; va.style.fontSize = px + 'px'; }
       }
     }
     // en el compás que suena: el acorde de ahora en verde, los que ya pasaron apagados
@@ -5401,6 +5433,8 @@ document.addEventListener('pointerdown', e => { const M = $('#popCuenta'); if (M
 let tRearmar = 0;
 function rearmarTele() { clearTimeout(tRearmar); tRearmar = setTimeout(() => { if (!Rep.cancion) return; try { Rep.armarTele(); } catch (e) {} Rep.medir(); Rep.iViene = -2; Rep.iAc = -2; }, 150); }
 addEventListener('resize', () => { if (Rep.cancion) { requestAnimationFrame(() => Rep.medir()); rearmarTele(); } });
+// (0.9.4) el ancho de la letra recién se conoce cuando se ve la canción: al cambiar, medir() rearma las filas de compases
+try { const rioObs = document.getElementById('rio'); if (rioObs && window.ResizeObserver) new ResizeObserver(() => { if (Rep.cancion) Rep.medir(); }).observe(rioObs); } catch (e) {}
 addEventListener('orientationchange', () => setTimeout(() => Rep.cancion && Rep.medir(), 300));
 
 // ══════════════════════ Menú ══════════════════════
